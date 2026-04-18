@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea, ResponsiveContainer,
 } from 'recharts';
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -29,7 +29,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-const PayoffChart = ({ data, breakEvens, stockPrice, title }) => {
+const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [] }) => {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
     return data.map(d => ({
@@ -38,6 +38,26 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title }) => {
       lossArea: d.pnlAtExpiry < 0 ? d.pnlAtExpiry : 0,
     }));
   }, [data]);
+
+  // Strikes from option legs (stock legs excluded)
+  const optionStrikes = useMemo(() => {
+    const strikes = (legs || [])
+      .filter((l) => l && l.type !== 'stock' && Number.isFinite(l.strike))
+      .map((l) => ({ strike: l.strike, type: l.type, action: l.action }));
+    // Deduplicate by strike
+    const seen = new Set();
+    return strikes.filter((s) => {
+      if (seen.has(s.strike)) return false;
+      seen.add(s.strike);
+      return true;
+    });
+  }, [legs]);
+
+  // Domain X (min/max of chart prices) for moneyness zone shading
+  const xDomain = useMemo(() => {
+    if (!chartData.length) return [0, 0];
+    return [chartData[0].price, chartData[chartData.length - 1].price];
+  }, [chartData]);
 
   const yDomain = useMemo(() => {
     if (!chartData.length) return [-100, 100];
@@ -72,10 +92,10 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title }) => {
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        <div className="flex items-center gap-5 text-[10px]">
+        <div className="flex items-center gap-4 text-[10px] flex-wrap">
           <div className="flex items-center gap-1.5">
             <div className="w-4 h-[2px] rounded bg-[#22c55e]"></div>
-            <span className="text-muted-foreground">Current P&L</span>
+            <span className="text-muted-foreground">Current</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-4 h-[2px] rounded bg-white opacity-50"></div>
@@ -88,6 +108,19 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title }) => {
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm bg-[#ef4444]/20"></div>
             <span className="text-muted-foreground">Loss</span>
+          </div>
+          <span className="text-muted-foreground/40">|</span>
+          <div className="flex items-center gap-1.5" title="In-The-Money zone (Call: S>K, Put: S<K)">
+            <div className="w-3 h-3 rounded-sm bg-[#4ade80]/25 border border-[#4ade80]/40"></div>
+            <span className="text-muted-foreground">ITM</span>
+          </div>
+          <div className="flex items-center gap-1.5" title="At-The-Money (Spot ≈ Strike)">
+            <div className="w-3 h-3 rounded-sm bg-[#eab308]/25 border border-[#eab308]/40"></div>
+            <span className="text-muted-foreground">ATM</span>
+          </div>
+          <div className="flex items-center gap-1.5" title="Out-of-The-Money zone (Call: S<K, Put: S>K)">
+            <div className="w-3 h-3 rounded-sm bg-[#f87171]/25 border border-[#f87171]/40"></div>
+            <span className="text-muted-foreground">OTM</span>
           </div>
         </div>
       </div>
@@ -111,6 +144,70 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title }) => {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#1a2238" vertical={false} />
+
+            {/* Moneyness zones — shaded areas showing ITM/ATM/OTM per option strike.
+                For CALL: ITM = price < strike (shifted), OTM = price > strike. Actually
+                for a CALL owner, ITM means S > K; but on the X axis (price at expiry) the
+                "ITM zone" is X > K for calls and X < K for puts. We shade per leg strike. */}
+            {optionStrikes.map((opt, i) => {
+              const K = opt.strike;
+              const atmBand = (xDomain[1] - xDomain[0]) * 0.02; // ±2% of range around strike = ATM
+              const isCall = opt.type === 'call';
+              return (
+                <React.Fragment key={`mz-${i}-${K}`}>
+                  {/* ITM zone (light green) */}
+                  <ReferenceArea
+                    x1={isCall ? K + atmBand : xDomain[0]}
+                    x2={isCall ? xDomain[1] : K - atmBand}
+                    y1={yDomain[0]}
+                    y2={yDomain[1]}
+                    fill="#4ade80"
+                    fillOpacity={0.07}
+                    stroke="none"
+                    ifOverflow="hidden"
+                  />
+                  {/* ATM zone (yellow) narrow band around strike */}
+                  <ReferenceArea
+                    x1={K - atmBand}
+                    x2={K + atmBand}
+                    y1={yDomain[0]}
+                    y2={yDomain[1]}
+                    fill="#eab308"
+                    fillOpacity={0.18}
+                    stroke="none"
+                    ifOverflow="hidden"
+                  />
+                  {/* OTM zone (light red) */}
+                  <ReferenceArea
+                    x1={isCall ? xDomain[0] : K + atmBand}
+                    x2={isCall ? K - atmBand : xDomain[1]}
+                    y1={yDomain[0]}
+                    y2={yDomain[1]}
+                    fill="#f87171"
+                    fillOpacity={0.07}
+                    stroke="none"
+                    ifOverflow="hidden"
+                  />
+                  {/* Strike vertical line */}
+                  <ReferenceLine
+                    x={K}
+                    stroke={isCall ? '#4ade80' : '#f87171'}
+                    strokeDasharray="2 3"
+                    strokeOpacity={0.75}
+                    strokeWidth={1.2}
+                    label={{
+                      value: `${opt.action === 'buy' ? '+' : '−'}${opt.type.toUpperCase()} $${K}`,
+                      position: 'insideBottom',
+                      fill: isCall ? '#4ade80' : '#f87171',
+                      fontSize: 10,
+                      fontFamily: 'JetBrains Mono',
+                      offset: 8,
+                    }}
+                  />
+                </React.Fragment>
+              );
+            })}
+
             <XAxis
               dataKey="price" stroke="#262626"
               tick={xAxisTick}

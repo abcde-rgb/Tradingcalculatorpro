@@ -382,6 +382,7 @@ const CalculatorPage = () => {
                   data={payoffData}
                   breakEvens={breakEvens}
                   stockPrice={stock?.price}
+                  legs={legs}
                   title={builderMode === 'custom' ? `Custom — ${ticker}` : `${selectedStrategy.name} — ${ticker}`}
                 />
               </div>
