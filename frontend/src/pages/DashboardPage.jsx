@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { PriceTicker } from '@/components/dashboard/PriceTicker';
 import { TradingViewChart } from '@/components/charts/TradingViewChart';
 import { PercentageCalculator } from '@/components/calculators/PercentageCalculator';
@@ -300,6 +301,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

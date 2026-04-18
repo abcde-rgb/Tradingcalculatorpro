@@ -5,6 +5,7 @@ import { Crown, Check, CreditCard, Wallet, Bitcoin, ArrowRight, Loader2, Buildin
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { toast } from 'sonner';
@@ -315,6 +316,7 @@ export default function PricingPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { User, Mail, Crown, Calendar, LogOut, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { useAuthStore } from '@/lib/store';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -122,6 +123,7 @@ export default function SettingsPage() {
           </Card>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

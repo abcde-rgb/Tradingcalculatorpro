@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { useThemeStore } from '@/lib/theme';
@@ -500,58 +501,7 @@ export default function LandingPage() {
       </section>
       
       {/* Footer */}
-      <footer className="py-12 px-4 border-t border-border">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-6 h-6 text-primary" />
-                <span className="font-bold">{t('appName')}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {t('tagline')}
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-bold mb-4">{t('product')}</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link to="/dashboard" className="hover:text-primary">{t('dashboard')}</Link></li>
-                <li><Link to="/pricing" className="hover:text-primary">{t('pricing')}</Link></li>
-                <li><Link to="/education" className="hover:text-primary">{t('education')}</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-bold mb-4">{t('resources')}</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link to="/education" className="hover:text-primary">{t('educationCenter')}</Link></li>
-                <li><a href="#" className="hover:text-primary">{t('apiDocs')}</a></li>
-                <li><a href="#" className="hover:text-primary">{t('support')}</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-bold mb-4">{t('legal')}</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary">{t('terms')}</a></li>
-                <li><a href="#" className="hover:text-primary">{t('privacyPolicy')}</a></li>
-                <li><a href="#" className="hover:text-primary">{t('cookies')}</a></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-border">
-            <p className="text-muted-foreground text-sm">© 2024 {t('appName')}. {t('allRightsReserved')}.</p>
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={toggleTheme}>
-                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </Button>
-              <Globe className="w-5 h-5 text-muted-foreground" />
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

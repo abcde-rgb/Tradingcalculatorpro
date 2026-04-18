@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CheckCircle, Calendar, CreditCard, Download, ExternalLink } from 'lucide-react';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -155,25 +157,31 @@ export default function SubscriptionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background p-4 pt-20">
-        <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
-            <div className="h-48 bg-muted rounded mb-4"></div>
-            <div className="h-64 bg-muted rounded"></div>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="p-4 pt-20">
+          <div className="max-w-4xl mx-auto">
+            <div className="animate-pulse">
+              <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
+              <div className="h-48 bg-muted rounded mb-4"></div>
+              <div className="h-64 bg-muted rounded"></div>
+            </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 pt-20">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Mi Suscripción</h1>
-          <p className="text-muted-foreground">Gestiona tu suscripción y facturación</p>
-        </div>
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="p-4 pt-20">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Mi Suscripción</h1>
+            <p className="text-muted-foreground">Gestiona tu suscripción y facturación</p>
+          </div>
 
         {/* Subscription Status Card */}
         <Card>
@@ -314,7 +322,9 @@ export default function SubscriptionPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </main>
+      <Footer />
     </div>
   );
 }

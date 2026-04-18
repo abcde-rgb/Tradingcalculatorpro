@@ -1,4 +1,5 @@
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import CalculatorPage from '@/components/options/CalculatorPage';
 
 /**
@@ -14,6 +15,7 @@ export default function OptionsPage() {
       <div className="pt-16">
         <CalculatorPage />
       </div>
+      <Footer />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, TrendingUp, TrendingDown, Target, Shield, AlertTriangle, 
@@ -320,6 +321,7 @@ export default function EducationPage() {
             </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -1087,6 +1089,7 @@ export default function EducationPage() {
           </Tabs>
         </div>
       </main>
+      <Footer />
 
       {/* Pattern Detail Modal */}
       <AnimatePresence>
