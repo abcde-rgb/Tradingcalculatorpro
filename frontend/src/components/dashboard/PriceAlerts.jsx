@@ -29,7 +29,9 @@ export const PriceAlerts = () => {
       const data = await res.json();
       setAlerts(data);
     } catch (error) {
-      console.error('Failed to fetch alerts:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to fetch alerts:', error);
+      }
       // Silent error - alerts component will show empty state
     }
   }, [token]);

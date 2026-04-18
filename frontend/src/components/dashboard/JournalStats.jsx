@@ -22,7 +22,9 @@ export function JournalStats() {
         setStats(data);
       }
     } catch (error) {
-      console.error('Failed to fetch journal stats:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to fetch journal stats:', error);
+      }
       // Silent error - stats component will show loading/empty state
     }
     setIsLoading(false);

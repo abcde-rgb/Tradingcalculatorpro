@@ -36,7 +36,9 @@ export default function SubscriptionPage() {
       const invData = await invRes.json();
       setInvoices(invData.invoices || []);
     } catch (error) {
-      console.error('Error fetching subscription:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error fetching subscription:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -73,7 +75,9 @@ export default function SubscriptionPage() {
         alert('Error al cancelar la suscripción');
       }
     } catch (error) {
-      console.error('Error canceling subscription:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error canceling subscription:', error);
+      }
       alert('Error al cancelar la suscripción');
     } finally {
       setActionLoading(false);
@@ -95,7 +99,9 @@ export default function SubscriptionPage() {
         alert('Error al reactivar la suscripción');
       }
     } catch (error) {
-      console.error('Error resuming subscription:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error resuming subscription:', error);
+      }
       alert('Error al reactivar la suscripción');
     } finally {
       setActionLoading(false);
@@ -121,7 +127,9 @@ export default function SubscriptionPage() {
         window.location.href = data.url;
       }
     } catch (error) {
-      console.error('Error opening portal:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error opening portal:', error);
+      }
       alert('Error al abrir el portal de facturación');
     } finally {
       setActionLoading(false);

@@ -30,14 +30,27 @@ const patternTypeColors = {
   neutral: 'text-yellow-500'
 };
 
+// Motion variants extracted to module level to avoid inline-object re-renders
+const MOTION_FADE_UP = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
+const MOTION_EXPAND = {
+  initial: { height: 0, opacity: 0 },
+  animate: { height: 'auto', opacity: 1 },
+  exit: { height: 0, opacity: 0 },
+};
+const MOTION_FADE = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
+const MOTION_SCALE_IN = {
+  initial: { scale: 0.9, opacity: 0 },
+  animate: { scale: 1, opacity: 1 },
+  exit: { scale: 0.9, opacity: 0 },
+};
+
 function RuleCard({ rule, isExpanded, onToggle }) {
   const { t } = useTranslation();
   
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      {...MOTION_FADE_UP}
       className={`p-4 rounded-xl border cursor-pointer transition-all hover:border-primary/50 ${
         isExpanded ? 'bg-primary/5 border-primary' : 'bg-card border-border'
       }`}
@@ -61,9 +74,7 @@ function RuleCard({ rule, isExpanded, onToggle }) {
       <AnimatePresence>
         {isExpanded && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            {...MOTION_EXPAND}
             className="mt-4 pt-4 border-t border-border"
           >
             <p className="text-muted-foreground text-sm leading-relaxed">
@@ -125,16 +136,12 @@ function PatternDetailModal({ pattern, onClose }) {
   
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      {...MOTION_FADE}
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
+        {...MOTION_SCALE_IN}
         className="bg-card border border-border rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >

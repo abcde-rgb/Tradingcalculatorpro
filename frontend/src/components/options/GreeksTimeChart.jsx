@@ -17,6 +17,13 @@ const GREEKS_CONFIG = [
   { key: 'vega', label: 'Vega ν', color: '#60a5fa' },
 ];
 
+// Chart layout constants (module-level to avoid inline-object re-renders)
+const CHART_MARGIN = { top: 5, right: 20, left: 0, bottom: 5 };
+const AXIS_TICK = { fill: '#8b9ab8', fontSize: 10, fontFamily: 'JetBrains Mono' };
+const AXIS_LABEL_X = { value: 'Días desde hoy →', position: 'insideBottom', offset: -2, fill: '#6b7a94', fontSize: 10 };
+const TOOLTIP_STYLE = { background: '#0a0a0a', border: '1px solid #262626', borderRadius: 8, fontSize: 11 };
+const LEGEND_STYLE = { fontSize: 10, paddingTop: 8 };
+
 const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
   const [visible, setVisible] = useState({ delta: true, gamma: true, theta: true, vega: true });
   const [normalize, setNormalize] = useState(false);
@@ -114,30 +121,30 @@ const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
 
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={displayed} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+          <LineChart data={displayed} margin={CHART_MARGIN}>
             <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
             <XAxis
               dataKey="day"
               type="number"
               domain={[0, today]}
               stroke="#262626"
-              tick={{ fill: '#8b9ab8', fontSize: 10, fontFamily: 'JetBrains Mono' }}
+              tick={AXIS_TICK}
               tickFormatter={(v) => `T+${v}d`}
-              label={{ value: 'Días desde hoy →', position: 'insideBottom', offset: -2, fill: '#6b7a94', fontSize: 10 }}
+              label={AXIS_LABEL_X}
             />
             <YAxis
               stroke="#262626"
-              tick={{ fill: '#8b9ab8', fontSize: 10, fontFamily: 'JetBrains Mono' }}
+              tick={AXIS_TICK}
               tickFormatter={(v) => normalize ? `${v.toFixed(0)}%` : v.toFixed(2)}
               width={55}
             />
             <Tooltip
-              contentStyle={{ background: '#0a0a0a', border: '1px solid #262626', borderRadius: 8, fontSize: 11 }}
+              contentStyle={TOOLTIP_STYLE}
               labelFormatter={(v) => `Día T+${v} · ${today - v}d al vencimiento`}
               formatter={(val, name) => [normalize ? `${Number(val).toFixed(1)}%` : Number(val).toFixed(4), name]}
             />
             <Legend
-              wrapperStyle={{ fontSize: 10, paddingTop: 8 }}
+              wrapperStyle={LEGEND_STYLE}
               iconType="line"
             />
             <ReferenceLine y={0} stroke="#444" strokeWidth={1} />

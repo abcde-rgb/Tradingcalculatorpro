@@ -63,7 +63,9 @@ export const useAuthStore = create(
             set({ user });
           }
         } catch (error) {
-          console.error('Auth refresh failed:', error);
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('Auth refresh failed:', error);
+          }
           // Silent fail for auth refresh - user will need to re-login
         }
       }
@@ -109,7 +111,9 @@ export const useCalculatorStore = create((set, get) => ({
         body: JSON.stringify({ calculator_type: calculatorType, inputs, results })
       });
     } catch (error) {
-      console.error('Error saving calculation:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error saving calculation:', error);
+      }
       // Silent fail for calculation save
     }
   },

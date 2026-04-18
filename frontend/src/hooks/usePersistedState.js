@@ -39,7 +39,9 @@ export function usePersistedState(stateId, initialValue) {
           }
         }
       } catch (error) {
-        console.error('Error loading persisted state:', error);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Error loading persisted state:', error);
+        }
       } finally {
         setIsLoading(false);
         isInitialMount.current = false;
