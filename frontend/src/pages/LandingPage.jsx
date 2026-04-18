@@ -14,6 +14,17 @@ import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { useThemeStore } from '@/lib/theme';
 
+// ===== Motion variants (module-level constants to avoid inline-object re-renders) =====
+const MOTION_FADE_UP = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
+const MOTION_FADE_UP_VIEW = { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 } };
+const MOTION_SLIDE_RIGHT_VIEW = { initial: { opacity: 0, x: -20 }, whileInView: { opacity: 1, x: 0 } };
+const MOTION_SLIDE_LEFT_VIEW = { initial: { opacity: 0, x: 20 }, whileInView: { opacity: 1, x: 0 } };
+const MOTION_SCALE_IN_VIEW = { initial: { opacity: 0, scale: 0.9 }, whileInView: { opacity: 1, scale: 1 } };
+const MOTION_SCALE_UP_VIEW = { initial: { opacity: 0, scale: 0.95 }, whileInView: { opacity: 1, scale: 1 } };
+const TRANSITION_HERO = { duration: 0.6 };
+const TRANSITION_STAGGER_SM = { delay: 0.05 };
+const TRANSITION_STAGGER_MD = { delay: 0.1 };
+
 // Features will use t() in component  
 const featuresData = [
   { icon: Calculator, key: 'professionalCalculators', color: 'bg-green-500/10 text-green-500' },
@@ -78,9 +89,8 @@ export default function LandingPage() {
         
         <div className="max-w-7xl mx-auto relative">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            {...MOTION_FADE_UP}
+            transition={TRANSITION_HERO}
             className="text-center"
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
@@ -122,8 +132,7 @@ export default function LandingPage() {
               ].map((stat) => (
                 <motion.div
                   key={stat.labelKey}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  {...MOTION_FADE_UP}
                   transition={{ delay: stat.delay }}
                   className="text-center"
                 >
@@ -150,9 +159,8 @@ export default function LandingPage() {
             {assetTypesData.map((asset) => (
               <motion.div
                 key={asset.key}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.05 }}
+                {...MOTION_SCALE_IN_VIEW}
+                transition={TRANSITION_STAGGER_SM}
                 className="p-4 rounded-xl bg-background border border-border hover:border-primary/50 transition-all group text-center"
               >
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/20 transition-colors">
@@ -180,9 +188,8 @@ export default function LandingPage() {
             {featuresData.map((feature) => (
               <motion.div
                 key={feature.key}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
+                {...MOTION_FADE_UP_VIEW}
+                transition={TRANSITION_STAGGER_MD}
                 className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-all group"
               >
                 <div className={`w-14 h-14 rounded-xl ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
@@ -210,9 +217,8 @@ export default function LandingPage() {
             {calculatorsData.map((calc) => (
               <motion.div
                 key={calc.key}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.05 }}
+                {...MOTION_SLIDE_RIGHT_VIEW}
+                transition={TRANSITION_STAGGER_SM}
                 className="flex items-center gap-4 p-4 rounded-xl bg-background border border-border hover:border-primary/50 transition-colors"
               >
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -242,9 +248,8 @@ export default function LandingPage() {
             {disciplineFeaturesData.map((feature) => (
               <motion.div
                 key={feature.key}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
+                {...MOTION_FADE_UP_VIEW}
+                transition={TRANSITION_STAGGER_MD}
                 className="p-6 rounded-xl bg-card border border-border"
               >
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
@@ -263,8 +268,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              {...MOTION_SLIDE_RIGHT_VIEW}
             >
               <h2 className="font-unbounded text-3xl md:text-4xl font-bold mb-4">
                 {t('tradingViewSection')}
@@ -298,8 +302,7 @@ export default function LandingPage() {
             </motion.div>
             
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              {...MOTION_SLIDE_LEFT_VIEW}
               className="relative"
             >
               <div className="aspect-video rounded-xl bg-card border border-border overflow-hidden shadow-2xl">
@@ -328,9 +331,8 @@ export default function LandingPage() {
               return (
                 <motion.div
                   key={plan.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
+                  {...MOTION_FADE_UP_VIEW}
+                  transition={TRANSITION_STAGGER_MD}
                   className={`p-6 rounded-xl border relative flex flex-col ${
                     plan.popular 
                       ? 'bg-primary/5 border-primary/50 shadow-lg shadow-primary/10' 
@@ -446,9 +448,8 @@ export default function LandingPage() {
             {['reversalPatternsTitle', 'continuationPatternsTitle', 'candlestickPatternsTitle', 'tradingRulesTitle'].map((topicKey) => (
               <motion.div
                 key={topicKey}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
+                {...MOTION_FADE_UP_VIEW}
+                transition={TRANSITION_STAGGER_MD}
                 className="p-6 rounded-xl bg-background border border-border hover:border-primary/50 transition-colors text-center group"
               >
                 <GraduationCap className="w-10 h-10 text-primary mx-auto mb-4 group-hover:scale-110 transition-transform" />
@@ -471,8 +472,7 @@ export default function LandingPage() {
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            {...MOTION_SCALE_UP_VIEW}
             className="p-8 md:p-12 rounded-2xl bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 border border-primary/20 text-center"
           >
             <h2 className="font-unbounded text-3xl md:text-4xl font-bold mb-4">
