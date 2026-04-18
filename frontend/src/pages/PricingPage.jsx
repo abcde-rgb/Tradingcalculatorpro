@@ -154,6 +154,10 @@ export default function PricingPage() {
                     <Check className="w-4 h-4 text-primary flex-shrink-0" />
                     {t('backtesting')}
                   </li>
+                  <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                    {t('optionsSuitePremium')}
+                  </li>
                 </ul>
               </motion.div>
             ))}
@@ -248,7 +252,31 @@ export default function PricingPage() {
           {/* Features Comparison */}
           <div className="mt-16">
             <h2 className="font-unbounded text-2xl font-bold text-center mb-8">{t('whatsIncluded')}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              <Card className="bg-card border-border">
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-4">{t('optionsSuiteTitle')}</h3>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2 text-sm">
+                      <Check className="w-4 h-4 text-primary" />
+                      {t('optionsChainRealtime')}
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <Check className="w-4 h-4 text-primary" />
+                      {t('optionsStrategyOptimizer')}
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <Check className="w-4 h-4 text-primary" />
+                      {t('optionsAICoach')}
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <Check className="w-4 h-4 text-primary" />
+                      {t('optionsFlowScanner')}
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
               <Card className="bg-card border-border">
                 <CardContent className="p-6">
                   <h3 className="font-bold text-lg mb-4">{t('advancedSimulators')}</h3>

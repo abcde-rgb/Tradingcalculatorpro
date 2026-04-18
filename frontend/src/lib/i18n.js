@@ -13,6 +13,7 @@ export const translations = {
     dashboard: 'Dashboard',
     pricing: 'Precios',
     education: 'Aprendizaje',
+    options: 'Opciones',
     settings: 'Configuración',
     login: 'Iniciar Sesión',
     register: 'Registrarse',
@@ -863,6 +864,13 @@ export const translations = {
     alreadyHaveSubscription: 'Ya tienes una suscripción activa',
     checkoutError: 'Error al crear la sesión de pago',
     connectionError: 'Error de conexión',
+    // Options Suite (pricing + marketing)
+    optionsSuitePremium: 'Suite de Opciones Pro',
+    optionsSuiteTitle: 'Suite de Opciones',
+    optionsChainRealtime: 'Chain real-time (Yahoo Finance)',
+    optionsStrategyOptimizer: 'Optimizador de estrategias',
+    optionsAICoach: 'AI Trade Coach (Claude 4.5)',
+    optionsFlowScanner: 'Scanner de flujo inusual',
   },
   
   en: {
@@ -872,6 +880,7 @@ export const translations = {
     dashboard: 'Dashboard',
     pricing: 'Pricing',
     education: 'Education',
+    options: 'Options',
     settings: 'Settings',
     login: 'Login',
     register: 'Register',
@@ -1579,6 +1588,13 @@ export const translations = {
     alreadyHaveSubscription: 'You already have an active subscription',
     checkoutError: 'Error creating payment session',
     connectionError: 'Connection error',
+    // Options Suite (pricing + marketing)
+    optionsSuitePremium: 'Pro Options Suite',
+    optionsSuiteTitle: 'Options Suite',
+    optionsChainRealtime: 'Real-time chain (Yahoo Finance)',
+    optionsStrategyOptimizer: 'Strategy Optimizer',
+    optionsAICoach: 'AI Trade Coach (Claude 4.5)',
+    optionsFlowScanner: 'Unusual Flow Scanner',
   },
   
   de: {
@@ -1590,6 +1606,7 @@ export const translations = {
     dashboard: 'Dashboard',
     pricing: 'Preise',
     education: 'Bildung',
+    options: 'Optionen',
     settings: 'Einstellungen',
     login: 'Anmelden',
     register: 'Registrieren',
@@ -2303,6 +2320,13 @@ export const translations = {
     alreadyHaveSubscription: 'Sie haben bereits ein aktives Abonnement',
     checkoutError: 'Fehler beim Erstellen der Zahlungssitzung',
     connectionError: 'Verbindungsfehler',
+    // Options Suite
+    optionsSuitePremium: 'Pro Optionen Suite',
+    optionsSuiteTitle: 'Optionen Suite',
+    optionsChainRealtime: 'Echtzeit-Chain (Yahoo Finance)',
+    optionsStrategyOptimizer: 'Strategie-Optimierer',
+    optionsAICoach: 'AI Trade Coach (Claude 4.5)',
+    optionsFlowScanner: 'Unusual Flow Scanner',
   },
   
   fr: {
@@ -2314,6 +2338,7 @@ export const translations = {
     dashboard: 'Tableau de Bord',
     pricing: 'Tarifs',
     education: 'Formation',
+    options: 'Options',
     settings: 'Paramètres',
     login: 'Connexion',
     register: 'Inscription',
@@ -3027,6 +3052,13 @@ export const translations = {
     alreadyHaveSubscription: 'Vous avez déjà un abonnement actif',
     checkoutError: 'Erreur lors de la création de la session de paiement',
     connectionError: 'Erreur de connexion',
+    // Options Suite
+    optionsSuitePremium: 'Suite Options Pro',
+    optionsSuiteTitle: 'Suite Options',
+    optionsChainRealtime: 'Chain en temps réel (Yahoo Finance)',
+    optionsStrategyOptimizer: 'Optimiseur de stratégies',
+    optionsAICoach: 'AI Trade Coach (Claude 4.5)',
+    optionsFlowScanner: 'Scanner de flux inhabituel',
   },
   
   ru: {
@@ -3036,6 +3068,7 @@ export const translations = {
     dashboard: 'Панель',
     pricing: 'Цены',
     education: 'Обучение',
+    options: 'Опционы',
     settings: 'Настройки',
     login: 'Вход',
     register: 'Регистрация',
@@ -3693,6 +3726,13 @@ export const translations = {
     alreadyHaveSubscription: 'У вас уже есть активная подписка',
     checkoutError: 'Ошибка создания сессии оплаты',
     connectionError: 'Ошибка подключения',
+    // Options Suite
+    optionsSuitePremium: 'Pro Опционы Suite',
+    optionsSuiteTitle: 'Опционы Suite',
+    optionsChainRealtime: 'Chain в реальном времени (Yahoo Finance)',
+    optionsStrategyOptimizer: 'Оптимизатор стратегий',
+    optionsAICoach: 'AI Trade Coach (Claude 4.5)',
+    optionsFlowScanner: 'Сканер необычного потока',
   },
   
   zh: {
@@ -3702,6 +3742,7 @@ export const translations = {
     dashboard: '仪表板',
     pricing: '价格',
     education: '教育',
+    options: '期权',
     settings: '设置',
     login: '登录',
     register: '注册',
@@ -4233,6 +4274,13 @@ export const translations = {
     checkoutError: '创建付款会话时出错',
     connectionError: '连接错误',
     total: '总计',
+    // Options Suite
+    optionsSuitePremium: '专业期权套件',
+    optionsSuiteTitle: '期权套件',
+    optionsChainRealtime: '实时期权链 (Yahoo Finance)',
+    optionsStrategyOptimizer: '策略优化器',
+    optionsAICoach: 'AI 交易教练 (Claude 4.5)',
+    optionsFlowScanner: '异常资金扫描器',
   },
   
   ja: {
@@ -4242,6 +4290,7 @@ export const translations = {
     dashboard: 'ダッシュボード',
     pricing: '料金',
     education: '教育',
+    options: 'オプション',
     settings: '設定',
     login: 'ログイン',
     register: '登録',
@@ -4773,6 +4822,13 @@ export const translations = {
     checkoutError: '支払いセッションの作成エラー',
     connectionError: '接続エラー',
     total: '合計',
+    // Options Suite
+    optionsSuitePremium: 'プロ版オプションスイート',
+    optionsSuiteTitle: 'オプションスイート',
+    optionsChainRealtime: 'リアルタイムチェーン (Yahoo Finance)',
+    optionsStrategyOptimizer: '戦略オプティマイザ',
+    optionsAICoach: 'AI トレードコーチ (Claude 4.5)',
+    optionsFlowScanner: '異常フロースキャナ',
   },
   
   ar: {
@@ -4782,6 +4838,7 @@ export const translations = {
     dashboard: 'لوحة التحكم',
     pricing: 'الأسعار',
     education: 'التعليم',
+    options: 'الخيارات',
     settings: 'الإعدادات',
     login: 'تسجيل الدخول',
     register: 'التسجيل',
@@ -5229,6 +5286,13 @@ export const translations = {
     checkoutError: 'خطأ في إنشاء جلسة الدفع',
     connectionError: 'خطأ في الاتصال',
     total: 'المجموع',
+    // Options Suite
+    optionsSuitePremium: 'مجموعة الخيارات الاحترافية',
+    optionsSuiteTitle: 'مجموعة الخيارات',
+    optionsChainRealtime: 'سلسلة الخيارات في الوقت الفعلي (Yahoo Finance)',
+    optionsStrategyOptimizer: 'محسّن الاستراتيجيات',
+    optionsAICoach: 'مدرب التداول AI (Claude 4.5)',
+    optionsFlowScanner: 'ماسح التدفق غير العادي',
   }
 };
 
