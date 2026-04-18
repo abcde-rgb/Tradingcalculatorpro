@@ -12,6 +12,9 @@ import { toast } from 'sonner';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+// Framer Motion variants — extracted to prevent re-creation per render
+const HOVER_SCALE_UP = { scale: 1.02 };
+
 // Plans will use t() for dynamic translation
 const PLANS_DATA = [
   { id: 'monthly', popular: false },
@@ -119,7 +122,7 @@ export default function PricingPage() {
             {PLANS_DATA.map((plan) => (
               <motion.div
                 key={plan.id}
-                whileHover={{ scale: 1.02 }}
+                whileHover={HOVER_SCALE_UP}
                 onClick={() => setSelectedPlan(plan.id)}
                 className={`cursor-pointer p-6 rounded-xl border-2 transition-all relative ${
                   selectedPlan === plan.id 

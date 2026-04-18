@@ -77,7 +77,10 @@ export function usePersistedState(stateId, initialValue) {
           })
         });
       } catch (error) {
-        // Silent fail - don't block user experience
+        // Non-blocking: log in dev, never interrupt user flow on save failure
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[usePersistedState] save failed:', error);
+        }
       } finally {
         setIsSaving(false);
       }
@@ -103,7 +106,9 @@ export function usePersistedState(stateId, initialValue) {
       
       setState(initialValue);
     } catch (error) {
-      // Silent fail
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[usePersistedState] clear failed:', error);
+      }
     }
   }, [stateId, token, isAuthenticated, initialValue]); // Fixed: All dependencies included
 
@@ -130,7 +135,9 @@ export function useResetAllStates() {
         window.location.reload();
       }
     } catch (error) {
-      // Silent fail
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[useResetAllStates] reset failed:', error);
+      }
     }
   }, [token, isAuthenticated]); // Fixed: All dependencies included
 

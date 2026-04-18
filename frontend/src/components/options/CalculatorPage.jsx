@@ -38,7 +38,10 @@ const CalculatorPage = () => {
     try {
       const saved = typeof window !== 'undefined' ? window.localStorage.getItem('options_account_balance') : null;
       return saved ? parseFloat(saved) : 10000;
-    } catch {
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[Options] localStorage read failed:', err);
+      }
       return 10000;
     }
   });
@@ -47,7 +50,11 @@ const CalculatorPage = () => {
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') window.localStorage.setItem('options_account_balance', String(accountBalance));
-    } catch {}
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[Options] localStorage write failed:', err);
+      }
+    }
   }, [accountBalance]);
 
   // Load stock data
@@ -62,7 +69,9 @@ const CalculatorPage = () => {
         if (stockData) setStock(stockData);
         if (expData?.expirations) setExpirations(expData.expirations);
       } catch (e) {
-        // Error loading initial data - silent fail
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[Options] error loading initial stock/expirations:', e);
+        }
       }
       setLoading(false);
     };
@@ -85,7 +94,9 @@ const CalculatorPage = () => {
           }
         }
       } catch (e) {
-        // Error loading options chain - silent fail
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[Options] error loading options chain:', e);
+        }
       }
     };
     loadChain();
