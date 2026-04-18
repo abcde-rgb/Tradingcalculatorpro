@@ -1,0 +1,305 @@
+import { useEffect, useState } from 'react';
+import { Header } from '@/components/layout/Header';
+import { PriceTicker } from '@/components/dashboard/PriceTicker';
+import { TradingViewChart } from '@/components/charts/TradingViewChart';
+import { PercentageCalculator } from '@/components/calculators/PercentageCalculator';
+import { TargetPriceCalculator } from '@/components/calculators/TargetPriceCalculator';
+import { LeverageCalculator } from '@/components/calculators/LeverageCalculator';
+import { SpotCalculator } from '@/components/calculators/SpotCalculator';
+import { PositionSizeCalculator } from '@/components/calculators/PositionSizeCalculator';
+import { LotSizeCalculator } from '@/components/calculators/LotSizeCalculator';
+import { FibonacciCalculator } from '@/components/calculators/FibonacciCalculator';
+import { MonteCarloSimulator } from '@/components/calculators/MonteCarloSimulator';
+import { SimulatorPro } from '@/components/calculators/SimulatorPro';
+import { PatternTradingCalculator } from '@/components/calculators/PatternTradingCalculator';
+import { TargetMeasurementTool } from '@/components/tools/TargetMeasurementTool';
+import { TradingJournal } from '@/components/tools/TradingJournal';
+import { PriceAlerts } from '@/components/dashboard/PriceAlerts';
+import { CalculationHistory } from '@/components/dashboard/CalculationHistory';
+import { JournalStats } from '@/components/dashboard/JournalStats';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuthStore, usePriceStore } from '@/lib/store';
+import { useIsPremium } from '@/lib/premium';
+import { useTranslation } from '@/lib/i18n';
+import { 
+  Calculator, Target, Gauge, Wallet, FlaskConical, 
+  Ruler, BookOpen, Scale, TrendingUp, DollarSign, BarChart3, Dice1, Hexagon
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+
+export default function DashboardPage() {
+  const { user, refreshUser, isAuthenticated } = useAuthStore();
+  const { fetchPrices } = usePriceStore();
+  const { t } = useTranslation();
+  const isPremium = useIsPremium();
+  const [activeTab, setActiveTab] = useState('percentage');
+
+  useEffect(() => {
+    refreshUser();
+    fetchPrices();
+    
+    // Refresh prices every 30 seconds
+    const interval = setInterval(() => {
+      fetchPrices();
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [refreshUser, fetchPrices]); // Fixed: Added all dependencies
+
+  // Premium Gate - Redirect non-premium users (authenticated OR not authenticated)
+  if (!isPremium) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center min-h-[80vh] px-4">
+          <div className="max-w-2xl w-full text-center space-y-6">
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full"></div>
+              <Calculator className="relative h-24 w-24 text-primary mx-auto" />
+            </div>
+            
+            <h1 className="text-4xl font-bold">Dashboard Premium</h1>
+            <p className="text-xl text-muted-foreground">
+              El Dashboard completo con todas las calculadoras profesionales está disponible solo para usuarios Premium
+            </p>
+            
+            <div className="bg-card border rounded-lg p-6 space-y-4">
+              <h3 className="text-lg font-semibold">Funcionalidades Premium:</h3>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
+                <li className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  <span>Gráficos TradingView</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5 text-primary" />
+                  <span>10+ Calculadoras Pro</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  <span>Simulador Monte Carlo</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  <span>Fibonacci Avanzado</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <span>Diario de Trading</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  <span>Alertas de Precios</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+              {!isAuthenticated ? (
+                <>
+                  <Link to="/login">
+                    <Button size="lg" className="w-full sm:w-auto">
+                      Iniciar Sesión
+                    </Button>
+                  </Link>
+                  <Link to="/pricing">
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                      Ver Planes Premium
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/pricing">
+                    <Button size="lg" className="w-full sm:w-auto">
+                      Ver Planes Premium
+                    </Button>
+                  </Link>
+                  <Link to="/">
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                      Volver al Inicio
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main className="pt-20 pb-12 px-4 md:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Welcome */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="font-unbounded text-2xl md:text-3xl font-bold" data-testid="dashboard-welcome">
+                {user ? `${t('dashboard')}: ${user.name}` : t('dashboard')}
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                {t('tagline')}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link to="/education">
+                <Button variant="outline" className="gap-2" data-testid="education-btn">
+                  <BookOpen className="w-4 h-4" /> {t('educationCenter')}
+                </Button>
+              </Link>
+            </div>
+          </div>
+          
+          {/* Price Ticker */}
+          <PriceTicker />
+          
+          {/* Stats Row */}
+          {isPremium && <JournalStats />}
+          
+          {/* Main Content - Full Width */}
+          <div className="space-y-6">
+            {/* TradingView Chart */}
+            <TradingViewChart />
+            
+            {/* Price Alerts and Calculation History - Below Chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PriceAlerts />
+              <CalculationHistory />
+            </div>
+            
+            {/* Calculators Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <TabsList className="bg-card border border-border p-1 h-auto flex-wrap justify-start gap-1">
+                <TabsTrigger 
+                  value="percentage" 
+                  className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs"
+                  data-testid="tab-percentage"
+                >
+                  <Calculator className="w-3 h-3" /> {t('percentageRequired')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="target" 
+                  className="gap-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground text-xs"
+                  data-testid="tab-target"
+                >
+                  <Target className="w-3 h-3" /> {t('targetPrice')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="leverage" 
+                  className="gap-2 data-[state=active]:bg-yellow-500 data-[state=active]:text-black text-xs"
+                  data-testid="tab-leverage"
+                >
+                  <Gauge className="w-3 h-3" /> {t('leverage')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="position" 
+                  className="gap-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white text-xs"
+                  data-testid="tab-position"
+                >
+                  <Scale className="w-3 h-3" /> {t('positionSize')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="lotsize" 
+                  className="gap-2 data-[state=active]:bg-cyan-500 data-[state=active]:text-white text-xs"
+                  data-testid="tab-lotsize"
+                >
+                  <DollarSign className="w-3 h-3" /> {t('lotSize')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="fibonacci" 
+                  className="gap-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white text-xs"
+                  data-testid="tab-fibonacci"
+                >
+                  <TrendingUp className="w-3 h-3" /> {t('fibonacci')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="spot" 
+                  className="gap-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs"
+                  data-testid="tab-spot"
+                >
+                  <Wallet className="w-3 h-3" /> {t('spot')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="pattern" 
+                  className="gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white text-xs"
+                  data-testid="tab-pattern"
+                >
+                  <Hexagon className="w-3 h-3" /> {t('patternTrading')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="measure" 
+                  className="gap-2 data-[state=active]:bg-pink-500 data-[state=active]:text-white text-xs"
+                  data-testid="tab-measure"
+                >
+                  <Ruler className="w-3 h-3" /> {t('measureTarget')}
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="percentage">
+                <PercentageCalculator />
+              </TabsContent>
+              <TabsContent value="target">
+                <TargetPriceCalculator />
+              </TabsContent>
+              <TabsContent value="leverage">
+                <LeverageCalculator />
+              </TabsContent>
+              <TabsContent value="position">
+                <PositionSizeCalculator />
+              </TabsContent>
+              <TabsContent value="lotsize">
+                <LotSizeCalculator />
+              </TabsContent>
+              <TabsContent value="fibonacci">
+                <FibonacciCalculator />
+              </TabsContent>
+              <TabsContent value="spot">
+                <SpotCalculator />
+              </TabsContent>
+              <TabsContent value="pattern">
+                <PatternTradingCalculator />
+              </TabsContent>
+              <TabsContent value="measure">
+                <TargetMeasurementTool />
+              </TabsContent>
+            </Tabs>
+
+            {/* Simulators (Premium) */}
+            <Tabs defaultValue="montecarlo" className="space-y-4">
+              <TabsList className="bg-card border border-border p-1">
+                <TabsTrigger 
+                  value="montecarlo" 
+                  className="gap-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs"
+                  data-testid="tab-montecarlo"
+                >
+                  <Dice1 className="w-3 h-3" /> {t('monteCarlo')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="simulator" 
+                  className="gap-2 data-[state=active]:bg-cyan-500 data-[state=active]:text-white text-xs"
+                  data-testid="tab-simulator"
+                >
+                  <FlaskConical className="w-3 h-3" /> {t('simulator')}
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="montecarlo">
+                <MonteCarloSimulator />
+              </TabsContent>
+              <TabsContent value="simulator">
+                <SimulatorPro />
+              </TabsContent>
+            </Tabs>
+            
+            {/* Trading Journal */}
+            <TradingJournal />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

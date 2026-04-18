@@ -1,0 +1,11 @@
+# robots.txt para Trading Calculator PRO
+User-agent: *
+Allow: /
+Allow: /pricing
+Allow: /education
+Allow: /dashboard
+
+Disallow: /api/
+Disallow: /admin/
+
+Sitemap: https://tradingcalculatorpro.com/sitemap.xml

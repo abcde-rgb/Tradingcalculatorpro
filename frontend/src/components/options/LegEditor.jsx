@@ -1,0 +1,274 @@
+import React, { useState, useCallback } from 'react';
+import { Plus, Trash2, GripVertical, ToggleLeft, ToggleRight, ChevronDown, Copy, RotateCcw } from 'lucide-react';
+
+const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
+  const [dragIdx, setDragIdx] = useState(null);
+
+  const addLeg = useCallback((type = 'call', action = 'buy') => {
+    // Find ATM strike
+    const atmIdx = chain.reduce((best, s, idx) =>
+      Math.abs(s.strike - stockPrice) < Math.abs(chain[best].strike - stockPrice) ? idx : best, 0);
+    const atmStrike = chain[atmIdx];
+    const opt = atmStrike?.[type];
+
+    const newLeg = {
+      id: Date.now() + Math.random(),
+      type,
+      action,
+      quantity: 1,
+      strikeIdx: atmIdx,
+      strike: atmStrike?.strike || stockPrice,
+      premium: opt?.mid || 0,
+      iv: opt?.iv || 0.3,
+      enabled: true,
+    };
+    onLegsChange([...legs, newLeg]);
+  }, [chain, stockPrice, legs, onLegsChange]);
+
+  const removeLeg = useCallback((idx) => {
+    onLegsChange(legs.filter((_, i) => i !== idx));
+  }, [legs, onLegsChange]);
+
+  const updateLeg = useCallback((idx, updates) => {
+    const newLegs = [...legs];
+    const leg = { ...newLegs[idx], ...updates };
+
+    // If strike changed, update premium from chain
+    if (updates.strikeIdx !== undefined || updates.type !== undefined) {
+      const sIdx = updates.strikeIdx !== undefined ? updates.strikeIdx : leg.strikeIdx;
+      const type = updates.type !== undefined ? updates.type : leg.type;
+      const strikeData = chain[sIdx];
+      if (strikeData) {
+        leg.strike = strikeData.strike;
+        leg.premium = strikeData[type]?.mid || 0;
+        leg.iv = strikeData[type]?.iv || 0.3;
+        leg.strikeIdx = sIdx;
+      }
+    }
+
+    newLegs[idx] = leg;
+    onLegsChange(newLegs);
+  }, [legs, chain, onLegsChange]);
+
+  const duplicateLeg = useCallback((idx) => {
+    const clone = { ...legs[idx], id: Date.now() + Math.random() };
+    const newLegs = [...legs];
+    newLegs.splice(idx + 1, 0, clone);
+    onLegsChange(newLegs);
+  }, [legs, onLegsChange]);
+
+  const toggleAction = useCallback((idx) => {
+    updateLeg(idx, { action: legs[idx].action === 'buy' ? 'sell' : 'buy' });
+  }, [legs, updateLeg]);
+
+  const toggleType = useCallback((idx) => {
+    updateLeg(idx, { type: legs[idx].type === 'call' ? 'put' : 'call' });
+  }, [legs, updateLeg]);
+
+  const toggleEnabled = useCallback((idx) => {
+    updateLeg(idx, { enabled: !legs[idx].enabled });
+  }, [legs, updateLeg]);
+
+  const clearAll = useCallback(() => {
+    onLegsChange([]);
+  }, [onLegsChange]);
+
+  // Calculate net premium
+  const netPremium = legs.reduce((acc, leg) => {
+    if (!leg.enabled) return acc;
+    const mult = leg.action === 'buy' ? -1 : 1;
+    return acc + leg.premium * mult * leg.quantity * 100;
+  }, 0);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <div>
+          <h3 className="text-xs font-bold text-white uppercase tracking-widest">Constructor de Legs</h3>
+          <p className="text-[9px] text-[#4a5568] mt-0.5">{legs.filter(l => l.enabled).length} patas activas</p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={clearAll}
+            className="p-1.5 rounded-lg text-[#4a5568] hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
+            title="Borrar todo"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Legs List */}
+      <div className="flex-1 overflow-y-auto px-3 space-y-2 custom-scrollbar pb-2">
+        {legs.map((leg, idx) => (
+          <div
+            key={leg.id}
+            className={`rounded-xl border transition-all ${
+              !leg.enabled
+                ? 'border-[#1e2536]/50 opacity-40'
+                : leg.action === 'buy'
+                ? 'border-[#22c55e]/20 bg-[#22c55e]/[0.03]'
+                : 'border-[#ef4444]/20 bg-[#ef4444]/[0.03]'
+            }`}
+          >
+            {/* Leg Header */}
+            <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-1.5">
+              <GripVertical className="w-3 h-3 text-[#2a3446] cursor-grab flex-shrink-0" />
+
+              {/* Buy/Sell Toggle */}
+              <button
+                onClick={() => toggleAction(idx)}
+                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider transition-all ${
+                  leg.action === 'buy'
+                    ? 'bg-[#22c55e]/15 text-[#4ade80] hover:bg-[#22c55e]/25'
+                    : 'bg-[#ef4444]/15 text-[#f87171] hover:bg-[#ef4444]/25'
+                }`}
+              >
+                {leg.action === 'buy' ? 'BUY' : 'SELL'}
+              </button>
+
+              {/* Call/Put Toggle */}
+              <button
+                onClick={() => toggleType(idx)}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  leg.type === 'call'
+                    ? 'bg-[#3b82f6]/15 text-[#60a5fa] hover:bg-[#3b82f6]/25'
+                    : 'bg-[#a78bfa]/15 text-[#c4b5fd] hover:bg-[#a78bfa]/25'
+                }`}
+              >
+                {leg.type === 'call' ? 'CALL' : 'PUT'}
+              </button>
+
+              <div className="flex-1" />
+
+              {/* Actions */}
+              <button onClick={() => toggleEnabled(idx)} className="p-1 rounded hover:bg-[#1e2740] transition-colors" title={leg.enabled ? 'Desactivar' : 'Activar'}>
+                {leg.enabled
+                  ? <ToggleRight className="w-4 h-4 text-[#22c55e]" />
+                  : <ToggleLeft className="w-4 h-4 text-[#4a5568]" />
+                }
+              </button>
+              <button onClick={() => duplicateLeg(idx)} className="p-1 rounded hover:bg-[#1e2740] transition-colors text-[#4a5568] hover:text-[#60a5fa]" title="Duplicar">
+                <Copy className="w-3 h-3" />
+              </button>
+              <button onClick={() => removeLeg(idx)} className="p-1 rounded hover:bg-[#ef4444]/10 transition-colors text-[#4a5568] hover:text-[#ef4444]" title="Eliminar">
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Leg Config */}
+            <div className="grid grid-cols-3 gap-1.5 px-3 pb-2.5">
+              {/* Strike */}
+              <div>
+                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">Strike</label>
+                <select
+                  value={leg.strikeIdx}
+                  onChange={(e) => updateLeg(idx, { strikeIdx: parseInt(e.target.value) })}
+                  className="w-full bg-[#0a0e17] border border-[#1e2536] rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-[#3b82f6] appearance-none cursor-pointer"
+                >
+                  {chain.map((s, si) => (
+                    <option key={s.strike} value={si}>${s.strike}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quantity */}
+              <div>
+                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">Cantidad</label>
+                <div className="flex items-center bg-[#0a0e17] border border-[#1e2536] rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => updateLeg(idx, { quantity: Math.max(1, leg.quantity - 1) })}
+                    className="px-1.5 py-1.5 hover:bg-[#1e2740] transition-colors text-[#4a5568]"
+                  >
+                    <span className="text-xs">-</span>
+                  </button>
+                  <input
+                    type="number"
+                    value={leg.quantity}
+                    onChange={(e) => updateLeg(idx, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                    className="w-full bg-transparent text-center text-xs font-mono text-white focus:outline-none py-1.5"
+                    min={1}
+                  />
+                  <button
+                    onClick={() => updateLeg(idx, { quantity: leg.quantity + 1 })}
+                    className="px-1.5 py-1.5 hover:bg-[#1e2740] transition-colors text-[#4a5568]"
+                  >
+                    <span className="text-xs">+</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Premium */}
+              <div>
+                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">Prima</label>
+                <div className="bg-[#0a0e17] border border-[#1e2536] rounded-lg px-2 py-1.5 text-xs font-mono text-[#8b9ab8] text-center">
+                  ${leg.premium?.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {/* Leg details */}
+            <div className="flex items-center justify-between px-3 pb-2 text-[9px] text-[#3a4f6e]">
+              <span>IV: {(leg.iv * 100).toFixed(1)}%</span>
+              <span>
+                {leg.action === 'buy' ? 'Débito' : 'Crédito'}: ${(leg.premium * leg.quantity * 100).toFixed(0)}
+              </span>
+            </div>
+          </div>
+        ))}
+
+        {legs.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-sm text-[#4a5568] mb-1">Sin patas</p>
+            <p className="text-[10px] text-[#3a4f6e]">Añade calls o puts para construir tu estrategia</p>
+          </div>
+        )}
+      </div>
+
+      {/* Add Buttons */}
+      <div className="px-3 py-3 border-t border-[#1e2536] space-y-2">
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            onClick={() => addLeg('call', 'buy')}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#22c55e]/10 border border-[#22c55e]/20 text-[#4ade80] text-[11px] font-semibold hover:bg-[#22c55e]/20 transition-all"
+          >
+            <Plus className="w-3 h-3" /> Buy Call
+          </button>
+          <button
+            onClick={() => addLeg('put', 'buy')}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#a78bfa]/10 border border-[#a78bfa]/20 text-[#c4b5fd] text-[11px] font-semibold hover:bg-[#a78bfa]/20 transition-all"
+          >
+            <Plus className="w-3 h-3" /> Buy Put
+          </button>
+          <button
+            onClick={() => addLeg('call', 'sell')}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#f87171] text-[11px] font-semibold hover:bg-[#ef4444]/20 transition-all"
+          >
+            <Plus className="w-3 h-3" /> Sell Call
+          </button>
+          <button
+            onClick={() => addLeg('put', 'sell')}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-[#fbbf24] text-[11px] font-semibold hover:bg-[#f59e0b]/20 transition-all"
+          >
+            <Plus className="w-3 h-3" /> Sell Put
+          </button>
+        </div>
+
+        {/* Net Summary */}
+        {legs.length > 0 && (
+          <div className="bg-[#0a0e17] rounded-lg border border-[#1e2536] p-2.5 flex items-center justify-between">
+            <span className="text-[10px] text-[#4a5568] uppercase tracking-wider font-medium">
+              {netPremium >= 0 ? 'Crédito Neto' : 'Débito Neto'}
+            </span>
+            <span className={`text-sm font-bold font-mono ${netPremium >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+              {netPremium >= 0 ? '+' : ''}${netPremium.toFixed(0)}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default LegEditor;

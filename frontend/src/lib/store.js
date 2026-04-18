@@ -1,0 +1,179 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+export const useAuthStore = create(
+  persist(
+    (set, get) => ({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isLoading: false,
+
+      login: async (email, password) => {
+        set({ isLoading: true });
+        try {
+          const res = await fetch(`${API}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || 'Error de login');
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          return { success: true };
+        } catch (error) {
+          set({ isLoading: false });
+          return { success: false, error: error.message };
+        }
+      },
+
+      register: async (name, email, password) => {
+        set({ isLoading: true });
+        try {
+          const res = await fetch(`${API}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || 'Error de registro');
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          return { success: true };
+        } catch (error) {
+          set({ isLoading: false });
+          return { success: false, error: error.message };
+        }
+      },
+
+      logout: () => {
+        set({ user: null, token: null, isAuthenticated: false });
+      },
+
+      refreshUser: async () => {
+        const token = get().token;
+        if (!token) return;
+        try {
+          const res = await fetch(`${API}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const user = await res.json();
+            set({ user });
+          }
+        } catch (error) {
+          console.error('Auth refresh failed:', error);
+          // Silent fail for auth refresh - user will need to re-login
+        }
+      }
+    }),
+    {
+      name: 'btc-auth-storage',
+      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated })
+    }
+  )
+);
+
+export const usePriceStore = create((set) => ({
+  prices: null,
+  isLoading: false,
+
+  fetchPrices: async () => {
+    set({ isLoading: true });
+    try {
+      const res = await fetch(`${API}/prices`);
+      const data = await res.json();
+      set({ prices: data, isLoading: false });
+    } catch (error) {
+      // ✅ PRODUCTION FIX: Removed console.error
+      set({ isLoading: false });
+    }
+  }
+}));
+
+export const useCalculatorStore = create((set, get) => ({
+  history: [],
+  isLoading: false,
+
+  saveCalculation: async (calculatorType, inputs, results) => {
+    const token = useAuthStore.getState().token;
+    if (!token) return;
+    try {
+      await fetch(`${API}/calculations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ calculator_type: calculatorType, inputs, results })
+      });
+    } catch (error) {
+      console.error('Error saving calculation:', error);
+      // Silent fail for calculation save
+    }
+  },
+
+  fetchHistory: async () => {
+    const token = useAuthStore.getState().token;
+    if (!token) return;
+    set({ isLoading: true });
+    try {
+      const res = await fetch(`${API}/calculations`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      set({ history: data, isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+    }
+  }
+}));
+
+// Store para el diario de trading
+export const useTradingJournalStore = create(
+  persist(
+    (set, get) => ({
+      trades: [],
+      
+      addTrade: (trade) => {
+        const newTrade = {
+          id: Date.now().toString(),
+          ...trade,
+          createdAt: new Date().toISOString()
+        };
+        set({ trades: [newTrade, ...get().trades] });
+      },
+      
+      updateTrade: (id, updates) => {
+        set({
+          trades: get().trades.map(trade => 
+            trade.id === id ? { ...trade, ...updates } : trade
+          )
+        });
+      },
+      
+      deleteTrade: (id) => {
+        set({ trades: get().trades.filter(trade => trade.id !== id) });
+      },
+      
+      getStats: () => {
+        const trades = get().trades.filter(t => t.status === 'closed');
+        const wins = trades.filter(t => t.pnl > 0);
+        const losses = trades.filter(t => t.pnl <= 0);
+        const totalPnl = trades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+        
+        return {
+          totalTrades: trades.length,
+          wins: wins.length,
+          losses: losses.length,
+          winRate: trades.length > 0 ? (wins.length / trades.length) * 100 : 0,
+          totalPnl,
+          avgWin: wins.length > 0 ? wins.reduce((s, t) => s + t.pnl, 0) / wins.length : 0,
+          avgLoss: losses.length > 0 ? losses.reduce((s, t) => s + t.pnl, 0) / losses.length : 0
+        };
+      }
+    }),
+    { name: 'trading-journal-storage' }
+  )
+);

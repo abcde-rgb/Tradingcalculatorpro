@@ -1,0 +1,124 @@
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/lib/store';
+
+const API = process.env.REACT_APP_BACKEND_URL;
+
+export const PaymentSuccessPage = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { token, refreshUser } = useAuthStore();
+  const [status, setStatus] = useState('checking');
+  const [attempts, setAttempts] = useState(0);
+  const attemptsRef = useRef(0);
+  
+  const sessionId = searchParams.get('session_id');
+
+  const checkStatus = useCallback(async () => {
+    if (!sessionId || !token) {
+      setStatus('error');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API}/api/checkout/status/${sessionId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await response.json();
+      
+      if (data.payment_status === 'paid') {
+        setStatus('success');
+        await refreshUser();
+      } else if (attemptsRef.current < 5) {
+        attemptsRef.current += 1;
+        setAttempts(attemptsRef.current);
+        setTimeout(() => checkStatus(), 2000);
+      } else {
+        setStatus('pending');
+      }
+    } catch (error) {
+      setStatus('error');
+    }
+  }, [sessionId, token, refreshUser]); // Fixed: removed attempts, using ref instead + added checkStatus
+
+  useEffect(() => {
+    checkStatus();
+  }, [checkStatus]);
+
+  return (
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-card border-border">
+        <CardContent className="p-8 text-center">
+          {status === 'checking' && (
+            <>
+              <Loader2 className="w-16 h-16 mx-auto mb-4 text-primary animate-spin" />
+              <h2 className="text-xl font-bold mb-2">Verificando pago...</h2>
+              <p className="text-zinc-400">Por favor espera mientras confirmamos tu pago</p>
+            </>
+          )}
+          
+          {status === 'success' && (
+            <>
+              <CheckCircle className="w-16 h-16 mx-auto mb-4 text-primary" />
+              <h2 className="text-xl font-bold mb-2">¡Pago Completado!</h2>
+              <p className="text-zinc-400 mb-6">Tu cuenta ha sido actualizada a Premium</p>
+              <Button onClick={() => navigate('/dashboard')} className="bg-primary text-black">
+                Ir al Dashboard
+              </Button>
+            </>
+          )}
+          
+          {status === 'pending' && (
+            <>
+              <Loader2 className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
+              <h2 className="text-xl font-bold mb-2">Pago en Proceso</h2>
+              <p className="text-zinc-400 mb-6">Tu pago está siendo procesado. Recibirás un email cuando se complete.</p>
+              <Button onClick={() => navigate('/dashboard')} variant="outline">
+                Ir al Dashboard
+              </Button>
+            </>
+          )}
+          
+          {status === 'error' && (
+            <>
+              <XCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
+              <h2 className="text-xl font-bold mb-2">Error</h2>
+              <p className="text-zinc-400 mb-6">No pudimos verificar tu pago. Contacta soporte si el problema persiste.</p>
+              <Button onClick={() => navigate('/pricing')} variant="outline">
+                Volver a Intentar
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export const PaymentCancelPage = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-card border-border">
+        <CardContent className="p-8 text-center">
+          <XCircle className="w-16 h-16 mx-auto mb-4 text-zinc-500" />
+          <h2 className="text-xl font-bold mb-2">Pago Cancelado</h2>
+          <p className="text-zinc-400 mb-6">Has cancelado el proceso de pago. Puedes intentarlo de nuevo cuando quieras.</p>
+          <div className="space-y-2">
+            <Button onClick={() => navigate('/pricing')} className="w-full bg-primary text-black">
+              Ver Planes
+            </Button>
+            <Button onClick={() => navigate('/dashboard')} variant="outline" className="w-full">
+              Ir al Dashboard
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

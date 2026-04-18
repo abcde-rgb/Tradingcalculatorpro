@@ -1,0 +1,109 @@
+import { useEffect, useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { TrendingUp, TrendingDown, Target, Percent, BarChart3, AlertTriangle } from 'lucide-react';
+import { useAuthStore } from '@/lib/store';
+
+const API = process.env.REACT_APP_BACKEND_URL;
+
+export function JournalStats() {
+  const { token } = useAuthStore();
+  const [stats, setStats] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchStats = useCallback(async () => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${API}/api/journal/stats`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch journal stats:', error);
+      // Silent error - stats component will show loading/empty state
+    }
+    setIsLoading(false);
+  }, [token]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  if (isLoading || !stats || stats.totalTrades === 0) {
+    return null;
+  }
+
+  const statCards = [
+    {
+      label: 'Win Rate',
+      value: `${stats.winRate.toFixed(1)}%`,
+      icon: Percent,
+      color: stats.winRate >= 50 ? 'text-green-500' : 'text-red-500',
+      bgColor: stats.winRate >= 50 ? 'bg-green-500/10' : 'bg-red-500/10'
+    },
+    {
+      label: 'P&L Total',
+      value: `$${stats.totalPnl.toLocaleString()}`,
+      icon: stats.totalPnl >= 0 ? TrendingUp : TrendingDown,
+      color: stats.totalPnl >= 0 ? 'text-green-500' : 'text-red-500',
+      bgColor: stats.totalPnl >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'
+    },
+    {
+      label: 'Profit Factor',
+      value: stats.profitFactor.toFixed(2),
+      icon: BarChart3,
+      color: stats.profitFactor >= 1.5 ? 'text-green-500' : stats.profitFactor >= 1 ? 'text-yellow-500' : 'text-red-500',
+      bgColor: stats.profitFactor >= 1.5 ? 'bg-green-500/10' : stats.profitFactor >= 1 ? 'bg-yellow-500/10' : 'bg-red-500/10'
+    },
+    {
+      label: 'Expectancy',
+      value: `$${stats.expectancy.toFixed(2)}`,
+      icon: Target,
+      color: stats.expectancy > 0 ? 'text-green-500' : 'text-red-500',
+      bgColor: stats.expectancy > 0 ? 'bg-green-500/10' : 'bg-red-500/10'
+    },
+    {
+      label: 'Max Drawdown',
+      value: `$${stats.maxDrawdown.toFixed(0)}`,
+      icon: AlertTriangle,
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-500/10'
+    },
+    {
+      label: 'Total Trades',
+      value: stats.totalTrades,
+      sublabel: `${stats.wins}W / ${stats.losses}L`,
+      icon: BarChart3,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-500/10'
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" data-testid="journal-stats">
+      {statCards.map((stat) => (
+        <Card key={stat.label} className="bg-card border-border">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                <p className={`text-xl font-bold ${stat.color}`} data-testid={`stat-${stat.label.toLowerCase().replace(' ', '-')}`}>
+                  {stat.value}
+                </p>
+                {stat.sublabel && (
+                  <p className="text-xs text-muted-foreground">{stat.sublabel}</p>
+                )}
+              </div>
+              <div className={`w-8 h-8 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
+                <stat.icon className={`w-4 h-4 ${stat.color}`} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
