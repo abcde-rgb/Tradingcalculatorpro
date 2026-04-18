@@ -12,7 +12,7 @@ import GuideModal from './GuideModal';
 import SearchBar from './SearchBar';
 import LegEditor from './LegEditor';
 import KellyPanel from './KellyPanel';
-import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy, Calculator } from 'lucide-react';
 
 const CalculatorPage = () => {
   const [ticker, setTicker] = useState('AAPL');
@@ -31,6 +31,8 @@ const CalculatorPage = () => {
   const [customLegs, setCustomLegs] = useState([]);
   const [compareMode, setCompareMode] = useState(false);
   const [selectedStrategyB, setSelectedStrategyB] = useState(STRATEGIES.find((s) => s.id === 'short_put') || STRATEGIES[1]);
+  const [showKelly, setShowKelly] = useState(false);
+  const [showGreeks, setShowGreeks] = useState(false);
   const [accountBalance, setAccountBalance] = useState(() => {
     try {
       const saved = typeof window !== 'undefined' ? window.localStorage.getItem('options_account_balance') : null;
@@ -309,9 +311,9 @@ const CalculatorPage = () => {
   }, [compareMode, payoffDataB, legsB, popB, stock, breakEvensB]);
 
   return (
-    <div className="h-full flex flex-col bg-background text-foreground overflow-hidden" data-testid="options-calculator-root">
+    <div className="flex flex-col bg-background text-foreground" data-testid="options-calculator-root">
       {/* Top Sub-Header (under TCP main header) */}
-      <header className="h-14 min-h-[56px] bg-card border-b border-border flex items-center px-5 gap-4 z-40">
+      <header className="sticky top-16 h-14 min-h-[56px] bg-card border-b border-border flex items-center px-5 gap-4 z-30">
         {/* Ticker Search - Predictive Autocomplete */}
         <SearchBar currentTicker={ticker} stockData={stock} onSelect={handleTickerSelect} />
 
@@ -428,7 +430,7 @@ const CalculatorPage = () => {
           )}
 
           {/* Main Content */}
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex">
             {/* Chart + Controls */}
             <div className="flex-1 flex flex-col p-3 gap-2.5 min-w-0">
               {/* Metrics Row - 5 primary KPIs (larger, breathable) */}
@@ -530,8 +532,8 @@ const CalculatorPage = () => {
                 </div>
               )}
 
-              {/* Chart */}
-              <div className="flex-1 bg-card rounded-xl border border-border p-4 min-h-[460px]">
+              {/* Chart — fixed tall height for prominence */}
+              <div className="bg-card rounded-xl border border-border p-4 h-[520px]">
                 <PayoffChart
                   data={payoffData}
                   breakEvens={breakEvens}
@@ -558,8 +560,8 @@ const CalculatorPage = () => {
               </div>
             </div>
 
-            {/* Right Panel */}
-            <aside className="w-[272px] min-w-[272px] bg-card border-l border-border overflow-y-auto flex flex-col">
+            {/* Right Panel — simplified to 3 core controls */}
+            <aside className="w-[272px] min-w-[272px] bg-card border-l border-border flex flex-col">
               {/* Expiration - always shown */}
               <div className="p-4 border-b border-border">
                 <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2.5 block">Fecha de Expiración</label>
@@ -786,23 +788,59 @@ const CalculatorPage = () => {
                   </div>
                 </>
               )}
+            </aside>
+          </div>
 
-              {/* Kelly Criterion Sizing - always shown */}
-              <KellyPanel
-                pop={parseFloat(stats.pop) || 0}
-                maxProfit={parseFloat(stats.maxProfit) || 0}
-                maxLoss={parseFloat(stats.maxLoss) || 0}
-                capitalPerContract={contracts > 0 ? (parseFloat(stats.capitalRequired) || 0) / contracts : parseFloat(stats.capitalRequired) || 0}
-                isMaxLossUnlimited={stats.isMaxLossUnlimited}
-                accountBalance={accountBalance}
-                onBalanceChange={setAccountBalance}
-              />
+          {/* Advanced sections below — collapsible, full-width, reduce sidebar pressure */}
+          <div className="border-t border-border bg-background">
+            <div className="px-3 py-3 flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setShowKelly((v) => !v)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                  showKelly
+                    ? 'bg-primary/10 border-primary/40 text-primary'
+                    : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
+                }`}
+                data-testid="toggle-kelly"
+              >
+                <Calculator className="w-3.5 h-3.5" />
+                Kelly Criterion Sizing
+                <span className="text-[10px] opacity-60">{showKelly ? '▲ ocultar' : '▼ mostrar'}</span>
+              </button>
+              <button
+                onClick={() => setShowGreeks((v) => !v)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                  showGreeks
+                    ? 'bg-[#3b82f6]/10 border-[#3b82f6]/40 text-[#60a5fa]'
+                    : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-[#3b82f6]/30'
+                }`}
+                data-testid="toggle-greeks"
+              >
+                <span className="font-serif italic font-bold text-sm">Δ</span>
+                Greeks Detalladas
+                <span className="text-[10px] opacity-60">{showGreeks ? '▲ ocultar' : '▼ mostrar'}</span>
+              </button>
+            </div>
 
-              {/* Greeks - always shown */}
-              <div className="p-4 border-t border-border">
+            {showKelly && (
+              <div className="bg-card border-t border-border">
+                <KellyPanel
+                  pop={parseFloat(stats.pop) || 0}
+                  maxProfit={parseFloat(stats.maxProfit) || 0}
+                  maxLoss={parseFloat(stats.maxLoss) || 0}
+                  capitalPerContract={contracts > 0 ? (parseFloat(stats.capitalRequired) || 0) / contracts : parseFloat(stats.capitalRequired) || 0}
+                  isMaxLossUnlimited={stats.isMaxLossUnlimited}
+                  accountBalance={accountBalance}
+                  onBalanceChange={setAccountBalance}
+                />
+              </div>
+            )}
+
+            {showGreeks && (
+              <div className="bg-card border-t border-border p-4">
                 <GreeksDisplay greeks={greeks} legs={legs} stock={stock} />
               </div>
-            </aside>
+            )}
           </div>
         </>
       )}

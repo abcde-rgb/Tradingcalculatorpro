@@ -10,12 +10,9 @@ export default function OptionsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground" data-testid="options-page">
       <Header />
-      {/* Spacer for fixed header (64px) */}
+      {/* Spacer for fixed header (64px). Page scrolls naturally. */}
       <div className="pt-16">
-        {/* Options app renders its own full-height workspace */}
-        <div className="h-[calc(100vh-4rem)]">
-          <CalculatorPage />
-        </div>
+        <CalculatorPage />
       </div>
     </div>
   );

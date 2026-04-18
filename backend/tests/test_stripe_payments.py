@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://transaction-hub-113.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://unified-site-1.preview.emergentagent.com')
 
 
 class TestStripeCheckoutCreate:
@@ -30,7 +30,7 @@ class TestStripeCheckoutCreate:
             json={
                 "plan_id": "monthly",
                 "payment_method": "card",
-                "origin_url": "https://transaction-hub-113.preview.emergentagent.com"
+                "origin_url": "https://unified-site-1.preview.emergentagent.com"
             }
         )
         assert response.status_code == 200
@@ -55,7 +55,7 @@ class TestStripeCheckoutCreate:
             json={
                 "plan_id": "quarterly",
                 "payment_method": "card",
-                "origin_url": "https://transaction-hub-113.preview.emergentagent.com"
+                "origin_url": "https://unified-site-1.preview.emergentagent.com"
             }
         )
         assert response.status_code == 200
@@ -71,7 +71,7 @@ class TestStripeCheckoutCreate:
             json={
                 "plan_id": "annual",
                 "payment_method": "card",
-                "origin_url": "https://transaction-hub-113.preview.emergentagent.com"
+                "origin_url": "https://unified-site-1.preview.emergentagent.com"
             }
         )
         assert response.status_code == 200
@@ -87,7 +87,7 @@ class TestStripeCheckoutCreate:
             json={
                 "plan_id": "lifetime",
                 "payment_method": "card",
-                "origin_url": "https://transaction-hub-113.preview.emergentagent.com"
+                "origin_url": "https://unified-site-1.preview.emergentagent.com"
             }
         )
         assert response.status_code == 200
@@ -103,7 +103,7 @@ class TestStripeCheckoutCreate:
             json={
                 "plan_id": "monthly",
                 "payment_method": "sepa",
-                "origin_url": "https://transaction-hub-113.preview.emergentagent.com"
+                "origin_url": "https://unified-site-1.preview.emergentagent.com"
             }
         )
         assert response.status_code == 200
@@ -163,7 +163,7 @@ class TestStripeCheckoutStatus:
             json={
                 "plan_id": "monthly",
                 "payment_method": "card",
-                "origin_url": "https://transaction-hub-113.preview.emergentagent.com"
+                "origin_url": "https://unified-site-1.preview.emergentagent.com"
             }
         )
         return response.json()
@@ -307,7 +307,7 @@ class TestNewUserCheckoutFlow:
             json={
                 "plan_id": "monthly",
                 "payment_method": "card",
-                "origin_url": "https://transaction-hub-113.preview.emergentagent.com"
+                "origin_url": "https://unified-site-1.preview.emergentagent.com"
             }
         )
         assert response.status_code == 200
@@ -325,7 +325,7 @@ class TestNewUserCheckoutFlow:
             json={
                 "plan_id": "annual",
                 "payment_method": "card",
-                "origin_url": "https://transaction-hub-113.preview.emergentagent.com"
+                "origin_url": "https://unified-site-1.preview.emergentagent.com"
             }
         )
         assert create_response.status_code == 200
