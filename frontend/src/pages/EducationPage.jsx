@@ -262,37 +262,37 @@ export default function EducationPage() {
               <BookOpen className="h-24 w-24 text-primary mx-auto relative" />
             </div>
             
-            <h1 className="text-4xl font-bold">Centro de Aprendizaje Premium</h1>
+            <h1 className="text-4xl font-bold">{t('educationGateTitle')}</h1>
             <p className="text-xl text-muted-foreground">
-              Accede a contenido educativo profesional exclusivo para usuarios Premium
+              {t('educationGateDescription')}
             </p>
             
             <div className="bg-card border rounded-lg p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Contenido Premium Incluido:</h3>
+              <h3 className="text-lg font-semibold">{t('optionsGateIncludedTitle')}</h3>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
                 <li className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-primary" />
-                  <span>50+ Reglas de Trading</span>
+                  <span>{t('eduFeatureRules')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
-                  <span>Gestión de Riesgo</span>
+                  <span>{t('eduFeatureRisk')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CandlestickChart className="h-5 w-5 text-primary" />
-                  <span>Patrones de Velas</span>
+                  <span>{t('eduFeatureCandles')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-primary" />
-                  <span>Teoría de Dow</span>
+                  <span>{t('eduFeatureDow')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Brain className="h-5 w-5 text-primary" />
-                  <span>Psicología del Trading</span>
+                  <span>{t('eduFeaturePsychology')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-primary" />
-                  <span>Probabilidad y Estadística</span>
+                  <span>{t('eduFeatureStats')}</span>
                 </li>
               </ul>
             </div>
@@ -302,12 +302,12 @@ export default function EducationPage() {
                 <>
                   <Link to="/login">
                     <Button size="lg" className="w-full sm:w-auto">
-                      Iniciar Sesión
+                      {t('login')}
                     </Button>
                   </Link>
                   <Link to="/pricing">
                     <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                      Ver Planes Premium
+                      {t('viewPremiumPlans')}
                     </Button>
                   </Link>
                 </>
@@ -315,12 +315,12 @@ export default function EducationPage() {
                 <>
                   <Link to="/pricing">
                     <Button size="lg" className="w-full sm:w-auto">
-                      Ver Planes Premium
+                      {t('viewPremiumPlans')}
                     </Button>
                   </Link>
                   <Link to="/">
                     <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                      Volver al Inicio
+                      {t('backHome')}
                     </Button>
                   </Link>
                 </>
