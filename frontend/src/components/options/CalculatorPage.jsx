@@ -13,6 +13,7 @@ import SearchBar from './SearchBar';
 import LegEditor from './LegEditor';
 import KellyPanel from './KellyPanel';
 import GreeksTimeChart from './GreeksTimeChart';
+import OptimizeView from './OptimizeView';
 import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy, Calculator } from 'lucide-react';
 
 const CalculatorPage = () => {
@@ -349,6 +350,9 @@ const CalculatorPage = () => {
             <button onClick={() => setActiveTab('calculator')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'calculator' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
               <BarChart2 className="w-3.5 h-3.5 inline mr-1" />Calculator
             </button>
+            <button onClick={() => setActiveTab('optimize')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'optimize' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`} data-testid="tab-optimize">
+              <Target className="w-3.5 h-3.5 inline mr-1" />Optimizar
+            </button>
             <button onClick={() => setActiveTab('chain')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'chain' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
               <LayoutGrid className="w-3.5 h-3.5 inline mr-1" />Chain
             </button>
@@ -390,6 +394,30 @@ const CalculatorPage = () => {
       
       {activeTab === 'iv-surface' && (
         <IVSurfaceView stock={stock} chain={chain} />
+      )}
+
+      {activeTab === 'optimize' && (
+        <OptimizeView
+          symbol={ticker}
+          stock={stock}
+          expirations={expirations}
+          onOpenInCalculator={(result) => {
+            // Load the result legs into custom builder mode
+            const mappedLegs = (result.legs || []).map((leg) => ({
+              id: `leg-${Math.random().toString(36).slice(2, 8)}`,
+              type: leg.type,
+              action: leg.action,
+              quantity: leg.quantity || 1,
+              strike: leg.strike,
+              premium: leg.premium || 0,
+              iv: 0.3,
+              daysToExpiry: result.daysToExpiry || 30,
+            }));
+            setCustomLegs(mappedLegs);
+            setBuilderMode('custom');
+            setActiveTab('calculator');
+          }}
+        />
       )}
       
       {activeTab === 'calculator' && (

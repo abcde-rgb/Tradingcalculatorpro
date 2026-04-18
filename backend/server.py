@@ -1596,6 +1596,57 @@ async def opt_calculate_greeks(request: GreeksRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# --- Strategy Optimizer ---
+class OptimizeRequest(BaseModel):
+    symbol: str
+    sentiment: str  # very_bullish, bullish, neutral, bearish, very_bearish
+    targetPrice: float
+    budget: float = 10000
+    expirationIdx: int = 3
+    mode: str = "max_return"  # max_return | max_chance
+    maxResults: int = 8
+
+
+@api_router.post("/optimize")
+async def optimize_options_strategy(req: OptimizeRequest):
+    try:
+        from options_optimize import optimize_strategies
+        stock = get_stock_data(req.symbol)
+        expirations = get_available_expirations(req.symbol) or generate_expirations()
+        idx = max(0, min(req.expirationIdx, len(expirations) - 1))
+        expiration = expirations[idx]
+        chain = get_options_chain_real(req.symbol, expiration["date"])
+        if not chain:
+            chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
+
+        results = optimize_strategies(
+            symbol=req.symbol,
+            sentiment=req.sentiment,
+            target_price=req.targetPrice,
+            budget=req.budget,
+            chain=chain,
+            spot=stock["price"],
+            days_to_expiry=expiration["daysToExpiry"],
+            expiration_label=expiration["fullLabel"],
+            mode=req.mode,
+            max_results=req.maxResults,
+        )
+        return {
+            "stock": stock,
+            "expiration": expiration,
+            "target": {
+                "price": req.targetPrice,
+                "budget": req.budget,
+                "sentiment": req.sentiment,
+                "mode": req.mode,
+            },
+            "results": results,
+        }
+    except Exception as e:
+        logging.error(f"Optimize error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Include router and setup middleware
 app.include_router(api_router)
 
