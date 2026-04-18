@@ -29,15 +29,25 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [] }) => {
+const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [], dataB = null, labelA = 'A', labelB = 'B' }) => {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
-    return data.map(d => ({
-      ...d,
-      profitArea: d.pnlAtExpiry >= 0 ? d.pnlAtExpiry : 0,
-      lossArea: d.pnlAtExpiry < 0 ? d.pnlAtExpiry : 0,
-    }));
-  }, [data]);
+    // Merge strategy B payoff by price, aligned with A (same price grid)
+    const bMap = new Map();
+    if (dataB && dataB.length > 0) {
+      dataB.forEach((d) => bMap.set(d.price, d));
+    }
+    return data.map(d => {
+      const b = bMap.get(d.price);
+      return {
+        ...d,
+        profitArea: d.pnlAtExpiry >= 0 ? d.pnlAtExpiry : 0,
+        lossArea: d.pnlAtExpiry < 0 ? d.pnlAtExpiry : 0,
+        pnlCurrentB: b ? b.pnlCurrent : null,
+        pnlAtExpiryB: b ? b.pnlAtExpiry : null,
+      };
+    });
+  }, [data, dataB]);
 
   // Strikes from option legs (stock legs excluded)
   const optionStrikes = useMemo(() => {
@@ -95,8 +105,14 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [] }) => {
         <div className="flex items-center gap-4 text-[10px] flex-wrap">
           <div className="flex items-center gap-1.5">
             <div className="w-4 h-[2px] rounded bg-[#22c55e]"></div>
-            <span className="text-muted-foreground">Current</span>
+            <span className="text-muted-foreground">{dataB ? `A · ${labelA}` : 'Current'}</span>
           </div>
+          {dataB && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-[2px] rounded bg-[#a855f7]"></div>
+              <span className="text-muted-foreground">B · {labelB}</span>
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <div className="w-4 h-[2px] rounded bg-white opacity-50"></div>
             <span className="text-muted-foreground">At Expiry</span>
@@ -235,7 +251,15 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [] }) => {
             <Area type="monotone" dataKey="profitArea" stroke="none" fill="url(#profitFill)" isAnimationActive={false} baseValue={0} />
             <Area type="monotone" dataKey="lossArea" stroke="none" fill="url(#lossFill)" isAnimationActive={false} baseValue={0} />
             <Area type="monotone" dataKey="pnlAtExpiry" stroke="#ffffff" strokeWidth={1.5} strokeOpacity={0.4} fill="none" dot={false} isAnimationActive={false} />
-            <Area type="monotone" dataKey="pnl" stroke="#22c55e" strokeWidth={2.5} fill="url(#currentFill)" dot={false} isAnimationActive={false} />
+            <Area type="monotone" dataKey="pnl" stroke="#22c55e" strokeWidth={2.5} fill="url(#currentFill)" dot={false} isAnimationActive={false} name={labelA} />
+
+            {/* Strategy B overlay (comparison mode) */}
+            {dataB && dataB.length > 0 && (
+              <>
+                <Area type="monotone" dataKey="pnlAtExpiryB" stroke="#c084fc" strokeWidth={1.5} strokeOpacity={0.5} fill="none" strokeDasharray="4 3" dot={false} isAnimationActive={false} />
+                <Area type="monotone" dataKey="pnlCurrentB" stroke="#a855f7" strokeWidth={2.5} fill="none" dot={false} isAnimationActive={false} name={labelB} />
+              </>
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>

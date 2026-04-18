@@ -12,7 +12,7 @@ import GuideModal from './GuideModal';
 import SearchBar from './SearchBar';
 import LegEditor from './LegEditor';
 import KellyPanel from './KellyPanel';
-import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy } from 'lucide-react';
 
 const CalculatorPage = () => {
   const [ticker, setTicker] = useState('AAPL');
@@ -29,6 +29,8 @@ const CalculatorPage = () => {
   const [showGuide, setShowGuide] = useState(false);
   const [builderMode, setBuilderMode] = useState('preset'); // 'preset' | 'custom'
   const [customLegs, setCustomLegs] = useState([]);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedStrategyB, setSelectedStrategyB] = useState(STRATEGIES.find((s) => s.id === 'short_put') || STRATEGIES[1]);
   const [accountBalance, setAccountBalance] = useState(() => {
     try {
       const saved = typeof window !== 'undefined' ? window.localStorage.getItem('options_account_balance') : null;
@@ -134,6 +136,28 @@ const CalculatorPage = () => {
   // Active legs based on mode
   const legs = builderMode === 'custom' ? customBuiltLegs : presetLegs;
 
+  // Strategy B (for comparison mode) — uses same chain/strike/contracts/expiration
+  const legsB = useMemo(() => {
+    if (!compareMode || !selectedStrike || !currentExp || chain.length === 0 || !stock) return [];
+    return selectedStrategyB.legs.map((legDef) => {
+      if (legDef.type === 'stock') {
+        return { type: 'stock', action: legDef.action, quantity: legDef.qty * contracts, strike: stock.price };
+      }
+      const idx = Math.max(0, Math.min(chain.length - 1, selectedStrikeIdx + (legDef.offset || 0)));
+      const strikeData = chain[idx];
+      const opt = strikeData?.[legDef.type];
+      return {
+        type: legDef.type,
+        action: legDef.action,
+        quantity: legDef.qty * contracts,
+        strike: strikeData?.strike || 0,
+        premium: opt?.mid || 0,
+        iv: opt?.iv || 0.3,
+        daysToExpiry: currentExp.daysToExpiry,
+      };
+    });
+  }, [compareMode, selectedStrategyB, selectedStrikeIdx, chain, currentExp, stock, contracts, selectedStrike]);
+
   const daysForChart = useMemo(() => {
     return Math.max(0, Math.round((currentExp?.daysToExpiry || 30) * (timeSlider / 100)));
   }, [currentExp, timeSlider]);
@@ -142,6 +166,11 @@ const CalculatorPage = () => {
     if (!stock || legs.length === 0) return [];
     return calculateStrategyPayoff(legs, stock.price, 0.35, daysForChart);
   }, [legs, stock, daysForChart]);
+
+  const payoffDataB = useMemo(() => {
+    if (!compareMode || !stock || legsB.length === 0) return [];
+    return calculateStrategyPayoff(legsB, stock.price, 0.35, daysForChart);
+  }, [compareMode, legsB, stock, daysForChart]);
 
   const breakEvens = useMemo(() => findBreakEvenPoints(payoffData), [payoffData]);
   const greeks = useMemo(() => {
@@ -225,6 +254,59 @@ const CalculatorPage = () => {
       capitalRequired: capitalRequired.toFixed(0),
     };
   }, [payoffData, legs, breakEvens, pop, stock]);
+
+  // Stats for Strategy B (comparison mode)
+  const breakEvensB = useMemo(() => findBreakEvenPoints(payoffDataB), [payoffDataB]);
+  const popB = useMemo(() => {
+    if (!compareMode || !stock || legsB.length === 0) return 0;
+    return probabilityOfProfit(legsB, stock.price);
+  }, [compareMode, legsB, stock]);
+  const statsB = useMemo(() => {
+    if (!compareMode || payoffDataB.length === 0) {
+      return { maxProfit: '0', maxLoss: '0', premium: '0', roi: '0.0', rr: '—', isMaxProfitUnlimited: false, isMaxLossUnlimited: false, pop: '0.0', capitalRequired: '0' };
+    }
+    const expPnls = payoffDataB.map((p) => p.pnlAtExpiry);
+    const maxProfit = Math.max(...expPnls);
+    const maxLoss = Math.min(...expPnls);
+    let premium = 0;
+    legsB.forEach((l) => {
+      if (l.type !== 'stock') premium += l.premium * (l.action === 'buy' ? -1 : 1) * (l.quantity || 1) * 100;
+    });
+    const roi = premium !== 0 ? ((maxProfit / Math.abs(premium)) * 100) : 0;
+    const rr = riskRewardRatio(maxProfit, maxLoss);
+    const isMaxLossUnlimited = maxLoss < -5000000;
+    let capitalRequired;
+    if (isMaxLossUnlimited && stock?.price) {
+      let naked = 0;
+      legsB.forEach((l) => {
+        if (l.type === 'stock' || l.action !== 'sell') return;
+        const S = stock.price; const K = l.strike || S; const qty = l.quantity || 1;
+        const premRecv = (l.premium || 0) * 100;
+        if (l.type === 'call') {
+          const otm = Math.max(0, K - S);
+          naked += (Math.max(0.2 * S - otm, 0.1 * S) * 100 + premRecv) * qty;
+        } else {
+          const otm = Math.max(0, S - K);
+          naked += (Math.max(0.2 * S - otm, 0.1 * K) * 100 + premRecv) * qty;
+        }
+      });
+      capitalRequired = naked > 0 ? naked : Math.abs(premium);
+    } else {
+      capitalRequired = Math.max(Math.abs(maxLoss), premium < 0 ? Math.abs(premium) : 0);
+    }
+    return {
+      maxProfit: maxProfit > 5000000 ? 'Unlimited' : maxProfit.toFixed(0),
+      maxLoss: maxLoss.toFixed(0),
+      premium: premium.toFixed(0),
+      roi: roi.toFixed(1),
+      rr: rr > 100 ? '∞' : rr.toFixed(2),
+      isMaxProfitUnlimited: maxProfit > 5000000,
+      isMaxLossUnlimited,
+      pop: popB.toFixed(1),
+      capitalRequired: capitalRequired.toFixed(0),
+      breakEvens: breakEvensB,
+    };
+  }, [compareMode, payoffDataB, legsB, popB, stock, breakEvensB]);
 
   return (
     <div className="h-full flex flex-col bg-background text-foreground overflow-hidden" data-testid="options-calculator-root">
@@ -313,6 +395,17 @@ const CalculatorPage = () => {
               >
                 <Wrench className="w-3 h-3" /> CONSTRUCTOR
               </button>
+              <button
+                onClick={() => setCompareMode((v) => !v)}
+                className={`absolute right-[155px] top-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all z-10 border ${
+                  compareMode
+                    ? 'bg-[#a855f7]/20 border-[#a855f7]/50 text-[#c084fc]'
+                    : 'bg-[#a855f7]/10 border-[#a855f7]/25 text-[#c084fc] hover:bg-[#a855f7]/20'
+                }`}
+                data-testid="compare-toggle"
+              >
+                <GitCompare className="w-3 h-3" /> {compareMode ? 'COMPARANDO' : 'COMPARAR A vs B'}
+              </button>
             </div>
           ) : (
             <div className="bg-card border-b border-border px-5 py-2.5 flex items-center justify-between">
@@ -376,6 +469,50 @@ const CalculatorPage = () => {
                 </div>
               </div>
 
+              {/* Strategy B picker + Comparison Table (compare mode) */}
+              {compareMode && builderMode === 'preset' && (
+                <div className="bg-gradient-to-r from-[#a855f7]/5 to-transparent border border-[#a855f7]/30 rounded-xl p-3" data-testid="compare-panel">
+                  <div className="flex items-center gap-3 mb-2">
+                    <GitCompare className="w-4 h-4 text-[#c084fc]" />
+                    <span className="text-xs font-bold text-[#c084fc] uppercase tracking-wider">Comparando</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      <span className="text-[#4ade80] font-bold">A:</span> {selectedStrategy.name}
+                      <span className="mx-2 text-muted-foreground/50">vs</span>
+                      <span className="text-[#c084fc] font-bold">B:</span>
+                    </span>
+                    <select
+                      value={selectedStrategyB.id}
+                      onChange={(e) => {
+                        const s = STRATEGIES.find((x) => x.id === e.target.value);
+                        if (s) setSelectedStrategyB(s);
+                      }}
+                      className="bg-muted border border-[#a855f7]/40 rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:border-[#a855f7]"
+                      data-testid="strategy-b-select"
+                    >
+                      {STRATEGY_CATEGORIES.map((cat) => (
+                        <optgroup key={cat} label={cat}>
+                          {STRATEGIES.filter((s) => s.category === cat).map((s) => (
+                            <option key={s.id} value={s.id} disabled={s.id === selectedStrategy.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                  {/* Comparison metrics table */}
+                  <div className="grid grid-cols-7 gap-1.5 mt-2 text-[11px] font-mono">
+                    <CompareCell label="Métrica" headers />
+                    <CompareCell label="Máx. Beneficio" a={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`} b={statsB.isMaxProfitUnlimited ? '∞' : `$${statsB.maxProfit}`} winner={compareNumeric(stats.maxProfit, statsB.maxProfit, 'higher', stats.isMaxProfitUnlimited, statsB.isMaxProfitUnlimited)} />
+                    <CompareCell label="Máx. Pérdida" a={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`} b={statsB.isMaxLossUnlimited ? '−∞' : `$${statsB.maxLoss}`} winner={compareNumeric(stats.maxLoss, statsB.maxLoss, 'higher', stats.isMaxLossUnlimited, statsB.isMaxLossUnlimited)} />
+                    <CompareCell label="Capital Req." a={`$${stats.capitalRequired}`} b={`$${statsB.capitalRequired}`} winner={compareNumeric(stats.capitalRequired, statsB.capitalRequired, 'lower')} />
+                    <CompareCell label="POP %" a={`${stats.pop}%`} b={`${statsB.pop}%`} winner={compareNumeric(stats.pop, statsB.pop, 'higher')} />
+                    <CompareCell label="R/R" a={stats.rr} b={statsB.rr} winner={compareNumeric(stats.rr, statsB.rr, 'higher')} />
+                    <CompareCell label="ROI %" a={`${stats.roi}%`} b={`${statsB.roi}%`} winner={compareNumeric(stats.roi, statsB.roi, 'higher')} />
+                  </div>
+                </div>
+              )}
+
               {/* Chart */}
               <div className="flex-1 bg-card rounded-xl border border-border p-4 min-h-0">
                 <PayoffChart
@@ -383,7 +520,12 @@ const CalculatorPage = () => {
                   breakEvens={breakEvens}
                   stockPrice={stock?.price}
                   legs={legs}
-                  title={builderMode === 'custom' ? `Custom — ${ticker}` : `${selectedStrategy.name} — ${ticker}`}
+                  dataB={compareMode ? payoffDataB : null}
+                  labelA={selectedStrategy.name}
+                  labelB={selectedStrategyB.name}
+                  title={compareMode
+                    ? `${selectedStrategy.name} vs ${selectedStrategyB.name} — ${ticker}`
+                    : (builderMode === 'custom' ? `Custom — ${ticker}` : `${selectedStrategy.name} — ${ticker}`)}
                 />
               </div>
 
@@ -660,5 +802,45 @@ const StatCard = ({ icon: Icon, label, value, color, title }) => (
     <span className={`text-sm font-bold font-mono ${color} block truncate`}>{value}</span>
   </div>
 );
+
+// --- Comparison helpers ---
+const compareNumeric = (a, b, prefer, aUnlim = false, bUnlim = false) => {
+  // Returns 'A', 'B', or 'tie'
+  if (aUnlim && !bUnlim) return prefer === 'higher' ? 'A' : 'B';
+  if (!aUnlim && bUnlim) return prefer === 'higher' ? 'B' : 'A';
+  const na = parseFloat(String(a).replace(/[^\d.\-]/g, ''));
+  const nb = parseFloat(String(b).replace(/[^\d.\-]/g, ''));
+  if (!Number.isFinite(na) || !Number.isFinite(nb)) return 'tie';
+  if (Math.abs(na - nb) < 0.005) return 'tie';
+  if (prefer === 'higher') return na > nb ? 'A' : 'B';
+  return na < nb ? 'A' : 'B';
+};
+
+const CompareCell = ({ label, a, b, winner, headers }) => {
+  if (headers) {
+    return (
+      <div className="col-span-1 text-[9px] text-muted-foreground uppercase tracking-wider font-semibold pt-1">
+        Métrica / Valor
+      </div>
+    );
+  }
+  return (
+    <div className="col-span-1 bg-muted/40 rounded-md border border-border/50 p-1.5 min-w-0">
+      <div className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5 truncate">{label}</div>
+      <div className="flex flex-col gap-0.5">
+        <div className={`flex items-center justify-between gap-1 ${winner === 'A' ? 'text-[#4ade80]' : 'text-muted-foreground'}`}>
+          <span className="text-[9px] font-bold">A</span>
+          <span className="font-mono text-[10px] truncate">{a}</span>
+          {winner === 'A' && <Trophy className="w-2.5 h-2.5 flex-shrink-0" />}
+        </div>
+        <div className={`flex items-center justify-between gap-1 ${winner === 'B' ? 'text-[#c084fc]' : 'text-muted-foreground'}`}>
+          <span className="text-[9px] font-bold">B</span>
+          <span className="font-mono text-[10px] truncate">{b}</span>
+          {winner === 'B' && <Trophy className="w-2.5 h-2.5 flex-shrink-0" />}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default CalculatorPage;
