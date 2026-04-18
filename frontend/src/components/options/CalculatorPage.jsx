@@ -11,6 +11,7 @@ import EducationTab from './EducationTab';
 import GuideModal from './GuideModal';
 import SearchBar from './SearchBar';
 import LegEditor from './LegEditor';
+import KellyPanel from './KellyPanel';
 import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet } from 'lucide-react';
 
 const CalculatorPage = () => {
@@ -28,6 +29,21 @@ const CalculatorPage = () => {
   const [showGuide, setShowGuide] = useState(false);
   const [builderMode, setBuilderMode] = useState('preset'); // 'preset' | 'custom'
   const [customLegs, setCustomLegs] = useState([]);
+  const [accountBalance, setAccountBalance] = useState(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('options_account_balance') : null;
+      return saved ? parseFloat(saved) : 10000;
+    } catch {
+      return 10000;
+    }
+  });
+
+  // Persist account balance
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem('options_account_balance', String(accountBalance));
+    } catch {}
+  }, [accountBalance]);
 
   // Load stock data
   useEffect(() => {
@@ -610,6 +626,17 @@ const CalculatorPage = () => {
                   </div>
                 </>
               )}
+
+              {/* Kelly Criterion Sizing - always shown */}
+              <KellyPanel
+                pop={parseFloat(stats.pop) || 0}
+                maxProfit={parseFloat(stats.maxProfit) || 0}
+                maxLoss={parseFloat(stats.maxLoss) || 0}
+                capitalPerContract={contracts > 0 ? (parseFloat(stats.capitalRequired) || 0) / contracts : parseFloat(stats.capitalRequired) || 0}
+                isMaxLossUnlimited={stats.isMaxLossUnlimited}
+                accountBalance={accountBalance}
+                onBalanceChange={setAccountBalance}
+              />
 
               {/* Greeks - always shown */}
               <div className="p-4 border-t border-border">
