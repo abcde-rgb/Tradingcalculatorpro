@@ -430,43 +430,60 @@ const CalculatorPage = () => {
           {/* Main Content */}
           <div className="flex-1 flex overflow-hidden">
             {/* Chart + Controls */}
-            <div className="flex-1 flex flex-col p-4 gap-3 min-w-0">
-              {/* Metrics Row - 8 metrics */}
-              <div className="grid grid-cols-8 gap-2">
+            <div className="flex-1 flex flex-col p-3 gap-2.5 min-w-0">
+              {/* Metrics Row - 5 primary KPIs (larger, breathable) */}
+              <div className="grid grid-cols-5 gap-2">
                 <StatCard icon={TrendingUp} label="Máx. Beneficio" value={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`} color="text-[#22c55e]" />
                 <StatCard icon={TrendingDown} label="Máx. Pérdida" value={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`} color="text-[#ef4444]" />
-                <StatCard icon={Wallet} label="Capital Req." value={stats.isMaxLossUnlimited ? `~$${stats.capitalRequired}` : `$${stats.capitalRequired}`} color="text-[#f59e0b]" title="Estimación Reg-T del capital/margen requerido por la posición" />
-                <StatCard icon={Scale} label="Risk / Reward" value={stats.rr || '—'} color="text-[#eab308]" />
-                <StatCard icon={Target} label="Break-Even" value={breakEvens.length > 0 ? `$${breakEvens[0]}` : '—'} color="text-[#a78bfa]" />
+                <StatCard icon={Wallet} label="Capital Req." value={stats.isMaxLossUnlimited ? `~$${stats.capitalRequired}` : `$${stats.capitalRequired}`} color="text-[#f59e0b]" title="Estimación Reg-T del capital/margen requerido" />
                 <StatCard icon={Percent} label="Prob. Beneficio" value={`${stats.pop || 0}%`} color="text-primary" />
-                <StatCard icon={DollarSign} label="Prima Neta" value={`$${stats.premium}`} color={parseFloat(stats.premium) >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'} />
                 <StatCard icon={ArrowUpRight} label="ROI" value={`${stats.roi}%`} color="text-primary" />
               </div>
 
-              {/* Legs Bar */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {legs.map((leg, i) => (
-                  <div key={`leg-${leg.type}-${leg.action}-${leg.strike}-${i}`} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border ${
-                    leg.action === 'buy'
-                      ? 'bg-[#22c55e]/8 border-[#22c55e]/25 text-[#4ade80]'
-                      : 'bg-[#ef4444]/8 border-[#ef4444]/25 text-[#f87171]'
-                  }`}>
-                    <span className="font-bold uppercase text-[10px]">{leg.action === 'buy' ? 'BUY' : 'SELL'}</span>
-                    <span>{leg.quantity}x</span>
-                    {leg.type === 'stock' ? (
-                      <span>{ticker}</span>
-                    ) : (
-                      <>
-                        <span className="font-mono">${leg.strike}</span>
-                        <span className="uppercase">{leg.type}</span>
-                        <span className="text-muted-foreground">@ ${leg.premium?.toFixed(2)}</span>
-                      </>
-                    )}
-                  </div>
-                ))}
-                <div className="text-xs text-muted-foreground ml-2">
-                  {currentExp?.fullLabel} · {currentExp?.daysToExpiry}d
+              {/* Secondary info + Legs — condensed single line */}
+              <div className="flex items-center gap-3 flex-wrap bg-card/50 border border-border/60 rounded-lg px-3 py-2 text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <Scale className="w-3 h-3 text-[#eab308]" />
+                  <span className="text-muted-foreground">R/R</span>
+                  <span className="font-mono font-bold text-[#eab308]">{stats.rr || '—'}</span>
                 </div>
+                <span className="text-muted-foreground/40">·</span>
+                <div className="flex items-center gap-1.5">
+                  <Target className="w-3 h-3 text-[#a78bfa]" />
+                  <span className="text-muted-foreground">Break-Even</span>
+                  <span className="font-mono font-bold text-[#a78bfa]">{breakEvens.length > 0 ? `$${breakEvens[0]}` : '—'}</span>
+                </div>
+                <span className="text-muted-foreground/40">·</span>
+                <div className="flex items-center gap-1.5">
+                  <DollarSign className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">Prima</span>
+                  <span className={`font-mono font-bold ${parseFloat(stats.premium) >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>${stats.premium}</span>
+                </div>
+                <span className="text-muted-foreground/40 hidden md:inline">·</span>
+                <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+                  {legs.map((leg, i) => (
+                    <div key={`leg-${leg.type}-${leg.action}-${leg.strike}-${i}`} className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${
+                      leg.action === 'buy'
+                        ? 'bg-[#22c55e]/8 border-[#22c55e]/25 text-[#4ade80]'
+                        : 'bg-[#ef4444]/8 border-[#ef4444]/25 text-[#f87171]'
+                    }`}>
+                      <span className="font-bold uppercase">{leg.action === 'buy' ? 'BUY' : 'SELL'}</span>
+                      <span>{leg.quantity}x</span>
+                      {leg.type === 'stock' ? (
+                        <span>{ticker}</span>
+                      ) : (
+                        <>
+                          <span className="font-mono">${leg.strike}</span>
+                          <span className="uppercase">{leg.type}</span>
+                          <span className="text-muted-foreground">@${leg.premium?.toFixed(2)}</span>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <span className="text-muted-foreground/60 ml-auto text-[10px] whitespace-nowrap">
+                  {currentExp?.fullLabel} · {currentExp?.daysToExpiry}d
+                </span>
               </div>
 
               {/* Strategy B picker + Comparison Table (compare mode) */}
@@ -514,7 +531,7 @@ const CalculatorPage = () => {
               )}
 
               {/* Chart */}
-              <div className="flex-1 bg-card rounded-xl border border-border p-4 min-h-0">
+              <div className="flex-1 bg-card rounded-xl border border-border p-4 min-h-[460px]">
                 <PayoffChart
                   data={payoffData}
                   breakEvens={breakEvens}
@@ -529,20 +546,20 @@ const CalculatorPage = () => {
                 />
               </div>
 
-              {/* Time Slider */}
-              <div className="flex items-center gap-4 bg-card rounded-xl border border-border px-4 py-3">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Tiempo al Vencimiento</span>
+              {/* Time Slider — slim */}
+              <div className="flex items-center gap-3 bg-card/60 rounded-lg border border-border/60 px-3 py-2">
+                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap">Vencimiento</span>
                 <div className="flex-1 relative">
                   <input type="range" min={0} max={100} value={timeSlider} onChange={(e) => setTimeSlider(parseInt(e.target.value))} className="w-full" />
                 </div>
-                <span className="text-sm font-mono font-bold text-foreground min-w-[50px] text-right">{daysForChart}d</span>
+                <span className="text-xs font-mono font-bold text-foreground min-w-[44px] text-right">{daysForChart}d</span>
                 <span className="text-[10px] text-muted-foreground">/ {currentExp?.daysToExpiry}d</span>
               </div>
             </div>
 
             {/* Right Panel */}
-            <aside className="w-[300px] min-w-[300px] bg-card border-l border-border overflow-y-auto flex flex-col">
+            <aside className="w-[272px] min-w-[272px] bg-card border-l border-border overflow-y-auto flex flex-col">
               {/* Expiration - always shown */}
               <div className="p-4 border-b border-border">
                 <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2.5 block">Fecha de Expiración</label>
@@ -794,12 +811,12 @@ const CalculatorPage = () => {
 };
 
 const StatCard = ({ icon: Icon, label, value, color, title }) => (
-  <div className="bg-card rounded-lg border border-border px-2.5 py-2.5 hover:border-primary/30 transition-colors" title={title}>
-    <div className="flex items-center gap-1 mb-0.5">
-      <Icon className={`w-3 h-3 ${color}`} />
-      <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium truncate">{label}</span>
+  <div className="bg-card rounded-xl border border-border px-4 py-3 hover:border-primary/30 transition-colors" title={title}>
+    <div className="flex items-center gap-1.5 mb-1">
+      <Icon className={`w-3.5 h-3.5 ${color}`} />
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold truncate">{label}</span>
     </div>
-    <span className={`text-sm font-bold font-mono ${color} block truncate`}>{value}</span>
+    <span className={`text-lg font-bold font-mono ${color} block truncate`}>{value}</span>
   </div>
 );
 
