@@ -85,13 +85,13 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <div>
-          <h3 className="text-xs font-bold text-white uppercase tracking-widest">Constructor de Legs</h3>
-          <p className="text-[9px] text-[#4a5568] mt-0.5">{legs.filter(l => l.enabled).length} patas activas</p>
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-widest">Constructor de Legs</h3>
+          <p className="text-[9px] text-muted-foreground mt-0.5">{legs.filter(l => l.enabled).length} patas activas</p>
         </div>
         <div className="flex items-center gap-1.5">
           <button
             onClick={clearAll}
-            className="p-1.5 rounded-lg text-[#4a5568] hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
             title="Borrar todo"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -106,7 +106,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
             key={leg.id}
             className={`rounded-xl border transition-all ${
               !leg.enabled
-                ? 'border-[#1e2536]/50 opacity-40'
+                ? 'border-border/50 opacity-40'
                 : leg.action === 'buy'
                 ? 'border-[#22c55e]/20 bg-[#22c55e]/[0.03]'
                 : 'border-[#ef4444]/20 bg-[#ef4444]/[0.03]'
@@ -133,7 +133,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
                 onClick={() => toggleType(idx)}
                 className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${
                   leg.type === 'call'
-                    ? 'bg-[#3b82f6]/15 text-[#60a5fa] hover:bg-[#3b82f6]/25'
+                    ? 'bg-primary/15 text-primary hover:bg-primary/25'
                     : 'bg-[#a78bfa]/15 text-[#c4b5fd] hover:bg-[#a78bfa]/25'
                 }`}
               >
@@ -143,16 +143,16 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
               <div className="flex-1" />
 
               {/* Actions */}
-              <button onClick={() => toggleEnabled(idx)} className="p-1 rounded hover:bg-[#1e2740] transition-colors" title={leg.enabled ? 'Desactivar' : 'Activar'}>
+              <button onClick={() => toggleEnabled(idx)} className="p-1 rounded hover:bg-muted transition-colors" title={leg.enabled ? 'Desactivar' : 'Activar'}>
                 {leg.enabled
                   ? <ToggleRight className="w-4 h-4 text-[#22c55e]" />
-                  : <ToggleLeft className="w-4 h-4 text-[#4a5568]" />
+                  : <ToggleLeft className="w-4 h-4 text-muted-foreground" />
                 }
               </button>
-              <button onClick={() => duplicateLeg(idx)} className="p-1 rounded hover:bg-[#1e2740] transition-colors text-[#4a5568] hover:text-[#60a5fa]" title="Duplicar">
+              <button onClick={() => duplicateLeg(idx)} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-primary" title="Duplicar">
                 <Copy className="w-3 h-3" />
               </button>
-              <button onClick={() => removeLeg(idx)} className="p-1 rounded hover:bg-[#ef4444]/10 transition-colors text-[#4a5568] hover:text-[#ef4444]" title="Eliminar">
+              <button onClick={() => removeLeg(idx)} className="p-1 rounded hover:bg-[#ef4444]/10 transition-colors text-muted-foreground hover:text-[#ef4444]" title="Eliminar">
                 <Trash2 className="w-3 h-3" />
               </button>
             </div>
@@ -165,7 +165,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
                 <select
                   value={leg.strikeIdx}
                   onChange={(e) => updateLeg(idx, { strikeIdx: parseInt(e.target.value) })}
-                  className="w-full bg-[#0a0e17] border border-[#1e2536] rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-[#3b82f6] appearance-none cursor-pointer"
+                  className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:border-primary appearance-none cursor-pointer"
                 >
                   {chain.map((s, si) => (
                     <option key={s.strike} value={si}>${s.strike}</option>
@@ -176,10 +176,10 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
               {/* Quantity */}
               <div>
                 <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">Cantidad</label>
-                <div className="flex items-center bg-[#0a0e17] border border-[#1e2536] rounded-lg overflow-hidden">
+                <div className="flex items-center bg-background border border-border rounded-lg overflow-hidden">
                   <button
                     onClick={() => updateLeg(idx, { quantity: Math.max(1, leg.quantity - 1) })}
-                    className="px-1.5 py-1.5 hover:bg-[#1e2740] transition-colors text-[#4a5568]"
+                    className="px-1.5 py-1.5 hover:bg-muted transition-colors text-muted-foreground"
                   >
                     <span className="text-xs">-</span>
                   </button>
@@ -187,12 +187,12 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
                     type="number"
                     value={leg.quantity}
                     onChange={(e) => updateLeg(idx, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-full bg-transparent text-center text-xs font-mono text-white focus:outline-none py-1.5"
+                    className="w-full bg-transparent text-center text-xs font-mono text-foreground focus:outline-none py-1.5"
                     min={1}
                   />
                   <button
                     onClick={() => updateLeg(idx, { quantity: leg.quantity + 1 })}
-                    className="px-1.5 py-1.5 hover:bg-[#1e2740] transition-colors text-[#4a5568]"
+                    className="px-1.5 py-1.5 hover:bg-muted transition-colors text-muted-foreground"
                   >
                     <span className="text-xs">+</span>
                   </button>
@@ -202,7 +202,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
               {/* Premium */}
               <div>
                 <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">Prima</label>
-                <div className="bg-[#0a0e17] border border-[#1e2536] rounded-lg px-2 py-1.5 text-xs font-mono text-[#8b9ab8] text-center">
+                <div className="bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-mono text-muted-foreground text-center">
                   ${leg.premium?.toFixed(2)}
                 </div>
               </div>
@@ -220,14 +220,14 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
 
         {legs.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-sm text-[#4a5568] mb-1">Sin patas</p>
+            <p className="text-sm text-muted-foreground mb-1">Sin patas</p>
             <p className="text-[10px] text-[#3a4f6e]">Añade calls o puts para construir tu estrategia</p>
           </div>
         )}
       </div>
 
       {/* Add Buttons */}
-      <div className="px-3 py-3 border-t border-[#1e2536] space-y-2">
+      <div className="px-3 py-3 border-t border-border space-y-2">
         <div className="grid grid-cols-2 gap-1.5">
           <button
             onClick={() => addLeg('call', 'buy')}
@@ -257,8 +257,8 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
 
         {/* Net Summary */}
         {legs.length > 0 && (
-          <div className="bg-[#0a0e17] rounded-lg border border-[#1e2536] p-2.5 flex items-center justify-between">
-            <span className="text-[10px] text-[#4a5568] uppercase tracking-wider font-medium">
+          <div className="bg-background rounded-lg border border-border p-2.5 flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
               {netPremium >= 0 ? 'Crédito Neto' : 'Débito Neto'}
             </span>
             <span className={`text-sm font-bold font-mono ${netPremium >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>

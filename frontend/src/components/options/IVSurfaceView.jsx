@@ -76,7 +76,7 @@ const IVSurfaceView = ({ stock, chain }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-[#6b7a94] text-sm">Cargando superficie de IV...</div>
+        <div className="text-muted-foreground text-sm">Cargando superficie de IV...</div>
       </div>
     );
   }
@@ -84,7 +84,7 @@ const IVSurfaceView = ({ stock, chain }) => {
   if (!surfaceData) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-[#6b7a94] text-sm">No hay datos de IV disponibles</div>
+        <div className="text-muted-foreground text-sm">No hay datos de IV disponibles</div>
       </div>
     );
   }
@@ -92,12 +92,12 @@ const IVSurfaceView = ({ stock, chain }) => {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2536]">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <TrendingUp className="w-5 h-5 text-[#60a5fa]" />
+          <TrendingUp className="w-5 h-5 text-primary" />
           <div>
-            <h2 className="text-base font-bold text-white">Superficie de Volatilidad Implícita</h2>
-            <p className="text-xs text-[#6b7a94] mt-0.5">
+            <h2 className="text-base font-bold text-foreground">Superficie de Volatilidad Implícita</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {stock.symbol} @ ${stock.price} · {surfaceData.expirations.length} vencimientos
             </p>
           </div>
@@ -109,8 +109,8 @@ const IVSurfaceView = ({ stock, chain }) => {
             onClick={() => setViewMode('calls')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               viewMode === 'calls'
-                ? 'bg-[#3b82f6] text-white'
-                : 'bg-[#151c2c] text-[#6b7a94] hover:text-white border border-[#1e2536]'
+                ? 'bg-primary text-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
             Calls
@@ -119,8 +119,8 @@ const IVSurfaceView = ({ stock, chain }) => {
             onClick={() => setViewMode('avg')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               viewMode === 'avg'
-                ? 'bg-[#3b82f6] text-white'
-                : 'bg-[#151c2c] text-[#6b7a94] hover:text-white border border-[#1e2536]'
+                ? 'bg-primary text-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
             Promedio
@@ -129,8 +129,8 @@ const IVSurfaceView = ({ stock, chain }) => {
             onClick={() => setViewMode('puts')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               viewMode === 'puts'
-                ? 'bg-[#3b82f6] text-white'
-                : 'bg-[#151c2c] text-[#6b7a94] hover:text-white border border-[#1e2536]'
+                ? 'bg-primary text-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
             Puts
@@ -139,17 +139,17 @@ const IVSurfaceView = ({ stock, chain }) => {
       </div>
 
       {/* Legend */}
-      <div className="px-6 py-3 bg-[#0d1117] border-b border-[#1e2536] flex items-center gap-4">
-        <span className="text-xs text-[#6b7a94] font-medium">Volatilidad:</span>
+      <div className="px-6 py-3 bg-card border-b border-border flex items-center gap-4">
+        <span className="text-xs text-muted-foreground font-medium">Volatilidad:</span>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
             <div className="w-12 h-3 rounded" style={{ background: 'linear-gradient(to right, rgb(59, 130, 246), rgb(59, 185, 80), rgb(234, 179, 8), rgb(239, 68, 68))' }} />
-            <span className="text-xs text-[#8b9ab8] ml-2">
+            <span className="text-xs text-muted-foreground ml-2">
               {(minIV * 100).toFixed(1)}% → {(maxIV * 100).toFixed(1)}%
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 ml-auto text-xs text-[#6b7a94]">
+        <div className="flex items-center gap-1.5 ml-auto text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5" />
           <span>Hover para ver valores exactos</span>
         </div>
@@ -161,13 +161,13 @@ const IVSurfaceView = ({ stock, chain }) => {
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="sticky left-0 z-10 bg-[#0d1117] px-3 py-2 text-left">
-                  <span className="text-xs font-bold text-[#6b7a94] uppercase tracking-wider">Strike</span>
+                <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Strike</span>
                 </th>
                 {surfaceData.expirations.map((exp) => (
-                  <th key={exp.date} className="px-3 py-2 text-center border-l border-[#1e2536]">
-                    <div className="text-xs font-bold text-white">{exp.label}</div>
-                    <div className="text-[10px] text-[#6b7a94] mt-0.5">{exp.daysToExpiry}d</div>
+                  <th key={exp.date} className="px-3 py-2 text-center border-l border-border">
+                    <div className="text-xs font-bold text-foreground">{exp.label}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{exp.daysToExpiry}d</div>
                   </th>
                 ))}
               </tr>
@@ -176,16 +176,16 @@ const IVSurfaceView = ({ stock, chain }) => {
               {surfaceData.strikes.map((strike) => {
                 const isATM = strike === surfaceData.atm_strike;
                 return (
-                  <tr key={strike} className={isATM ? 'bg-[#1e2536]/30' : ''}>
-                    <td className={`sticky left-0 z-10 px-3 py-2 border-t border-[#1e2536] ${
-                      isATM ? 'bg-[#1e2536]' : 'bg-[#0d1117]'
+                  <tr key={strike} className={isATM ? 'bg-muted/50' : ''}>
+                    <td className={`sticky left-0 z-10 px-3 py-2 border-t border-border ${
+                      isATM ? 'bg-muted' : 'bg-card'
                     }`}>
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs font-mono ${isATM ? 'text-[#60a5fa] font-bold' : 'text-white'}`}>
+                        <span className={`text-xs font-mono ${isATM ? 'text-primary font-bold' : 'text-foreground'}`}>
                           ${strike}
                         </span>
                         {isATM && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#60a5fa]/20 text-[#60a5fa] font-bold">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold">
                             ATM
                           </span>
                         )}
@@ -207,39 +207,39 @@ const IVSurfaceView = ({ stock, chain }) => {
                       return (
                         <td
                           key={exp.date}
-                          className="px-3 py-2 border-t border-l border-[#1e2536] text-center relative group cursor-pointer"
+                          className="px-3 py-2 border-t border-l border-border text-center relative group cursor-pointer"
                           style={{ backgroundColor: getIVColor(iv) }}
                           onMouseEnter={() => setHoveredCell(cellKey)}
                           onMouseLeave={() => setHoveredCell(null)}
                         >
                           <span className={`text-xs font-mono font-medium ${
-                            iv > (minIV + maxIV) / 2 ? 'text-white' : 'text-[#c9d4e3]'
+                            iv > (minIV + maxIV) / 2 ? 'text-foreground' : 'text-foreground'
                           }`}>
                             {iv > 0 ? `${(iv * 100).toFixed(1)}%` : '—'}
                           </span>
 
                           {/* Hover Tooltip */}
                           {isHovered && strikeData && (
-                            <div className="absolute z-20 left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-[#0d1117] border border-[#253048] rounded-lg shadow-xl whitespace-nowrap">
-                              <div className="text-xs font-bold text-white mb-1">
+                            <div className="absolute z-20 left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-card border border-border rounded-lg shadow-xl whitespace-nowrap">
+                              <div className="text-xs font-bold text-foreground mb-1">
                                 ${strike} · {exp.label}
                               </div>
                               <div className="space-y-0.5 text-[10px]">
                                 <div className="flex items-center justify-between gap-4">
-                                  <span className="text-[#6b7a94]">Call IV:</span>
-                                  <span className="text-[#3b82f6] font-mono">{(strikeData.call_iv * 100).toFixed(2)}%</span>
+                                  <span className="text-muted-foreground">Call IV:</span>
+                                  <span className="text-primary font-mono">{(strikeData.call_iv * 100).toFixed(2)}%</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-4">
-                                  <span className="text-[#6b7a94]">Put IV:</span>
+                                  <span className="text-muted-foreground">Put IV:</span>
                                   <span className="text-[#8b5cf6] font-mono">{(strikeData.put_iv * 100).toFixed(2)}%</span>
                                 </div>
-                                <div className="flex items-center justify-between gap-4 pt-1 border-t border-[#1e2536]">
-                                  <span className="text-[#6b7a94]">Promedio:</span>
-                                  <span className="text-white font-mono font-bold">{(strikeData.avg_iv * 100).toFixed(2)}%</span>
+                                <div className="flex items-center justify-between gap-4 pt-1 border-t border-border">
+                                  <span className="text-muted-foreground">Promedio:</span>
+                                  <span className="text-foreground font-mono font-bold">{(strikeData.avg_iv * 100).toFixed(2)}%</span>
                                 </div>
                               </div>
                               {/* Arrow */}
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#253048]" />
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-border" />
                             </div>
                           )}
                         </td>
@@ -254,11 +254,11 @@ const IVSurfaceView = ({ stock, chain }) => {
       </div>
 
       {/* Info Footer */}
-      <div className="px-6 py-3 bg-[#0d1117] border-t border-[#1e2536]">
-        <div className="flex items-start gap-2 text-xs text-[#6b7a94]">
+      <div className="px-6 py-3 bg-card border-t border-border">
+        <div className="flex items-start gap-2 text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <p className="leading-relaxed">
-            <span className="font-bold text-white">Interpretación:</span> La volatilidad implícita (IV) refleja las expectativas del mercado 
+            <span className="font-bold text-foreground">Interpretación:</span> La volatilidad implícita (IV) refleja las expectativas del mercado 
             sobre la futura volatilidad del activo. IV alta (rojo) indica mayor incertidumbre y primas más caras. 
             IV baja (azul) sugiere mercados tranquilos y opciones más baratas. El "skew" (asimetría) muestra diferencias 
             entre strikes ITM/ATM/OTM.

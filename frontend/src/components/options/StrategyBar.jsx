@@ -46,20 +46,20 @@ const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
   const filtered = activeCategory ? strategies.filter(s => s.category === activeCategory) : strategies;
 
   return (
-    <div className="bg-[#0f1420] border-b border-[#1e2536] px-5 py-2.5">
+    <div className="bg-card border-b border-border px-5 py-2.5">
       {/* Category Tabs */}
       <div className="flex items-center gap-1 mb-2">
         <button
           onClick={() => setActiveCategory(null)}
           className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
-            !activeCategory ? 'bg-[#3b82f6]/15 text-[#60a5fa]' : 'text-[#4a5568] hover:text-[#6b7a94]'
+            !activeCategory ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-muted-foreground'
           }`}
         >Todas ({strategies.length})</button>
         {categories.map(cat => {
           const count = strategies.filter(s => s.category === cat).length;
           const catColors = {
             Bullish: 'text-[#22c55e]', Bearish: 'text-[#ef4444]',
-            Neutral: 'text-[#3b82f6]', Volatile: 'text-[#eab308]',
+            Neutral: 'text-primary', Volatile: 'text-[#eab308]',
           };
           return (
             <button
@@ -67,8 +67,8 @@ const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
               onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
               className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
                 activeCategory === cat
-                  ? `bg-[#3b82f6]/15 ${catColors[cat] || 'text-[#60a5fa]'}`
-                  : 'text-[#4a5568] hover:text-[#6b7a94]'
+                  ? `bg-primary/15 ${catColors[cat] || 'text-primary'}`
+                  : 'text-muted-foreground hover:text-muted-foreground'
               }`}
             >{cat} ({count})</button>
           );
@@ -82,16 +82,16 @@ const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
             onClick={() => onSelect(strategy)}
             className={`flex-shrink-0 flex items-center gap-2.5 pl-2 pr-3.5 py-2 rounded-lg border transition-all ${
               selected.id === strategy.id
-                ? 'bg-[#1e2740] border-[#3b82f6]/50 shadow-lg shadow-[#3b82f6]/5'
-                : 'bg-[#151c2c] border-[#1e2536] hover:border-[#253048] hover:bg-[#1a2238]'
+                ? 'bg-muted border-primary/50 shadow-lg shadow-primary/10'
+                : 'bg-muted border-border hover:border-border hover:bg-[#1a2238]'
             }`}
           >
             <div className="w-9 h-7 flex-shrink-0">
-              <ShapeSVG shape={strategy.shape} color={selected.id === strategy.id ? '#60a5fa' : strategy.color} />
+              <ShapeSVG shape={strategy.shape} color={selected.id === strategy.id ? '#22c55e' : strategy.color} />
             </div>
             <div className="text-left">
-              <div className={`text-xs font-semibold whitespace-nowrap ${selected.id === strategy.id ? 'text-white' : 'text-[#c9d4e3]'}`}>{strategy.name}</div>
-              <div className="text-[9px] text-[#4a5568] whitespace-nowrap">{strategy.risk} risk · {strategy.reward} reward</div>
+              <div className={`text-xs font-semibold whitespace-nowrap ${selected.id === strategy.id ? 'text-foreground' : 'text-foreground'}`}>{strategy.name}</div>
+              <div className="text-[9px] text-muted-foreground whitespace-nowrap">{strategy.risk} risk · {strategy.reward} reward</div>
             </div>
           </button>
         ))}
