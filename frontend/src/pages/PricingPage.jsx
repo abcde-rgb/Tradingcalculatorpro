@@ -227,7 +227,7 @@ export default function PricingPage() {
                       ) : isPremium ? (
                         <>{t('alreadyPremiumButton')}</>
                       ) : (
-                        <>Pagar {t(selectedPlan + 'Price')} <ArrowRight className="ml-2" /></>
+                        <>{t('payButton')} {t(selectedPlan + 'Price')} <ArrowRight className="ml-2" /></>
                       )}
                     </Button>
                     
@@ -307,7 +307,7 @@ export default function PricingPage() {
                     </li>
                     <li className="flex items-center gap-2 text-sm">
                       <Check className="w-4 h-4 text-primary" />
-                      {t('locale') === 'es' ? 'Estadísticas completas' : 'Complete Statistics'}
+                      {t('completeStatistics')}
                     </li>
                     <li className="flex items-center gap-2 text-sm">
                       <Check className="w-4 h-4 text-primary" />
@@ -331,14 +331,7 @@ export default function PricingPage() {
                     </li>
                     <li className="flex items-center gap-2 text-sm">
                       <Check className="w-4 h-4 text-primary" />
-                      {t('locale') === 'es' ? 'Actualizaciones exclusivas' : 
-                       t('locale') === 'en' ? 'Exclusive updates' :
-                       t('locale') === 'de' ? 'Exklusive Updates' :
-                       t('locale') === 'fr' ? 'Mises à jour exclusives' :
-                       t('locale') === 'ru' ? 'Эксклюзивные обновления' :
-                       t('locale') === 'zh' ? '独家更新' :
-                       t('locale') === 'ja' ? '独占更新' :
-                       'تحديثات حصرية'}
+                      {t('exclusiveUpdates')}
                     </li>
                   </ul>
                 </CardContent>

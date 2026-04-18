@@ -871,6 +871,10 @@ export const translations = {
     optionsStrategyOptimizer: 'Optimizador de estrategias',
     optionsAICoach: 'AI Trade Coach (Claude 4.5)',
     optionsFlowScanner: 'Scanner de flujo inusual',
+    // Pricing extras
+    payButton: 'Pagar',
+    exclusiveUpdates: 'Actualizaciones exclusivas',
+    completeStatistics: 'Estadísticas completas',
   },
   
   en: {
@@ -1595,6 +1599,9 @@ export const translations = {
     optionsStrategyOptimizer: 'Strategy Optimizer',
     optionsAICoach: 'AI Trade Coach (Claude 4.5)',
     optionsFlowScanner: 'Unusual Flow Scanner',
+    payButton: 'Pay',
+    exclusiveUpdates: 'Exclusive updates',
+    completeStatistics: 'Complete Statistics',
   },
   
   de: {
@@ -2327,6 +2334,9 @@ export const translations = {
     optionsStrategyOptimizer: 'Strategie-Optimierer',
     optionsAICoach: 'AI Trade Coach (Claude 4.5)',
     optionsFlowScanner: 'Unusual Flow Scanner',
+    payButton: 'Bezahlen',
+    exclusiveUpdates: 'Exklusive Updates',
+    completeStatistics: 'Vollständige Statistiken',
   },
   
   fr: {
@@ -3059,6 +3069,9 @@ export const translations = {
     optionsStrategyOptimizer: 'Optimiseur de stratégies',
     optionsAICoach: 'AI Trade Coach (Claude 4.5)',
     optionsFlowScanner: 'Scanner de flux inhabituel',
+    payButton: 'Payer',
+    exclusiveUpdates: 'Mises à jour exclusives',
+    completeStatistics: 'Statistiques complètes',
   },
   
   ru: {
@@ -3733,6 +3746,9 @@ export const translations = {
     optionsStrategyOptimizer: 'Оптимизатор стратегий',
     optionsAICoach: 'AI Trade Coach (Claude 4.5)',
     optionsFlowScanner: 'Сканер необычного потока',
+    payButton: 'Оплатить',
+    exclusiveUpdates: 'Эксклюзивные обновления',
+    completeStatistics: 'Полная статистика',
   },
   
   zh: {
@@ -4281,6 +4297,9 @@ export const translations = {
     optionsStrategyOptimizer: '策略优化器',
     optionsAICoach: 'AI 交易教练 (Claude 4.5)',
     optionsFlowScanner: '异常资金扫描器',
+    payButton: '支付',
+    exclusiveUpdates: '独家更新',
+    completeStatistics: '完整统计',
   },
   
   ja: {
@@ -4829,6 +4848,9 @@ export const translations = {
     optionsStrategyOptimizer: '戦略オプティマイザ',
     optionsAICoach: 'AI トレードコーチ (Claude 4.5)',
     optionsFlowScanner: '異常フロースキャナ',
+    payButton: '支払う',
+    exclusiveUpdates: '独占更新',
+    completeStatistics: '完全な統計',
   },
   
   ar: {
@@ -5293,6 +5315,9 @@ export const translations = {
     optionsStrategyOptimizer: 'محسّن الاستراتيجيات',
     optionsAICoach: 'مدرب التداول AI (Claude 4.5)',
     optionsFlowScanner: 'ماسح التدفق غير العادي',
+    payButton: 'ادفع',
+    exclusiveUpdates: 'تحديثات حصرية',
+    completeStatistics: 'إحصائيات كاملة',
   }
 };
 
