@@ -12,6 +12,7 @@ import GuideModal from './GuideModal';
 import SearchBar from './SearchBar';
 import LegEditor from './LegEditor';
 import KellyPanel from './KellyPanel';
+import GreeksTimeChart from './GreeksTimeChart';
 import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy, Calculator } from 'lucide-react';
 
 const CalculatorPage = () => {
@@ -837,8 +838,9 @@ const CalculatorPage = () => {
             )}
 
             {showGreeks && (
-              <div className="bg-card border-t border-border p-4">
+              <div className="bg-card border-t border-border p-4 space-y-4">
                 <GreeksDisplay greeks={greeks} legs={legs} stock={stock} />
+                <GreeksTimeChart legs={legs} stockPrice={stock?.price} daysToExpiry={currentExp?.daysToExpiry || 30} />
               </div>
             )}
           </div>
