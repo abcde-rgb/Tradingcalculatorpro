@@ -122,7 +122,7 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
       </div>
       <ul className="space-y-1.5">
         {bullets.map((b, i) => (
-          <li key={i} className="flex items-start gap-2 text-xs leading-relaxed">
+          <li key={`${b.icon}-${i}`} className="flex items-start gap-2 text-xs leading-relaxed">
             <span className={`${b.color} font-bold flex-shrink-0 w-4`}>{b.icon}</span>
             <span className="text-foreground/85">{b.text}</span>
           </li>

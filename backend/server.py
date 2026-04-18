@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Header, BackgroundTasks
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -7,18 +7,28 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
 import bcrypt
 import jwt
 import httpx
-import json
-import hashlib
-import hmac
 import secrets  # ✅ SECURITY FIX: Added secure random for sensitive operations
-import math
 import stripe  # Stripe SDK for advanced subscription management
+
+from options_math import (
+    generate_options_chain,
+    calculate_payoff,
+    find_break_evens,
+    calculate_greeks,
+)
+from stock_data import (
+    get_stock_data,
+    search_tickers,
+    generate_expirations,
+    get_options_chain_real,
+    get_available_expirations,
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -1196,13 +1206,16 @@ async def change_plan(
         
         sub = subscriptions.data[0]
         new_plan = SUBSCRIPTION_PLANS[request.new_plan_id]
-        
+
         # For simplicity, we'll cancel current and create new
         # In production, you'd modify the subscription items
         return {
             "message": "To change plan, please cancel current subscription and purchase new one",
             "current_plan": user_doc.get("subscription_plan"),
-            "requested_plan": request.new_plan_id
+            "current_subscription_id": sub.id,
+            "requested_plan": request.new_plan_id,
+            "requested_plan_price": new_plan["price"],
+            "requested_plan_currency": new_plan["currency"],
         }
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1368,19 +1381,6 @@ async def health():
     return {"status": "healthy"}
 
 # ============= OPTIONS CALCULATOR ROUTES (merged from OPTIONS app) =============
-from options_math import (
-    generate_options_chain,
-    calculate_payoff,
-    find_break_evens,
-    calculate_greeks,
-)
-from stock_data import (
-    get_stock_data,
-    search_tickers,
-    generate_expirations,
-    get_options_chain_real,
-    get_available_expirations,
-)
 
 class OptionLegInput(BaseModel):
     type: str  # "call", "put", "stock"
@@ -1461,7 +1461,6 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
     else:
         # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
         from options_math import delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v
-        import math as _m
         T = max(expiration["daysToExpiry"], 1) / 365
         r = 0.0525
         for item in chain:
@@ -1971,7 +1970,7 @@ Subyacente: {req.symbol} @ ${req.stockPrice:.2f}
 Vencimiento: {req.daysToExpiry}d
 
 Legs:
-{chr(10).join(['  - ' + l for l in legs_desc])}
+{chr(10).join(['  - ' + leg for leg in legs_desc])}
 
 Métricas:
 - Máx. Beneficio: {'Ilimitado' if req.stats.get('isMaxProfitUnlimited') else '$' + str(req.stats.get('maxProfit', 0))}

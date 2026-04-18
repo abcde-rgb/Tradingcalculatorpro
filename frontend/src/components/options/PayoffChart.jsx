@@ -244,7 +244,7 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [], dataB = n
             />
             {breakEvens?.map((be, i) => (
               <ReferenceLine
-                key={i} x={be} stroke="#a78bfa" strokeDasharray="4 4" strokeWidth={1}
+                key={`be-${be}-${i}`} x={be} stroke="#a78bfa" strokeDasharray="4 4" strokeWidth={1}
                 label={{ value: `BE $${be}`, position: 'insideTopRight', fill: '#a78bfa', fontSize: 9, fontFamily: 'JetBrains Mono' }}
               />
             ))}

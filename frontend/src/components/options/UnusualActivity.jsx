@@ -141,7 +141,7 @@ const UnusualActivity = ({ symbol }) => {
             </thead>
             <tbody>
               {results.map((r, i) => (
-                <tr key={i} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                <tr key={`${r.type}-${r.expiration}-${r.strike}-${i}`} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
                   <td className="px-3 py-2">
                     <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${
                       r.type === 'call' ? 'bg-[#22c55e]/15 text-[#4ade80]' : 'bg-[#ef4444]/15 text-[#f87171]'

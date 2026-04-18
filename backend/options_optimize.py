@@ -316,7 +316,7 @@ def _friendly_name(strat_id: str, legs: list) -> str:
     base = names.get(strat_id, strat_id)
     if len(legs) == 1 and legs[0]["type"] != "stock":
         return f"{base} ${int(legs[0]['strike'])}"
-    if len(legs) == 2 and all(l["type"] != "stock" for l in legs):
-        strikes = sorted([int(l["strike"]) for l in legs])
+    if len(legs) == 2 and all(leg["type"] != "stock" for leg in legs):
+        strikes = sorted([int(leg["strike"]) for leg in legs])
         return f"{base} ${strikes[0]}/${strikes[1]}"
     return base

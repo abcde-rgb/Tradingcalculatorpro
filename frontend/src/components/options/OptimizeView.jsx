@@ -239,7 +239,7 @@ const StrategyCard = ({ rank, result, onOpen }) => {
       {/* Legs */}
       <div className="flex flex-wrap gap-1 mb-3">
         {result.legs.map((leg, i) => (
-          <span key={i} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+          <span key={`${leg.type}-${leg.action}-${leg.strike}-${i}`} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
             leg.action === 'buy' ? 'bg-[#22c55e]/10 text-[#4ade80] border-[#22c55e]/25' : 'bg-[#ef4444]/10 text-[#f87171] border-[#ef4444]/25'
           }`}>
             {leg.action === 'buy' ? 'BUY' : 'SELL'} {leg.quantity}x

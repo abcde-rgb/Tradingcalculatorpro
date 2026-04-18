@@ -61,7 +61,7 @@ class TestStripeCheckoutCreate:
         assert response.status_code == 200
         data = response.json()
         assert "checkout_url" in data
-        print(f"✅ Quarterly plan checkout created")
+        print("✅ Quarterly plan checkout created")
     
     def test_checkout_create_annual_plan(self, auth_token):
         """Test creating checkout session for annual plan (€200)"""
@@ -77,7 +77,7 @@ class TestStripeCheckoutCreate:
         assert response.status_code == 200
         data = response.json()
         assert "checkout_url" in data
-        print(f"✅ Annual plan checkout created")
+        print("✅ Annual plan checkout created")
     
     def test_checkout_create_lifetime_plan(self, auth_token):
         """Test creating checkout session for lifetime plan ($500)"""
@@ -93,7 +93,7 @@ class TestStripeCheckoutCreate:
         assert response.status_code == 200
         data = response.json()
         assert "checkout_url" in data
-        print(f"✅ Lifetime plan checkout created")
+        print("✅ Lifetime plan checkout created")
     
     def test_checkout_create_sepa_payment(self, auth_token):
         """Test creating checkout session with SEPA payment method"""
@@ -109,7 +109,7 @@ class TestStripeCheckoutCreate:
         assert response.status_code == 200
         data = response.json()
         assert "checkout_url" in data
-        print(f"✅ SEPA payment checkout created")
+        print("✅ SEPA payment checkout created")
     
     def test_checkout_create_invalid_plan(self, auth_token):
         """Test creating checkout with invalid plan returns 400"""
@@ -126,7 +126,7 @@ class TestStripeCheckoutCreate:
         data = response.json()
         assert "detail" in data
         assert "Plan no válido" in data["detail"]
-        print(f"✅ Invalid plan correctly rejected")
+        print("✅ Invalid plan correctly rejected")
     
     def test_checkout_create_requires_auth(self):
         """Test that checkout creation requires authentication"""
@@ -139,7 +139,7 @@ class TestStripeCheckoutCreate:
             }
         )
         assert response.status_code == 401
-        print(f"✅ Checkout correctly requires authentication")
+        print("✅ Checkout correctly requires authentication")
 
 
 class TestStripeCheckoutStatus:
@@ -204,7 +204,7 @@ class TestStripeCheckoutStatus:
         assert response.status_code == 404
         data = response.json()
         assert "detail" in data
-        print(f"✅ Invalid session correctly returns 404")
+        print("✅ Invalid session correctly returns 404")
     
     def test_checkout_status_requires_auth(self, checkout_session):
         """Test that status check requires authentication"""
@@ -212,7 +212,7 @@ class TestStripeCheckoutStatus:
         
         response = requests.get(f"{BASE_URL}/api/checkout/status/{session_id}")
         assert response.status_code == 401
-        print(f"✅ Status check correctly requires authentication")
+        print("✅ Status check correctly requires authentication")
 
 
 class TestSubscriptionPlans:
@@ -296,8 +296,8 @@ class TestNewUserCheckoutFlow:
     
     def test_new_user_is_not_premium(self, new_user_token):
         """Verify new user starts without premium"""
-        assert new_user_token["is_premium"] == False
-        print(f"✅ New user correctly starts without premium")
+        assert not new_user_token["is_premium"]
+        print("✅ New user correctly starts without premium")
     
     def test_new_user_can_create_checkout(self, new_user_token):
         """Test that non-premium user can create checkout session"""
@@ -314,7 +314,7 @@ class TestNewUserCheckoutFlow:
         data = response.json()
         assert "checkout_url" in data
         assert "session_id" in data
-        print(f"✅ Non-premium user can create checkout session")
+        print("✅ Non-premium user can create checkout session")
     
     def test_new_user_checkout_status(self, new_user_token):
         """Test full checkout flow for new user"""

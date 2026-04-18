@@ -98,7 +98,7 @@ const MarketFlow = ({ onSelectSymbol }) => {
               </thead>
               <tbody>
                 {data.results.map((r, i) => (
-                  <tr key={i} className="border-b border-border/30 hover:bg-muted/40 transition-colors">
+                  <tr key={`${r.symbol}-${r.type}-${r.strike}-${r.expiration}-${i}`} className="border-b border-border/30 hover:bg-muted/40 transition-colors">
                     <td className="px-2 py-1.5 font-bold font-mono text-foreground">{r.symbol}</td>
                     <td className="px-2 py-1.5">
                       <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
