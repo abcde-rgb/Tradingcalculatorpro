@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -263,12 +263,19 @@ export function SimulatorPro() {
     setShowConfig(true);
   };
 
-  // Calculate equity curve data
-  const equityData = operations.map(op => op.capitalAfter);
-  const drawdownData = operations.map((op, i) => {
-    const peak = Math.max(...operations.slice(0, i + 1).map(o => o.capitalAfter));
-    return peak > 0 ? ((peak - op.capitalAfter) / peak) * 100 : 0;
-  });
+  // Equity & drawdown curves — O(n) single pass with running peak, memoized
+  const { equityData, drawdownData } = useMemo(() => {
+    const equity = [];
+    const drawdown = [];
+    let runningPeak = -Infinity;
+    for (const op of operations) {
+      const bal = op.capitalAfter;
+      equity.push(bal);
+      if (bal > runningPeak) runningPeak = bal;
+      drawdown.push(runningPeak > 0 ? ((runningPeak - bal) / runningPeak) * 100 : 0);
+    }
+    return { equityData: equity, drawdownData: drawdown };
+  }, [operations]);
 
   if (!isPremium) {
     return (

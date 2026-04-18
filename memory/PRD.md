@@ -40,6 +40,12 @@
 - Hook dependencies ya corregidos en `usePersistedState`, `SubscriptionPage`, `PaymentPages`, `SearchBar` (session anterior)
 - Smoke test verificado: `/api/stock/AAPL`, `/api/optimize`, `/api/options/unusual`, `/api/options/market-flow` ✅
 
+### Feb 2026 — Optimización de código
+- **Motion variants extraídos en `LandingPage.jsx`** a constantes de módulo (evita objetos inline en cada render)
+- **Stats computation de options**: extraído a `utils/strategyStats.js` + `computeStrategyStats()`. CalculatorPage.jsx bajó de 1086 → 960 líneas. Elimina ~120 líneas de código duplicado entre stats A y stats B. Testeado: stats idénticos (Max Profit $8671, Max Loss $-716, ROI 1212.7%)
+- **O(n²) → O(n) en SimulatorPro**: `drawdownData` ahora calcula running peak en single pass + `useMemo`. Para 180 ops: 32,400 array ops → 180 (180x faster)
+- **`get_journal_stats()` backend**: merged 5 iteraciones separadas (wins/losses/pnl/consecutive/equity) en un single-pass loop. Para 1000 trades: 5x → 1x iteración. Testeado con 5 trades de prueba: winRate 40%, maxDrawdown 15, profitFactor 1.0 — todos coinciden con valores esperados.
+
 ## Backlog
 
 ### P1 (próximo)

@@ -506,46 +506,48 @@ async def get_journal_stats(user: dict = Depends(require_user)):
             "consecutiveLosses": 0
         }
     
-    wins = [t for t in trades if t.get("pnl", 0) > 0]
-    losses = [t for t in trades if t.get("pnl", 0) <= 0]
-    
-    total_pnl = sum(t.get("pnl", 0) for t in trades)
-    avg_win = sum(t.get("pnl", 0) for t in wins) / len(wins) if wins else 0
-    avg_loss = sum(t.get("pnl", 0) for t in losses) / len(losses) if losses else 0
-    
-    gross_profit = sum(t.get("pnl", 0) for t in wins)
-    gross_loss = abs(sum(t.get("pnl", 0) for t in losses))
-    profit_factor = gross_profit / gross_loss if gross_loss > 0 else 0
-    
-    win_rate = (len(wins) / len(trades)) * 100 if trades else 0
-    expectancy = (win_rate / 100 * avg_win) + ((100 - win_rate) / 100 * avg_loss)
-    
-    # Calculate max consecutive losses
+    # Single-pass aggregation — previously iterated trades 5 separate times
+    total_pnl = 0.0
+    gross_profit = 0.0
+    gross_loss = 0.0
+    wins_count = 0
+    losses_count = 0
     max_consecutive = 0
     current_consecutive = 0
+    equity = 0.0
+    peak = 0.0
+    max_drawdown = 0.0
+
     for t in trades:
-        if t.get("pnl", 0) <= 0:
-            current_consecutive += 1
-            max_consecutive = max(max_consecutive, current_consecutive)
-        else:
+        pnl = t.get("pnl", 0) or 0
+        total_pnl += pnl
+        if pnl > 0:
+            wins_count += 1
+            gross_profit += pnl
             current_consecutive = 0
-    
-    # Calculate max drawdown
-    equity = [0]
-    for t in trades:
-        equity.append(equity[-1] + t.get("pnl", 0))
-    
-    max_drawdown = 0
-    peak = 0
-    for e in equity:
-        peak = max(peak, e)
-        drawdown = peak - e
-        max_drawdown = max(max_drawdown, drawdown)
-    
+        else:
+            losses_count += 1
+            gross_loss += abs(pnl)
+            current_consecutive += 1
+            if current_consecutive > max_consecutive:
+                max_consecutive = current_consecutive
+        equity += pnl
+        if equity > peak:
+            peak = equity
+        drawdown = peak - equity
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
+
+    avg_win = gross_profit / wins_count if wins_count else 0
+    avg_loss = -gross_loss / losses_count if losses_count else 0  # negative by convention
+    profit_factor = gross_profit / gross_loss if gross_loss > 0 else 0
+    win_rate = (wins_count / len(trades)) * 100 if trades else 0
+    expectancy = (win_rate / 100 * avg_win) + ((100 - win_rate) / 100 * avg_loss)
+
     return {
         "totalTrades": len(trades),
-        "wins": len(wins),
-        "losses": len(losses),
+        "wins": wins_count,
+        "losses": losses_count,
         "winRate": round(win_rate, 2),
         "totalPnl": round(total_pnl, 2),
         "avgWin": round(avg_win, 2),

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { STRATEGIES, STRATEGY_CATEGORIES } from '../../data/mockData';
-import { calculateStrategyPayoff, findBreakEvenPoints, calculateStrategyGreeks, probabilityOfProfit, riskRewardRatio } from '../../utils/blackScholes';
+import { calculateStrategyPayoff, findBreakEvenPoints, calculateStrategyGreeks, probabilityOfProfit } from '../../utils/blackScholes';
+import { computeStrategyStats } from '../../utils/strategyStats';
 import { fetchStock, fetchOptionsChain, fetchExpirations } from '../../services/optionsApi';
 import PayoffChart from './PayoffChart';
 import StrategyBar from './StrategyBar';
@@ -243,135 +244,21 @@ const CalculatorPage = () => {
     return probabilityOfProfit(legs, stock.price);
   }, [legs, stock]);
 
-  const stats = useMemo(() => {
-    if (payoffData.length === 0) {
-      return {
-        maxProfit: '0',
-        maxLoss: '0',
-        premium: '0',
-        breakEvens: [],
-        roi: '0.0',
-        rr: '—',
-        isMaxProfitUnlimited: false,
-        pop: '0.0',
-        capitalRequired: '0',
-        isMaxLossUnlimited: false,
-      };
-    }
-    const expPnls = payoffData.map((p) => p.pnlAtExpiry);
-    const maxProfit = Math.max(...expPnls);
-    const maxLoss = Math.min(...expPnls);
-    let premium = 0;
-    // Total commissions = commission_per_contract × Σ(qty) for option legs only
-    const totalCommissions = legs.reduce((s, l) => (l.type !== 'stock' ? s + (commission || 0) * (l.quantity || 1) : s), 0);
-    legs.forEach((l) => {
-      if (l.type !== 'stock') {
-        premium += l.premium * (l.action === 'buy' ? -1 : 1) * (l.quantity || 1) * 100;
-      }
-    });
-    // Subtract commissions from max profit (hurts you both sides)
-    const maxProfitNet = maxProfit - totalCommissions;
-    const maxLossNet = maxLoss - totalCommissions;
-    const roi = premium !== 0 ? ((maxProfitNet / Math.abs(premium)) * 100) : 0;
-    const rr = riskRewardRatio(maxProfitNet, maxLossNet);
+  const stats = useMemo(
+    () => computeStrategyStats(payoffData, legs, stock, pop, breakEvens, commission),
+    [payoffData, legs, stock, pop, breakEvens, commission]
+  );
 
-    // Capital required (Reg-T approximation)
-    // - Defined-risk strategies: capital = |max loss|
-    // - Undefined risk (naked shorts): use Reg-T per-leg estimate
-    const isMaxLossUnlimited = maxLoss < -5000000;
-    let capitalRequired;
-    if (isMaxLossUnlimited && stock?.price) {
-      let naked = 0;
-      legs.forEach((l) => {
-        if (l.type === 'stock') return;
-        if (l.action !== 'sell') return;
-        const S = stock.price;
-        const K = l.strike || S;
-        const qty = l.quantity || 1;
-        const premRecv = (l.premium || 0) * 100;
-        if (l.type === 'call') {
-          const otm = Math.max(0, K - S);
-          const margin = Math.max(0.2 * S - otm, 0.1 * S) * 100;
-          naked += (margin + premRecv) * qty;
-        } else {
-          const otm = Math.max(0, S - K);
-          const margin = Math.max(0.2 * S - otm, 0.1 * K) * 100;
-          naked += (margin + premRecv) * qty;
-        }
-      });
-      capitalRequired = naked > 0 ? naked : Math.abs(premium);
-    } else {
-      // For debit (negative premium = we paid) use |premium|; for credit use |maxLoss|
-      capitalRequired = Math.max(Math.abs(maxLoss), premium < 0 ? Math.abs(premium) : 0);
-    }
-
-    return {
-      maxProfit: maxProfitNet > 5000000 ? 'Unlimited' : maxProfitNet.toFixed(0),
-      maxLoss: maxLossNet.toFixed(0),
-      premium: premium.toFixed(0),
-      commissions: totalCommissions.toFixed(2),
-      breakEvens,
-      roi: roi.toFixed(1),
-      rr: rr > 100 ? '∞' : rr.toFixed(2),
-      isMaxProfitUnlimited: maxProfitNet > 5000000,
-      isMaxLossUnlimited,
-      pop: pop.toFixed(1),
-      capitalRequired: capitalRequired.toFixed(0),
-    };
-  }, [payoffData, legs, breakEvens, pop, stock, commission]);
-
-  // Stats for Strategy B (comparison mode)
+  // Stats for Strategy B (comparison mode — no commissions applied in comparison)
   const breakEvensB = useMemo(() => findBreakEvenPoints(payoffDataB), [payoffDataB]);
   const popB = useMemo(() => {
     if (!compareMode || !stock || legsB.length === 0) return 0;
     return probabilityOfProfit(legsB, stock.price);
   }, [compareMode, legsB, stock]);
   const statsB = useMemo(() => {
-    if (!compareMode || payoffDataB.length === 0) {
-      return { maxProfit: '0', maxLoss: '0', premium: '0', roi: '0.0', rr: '—', isMaxProfitUnlimited: false, isMaxLossUnlimited: false, pop: '0.0', capitalRequired: '0' };
-    }
-    const expPnls = payoffDataB.map((p) => p.pnlAtExpiry);
-    const maxProfit = Math.max(...expPnls);
-    const maxLoss = Math.min(...expPnls);
-    let premium = 0;
-    legsB.forEach((l) => {
-      if (l.type !== 'stock') premium += l.premium * (l.action === 'buy' ? -1 : 1) * (l.quantity || 1) * 100;
-    });
-    const roi = premium !== 0 ? ((maxProfit / Math.abs(premium)) * 100) : 0;
-    const rr = riskRewardRatio(maxProfit, maxLoss);
-    const isMaxLossUnlimited = maxLoss < -5000000;
-    let capitalRequired;
-    if (isMaxLossUnlimited && stock?.price) {
-      let naked = 0;
-      legsB.forEach((l) => {
-        if (l.type === 'stock' || l.action !== 'sell') return;
-        const S = stock.price; const K = l.strike || S; const qty = l.quantity || 1;
-        const premRecv = (l.premium || 0) * 100;
-        if (l.type === 'call') {
-          const otm = Math.max(0, K - S);
-          naked += (Math.max(0.2 * S - otm, 0.1 * S) * 100 + premRecv) * qty;
-        } else {
-          const otm = Math.max(0, S - K);
-          naked += (Math.max(0.2 * S - otm, 0.1 * K) * 100 + premRecv) * qty;
-        }
-      });
-      capitalRequired = naked > 0 ? naked : Math.abs(premium);
-    } else {
-      capitalRequired = Math.max(Math.abs(maxLoss), premium < 0 ? Math.abs(premium) : 0);
-    }
-    return {
-      maxProfit: maxProfit > 5000000 ? 'Unlimited' : maxProfit.toFixed(0),
-      maxLoss: maxLoss.toFixed(0),
-      premium: premium.toFixed(0),
-      roi: roi.toFixed(1),
-      rr: rr > 100 ? '∞' : rr.toFixed(2),
-      isMaxProfitUnlimited: maxProfit > 5000000,
-      isMaxLossUnlimited,
-      pop: popB.toFixed(1),
-      capitalRequired: capitalRequired.toFixed(0),
-      breakEvens: breakEvensB,
-    };
-  }, [compareMode, payoffDataB, legsB, popB, stock, breakEvensB]);
+    if (!compareMode) return computeStrategyStats([], [], null, 0, []);
+    return computeStrategyStats(payoffDataB, legsB, stock, popB, breakEvensB, 0);
+  }, [compareMode, payoffDataB, legsB, stock, popB, breakEvensB]);
 
   return (
     <div className="flex flex-col bg-background text-foreground" data-testid="options-calculator-root">
