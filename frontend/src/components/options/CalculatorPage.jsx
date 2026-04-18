@@ -14,6 +14,9 @@ import LegEditor from './LegEditor';
 import KellyPanel from './KellyPanel';
 import GreeksTimeChart from './GreeksTimeChart';
 import OptimizeView from './OptimizeView';
+import ExplainTrade from './ExplainTrade';
+import SavedPositionsPanel from './SavedPositionsPanel';
+import PortfolioGreeks from './PortfolioGreeks';
 import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy, Calculator } from 'lucide-react';
 
 const CalculatorPage = () => {
@@ -35,6 +38,21 @@ const CalculatorPage = () => {
   const [selectedStrategyB, setSelectedStrategyB] = useState(STRATEGIES.find((s) => s.id === 'short_put') || STRATEGIES[1]);
   const [showKelly, setShowKelly] = useState(false);
   const [showGreeks, setShowGreeks] = useState(false);
+  const [showPortfolio, setShowPortfolio] = useState(false);
+  const [nextEarnings, setNextEarnings] = useState(null);
+  const [commission, setCommission] = useState(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('options_commission') : null;
+      return saved !== null ? parseFloat(saved) : 0.65;
+    } catch { return 0.65; }
+  });
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem('options_commission', String(commission));
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') console.warn('commission save failed:', err);
+    }
+  }, [commission]);
   const [accountBalance, setAccountBalance] = useState(() => {
     try {
       const saved = typeof window !== 'undefined' ? window.localStorage.getItem('options_account_balance') : null;
@@ -77,6 +95,18 @@ const CalculatorPage = () => {
       setLoading(false);
     };
     loadData();
+    // Fetch next earnings date for this ticker (warns about IV crush)
+    (async () => {
+      try {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/options/earnings/${ticker}`);
+        if (res.ok) {
+          const data = await res.json();
+          setNextEarnings(data.nextEarnings);
+        }
+      } catch (err) {
+        if (process.env.NODE_ENV !== 'production') console.warn('earnings lookup failed:', err);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticker]);
 
@@ -218,13 +248,18 @@ const CalculatorPage = () => {
     const maxProfit = Math.max(...expPnls);
     const maxLoss = Math.min(...expPnls);
     let premium = 0;
+    // Total commissions = commission_per_contract × Σ(qty) for option legs only
+    const totalCommissions = legs.reduce((s, l) => (l.type !== 'stock' ? s + (commission || 0) * (l.quantity || 1) : s), 0);
     legs.forEach((l) => {
       if (l.type !== 'stock') {
         premium += l.premium * (l.action === 'buy' ? -1 : 1) * (l.quantity || 1) * 100;
       }
     });
-    const roi = premium !== 0 ? ((maxProfit / Math.abs(premium)) * 100) : 0;
-    const rr = riskRewardRatio(maxProfit, maxLoss);
+    // Subtract commissions from max profit (hurts you both sides)
+    const maxProfitNet = maxProfit - totalCommissions;
+    const maxLossNet = maxLoss - totalCommissions;
+    const roi = premium !== 0 ? ((maxProfitNet / Math.abs(premium)) * 100) : 0;
+    const rr = riskRewardRatio(maxProfitNet, maxLossNet);
 
     // Capital required (Reg-T approximation)
     // - Defined-risk strategies: capital = |max loss|
@@ -257,18 +292,19 @@ const CalculatorPage = () => {
     }
 
     return {
-      maxProfit: maxProfit > 5000000 ? 'Unlimited' : maxProfit.toFixed(0),
-      maxLoss: maxLoss.toFixed(0),
+      maxProfit: maxProfitNet > 5000000 ? 'Unlimited' : maxProfitNet.toFixed(0),
+      maxLoss: maxLossNet.toFixed(0),
       premium: premium.toFixed(0),
+      commissions: totalCommissions.toFixed(2),
       breakEvens,
       roi: roi.toFixed(1),
       rr: rr > 100 ? '∞' : rr.toFixed(2),
-      isMaxProfitUnlimited: maxProfit > 5000000,
+      isMaxProfitUnlimited: maxProfitNet > 5000000,
       isMaxLossUnlimited,
       pop: pop.toFixed(1),
       capitalRequired: capitalRequired.toFixed(0),
     };
-  }, [payoffData, legs, breakEvens, pop, stock]);
+  }, [payoffData, legs, breakEvens, pop, stock, commission]);
 
   // Stats for Strategy B (comparison mode)
   const breakEvensB = useMemo(() => findBreakEvenPoints(payoffDataB), [payoffDataB]);
@@ -422,6 +458,20 @@ const CalculatorPage = () => {
       
       {activeTab === 'calculator' && (
         <>
+          {/* Earnings warning — shows only if earnings fall within selected expiration */}
+          {nextEarnings && currentExp?.daysToExpiry && (() => {
+            const daysToEarnings = Math.ceil((new Date(nextEarnings).getTime() - Date.now()) / 86400000);
+            if (daysToEarnings < 0 || daysToEarnings > currentExp.daysToExpiry) return null;
+            return (
+              <div className="mx-3 mt-2 bg-[#f59e0b]/10 border border-[#f59e0b]/40 rounded-lg px-3 py-1.5 flex items-center gap-2 text-[11px]" data-testid="earnings-warning">
+                <span className="text-base leading-none">📊</span>
+                <span className="text-[#fbbf24] font-semibold">Earnings {nextEarnings}</span>
+                <span className="text-muted-foreground">
+                  ({daysToEarnings === 0 ? 'HOY' : `en ${daysToEarnings}d`}) — dentro de tu vencimiento ({currentExp.daysToExpiry}d). Espera IV crush post-evento.
+                </span>
+              </div>
+            );
+          })()}
           {/* Mode Toggle + Strategy Bar / Custom Builder */}
           {builderMode === 'preset' ? (
             <div className="relative">
@@ -500,6 +550,18 @@ const CalculatorPage = () => {
                   <DollarSign className="w-3 h-3 text-muted-foreground" />
                   <span className="text-muted-foreground">Prima</span>
                   <span className={`font-mono font-bold ${parseFloat(stats.premium) >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>${stats.premium}</span>
+                </div>
+                <span className="text-muted-foreground/40">·</span>
+                <div className="flex items-center gap-1.5" title="Comisión por contrato (Reg-T estándar ~$0.65)">
+                  <span className="text-muted-foreground text-[10px]">Com/ctr</span>
+                  <input
+                    type="number" step="0.05" min={0} max={10}
+                    value={commission}
+                    onChange={(e) => setCommission(Math.max(0, Math.min(10, parseFloat(e.target.value) || 0)))}
+                    className="w-14 bg-muted border border-border rounded px-1.5 py-0.5 text-[11px] font-mono text-foreground focus:outline-none focus:border-primary"
+                    data-testid="commission-input"
+                  />
+                  <span className="text-muted-foreground">(−${stats.commissions || '0.00'})</span>
                 </div>
                 <span className="text-muted-foreground/40 hidden md:inline">·</span>
                 <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
@@ -598,6 +660,9 @@ const CalculatorPage = () => {
                 <span className="text-xs font-mono font-bold text-foreground min-w-[44px] text-right">{daysForChart}d</span>
                 <span className="text-[10px] text-muted-foreground">/ {currentExp?.daysToExpiry}d</span>
               </div>
+
+              {/* Explain Trade — auto-generated educational bullets */}
+              <ExplainTrade legs={legs} stock={stock} breakEvens={breakEvens} stats={stats} />
             </div>
 
             {/* Right Panel — simplified to 3 core controls */}
@@ -860,7 +925,43 @@ const CalculatorPage = () => {
                 Greeks Detalladas
                 <span className="text-[10px] opacity-60">{showGreeks ? '▲ ocultar' : '▼ mostrar'}</span>
               </button>
+              <button
+                onClick={() => setShowPortfolio((v) => !v)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                  showPortfolio
+                    ? 'bg-[#a855f7]/10 border-[#a855f7]/40 text-[#c084fc]'
+                    : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-[#a855f7]/30'
+                }`}
+                data-testid="toggle-portfolio"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Mi Portfolio
+                <span className="text-[10px] opacity-60">{showPortfolio ? '▲ ocultar' : '▼ mostrar'}</span>
+              </button>
             </div>
+
+            {showPortfolio && (
+              <div className="bg-card border-t border-border p-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <SavedPositionsPanel
+                  currentLegs={legs}
+                  currentSymbol={ticker}
+                  currentExpiration={currentExp?.fullLabel || currentExp?.date}
+                  onLoadPosition={(pos) => {
+                    const mapped = (pos.legs || []).map((l) => ({
+                      id: `leg-${Math.random().toString(36).slice(2, 8)}`,
+                      type: l.type, action: l.action,
+                      quantity: l.quantity || 1, strike: l.strike,
+                      premium: l.premium || 0, iv: l.iv || 0.3,
+                      daysToExpiry: l.daysToExpiry || 30,
+                    }));
+                    setCustomLegs(mapped);
+                    setBuilderMode('custom');
+                    if (pos.symbol && pos.symbol !== ticker) setTicker(pos.symbol);
+                  }}
+                />
+                <PortfolioGreeks />
+              </div>
+            )}
 
             {showKelly && (
               <div className="bg-card border-t border-border">

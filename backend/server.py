@@ -1647,6 +1647,140 @@ async def optimize_options_strategy(req: OptimizeRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ========== P0 FEATURES: Earnings, Saved Positions, Portfolio Greeks ==========
+@api_router.get("/options/earnings/{symbol}")
+async def get_next_earnings(symbol: str):
+    """Next earnings date from yfinance (used to warn about IV crush)."""
+    try:
+        import yfinance as yf
+        ticker = yf.Ticker(symbol)
+        cal = None
+        try:
+            cal = ticker.calendar
+        except Exception:
+            cal = None
+        earnings_date = None
+        if cal is not None:
+            if hasattr(cal, "to_dict"):
+                data = cal.to_dict()
+                dates = data.get("Earnings Date", {}) if isinstance(data, dict) else {}
+                if dates:
+                    first = next(iter(dates.values()), None)
+                    if first:
+                        earnings_date = str(first)[:10]
+            elif isinstance(cal, dict):
+                ed = cal.get("Earnings Date")
+                if ed:
+                    earnings_date = str(ed[0] if isinstance(ed, list) else ed)[:10]
+        return {"symbol": symbol.upper(), "nextEarnings": earnings_date}
+    except Exception as e:
+        logging.warning(f"earnings lookup failed for {symbol}: {e}")
+        return {"symbol": symbol.upper(), "nextEarnings": None}
+
+
+class SavedLeg(BaseModel):
+    type: str
+    action: str
+    quantity: int = 1
+    strike: float
+    premium: float = 0
+    iv: Optional[float] = 0.3
+    daysToExpiry: Optional[int] = 30
+
+
+class SavePositionRequest(BaseModel):
+    name: str
+    symbol: str
+    legs: List[SavedLeg]
+    expiration: Optional[str] = None
+    notes: Optional[str] = ""
+
+
+@api_router.post("/options/positions/save")
+async def save_position(req: SavePositionRequest, user=Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    position = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "name": req.name,
+        "symbol": req.symbol.upper(),
+        "legs": [leg.model_dump() for leg in req.legs],
+        "expiration": req.expiration,
+        "notes": req.notes or "",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.saved_positions.insert_one(position)
+    return {**{k: v for k, v in position.items() if k != "_id"}}
+
+
+@api_router.get("/options/positions")
+async def list_positions(user=Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    cursor = db.saved_positions.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1)
+    positions = await cursor.to_list(length=100)
+    return {"positions": positions}
+
+
+@api_router.delete("/options/positions/{position_id}")
+async def delete_position(position_id: str, user=Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    result = await db.saved_positions.delete_one({"id": position_id, "user_id": user["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Position not found")
+    return {"status": "deleted", "id": position_id}
+
+
+@api_router.get("/options/positions/portfolio-greeks")
+async def portfolio_greeks(user=Depends(get_current_user)):
+    """Aggregate Greeks across ALL saved positions using current spot prices."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    cursor = db.saved_positions.find({"user_id": user["id"]}, {"_id": 0})
+    positions = await cursor.to_list(length=100)
+    agg = {"delta": 0.0, "gamma": 0.0, "theta": 0.0, "vega": 0.0, "rho": 0.0}
+    count_by_symbol = {}
+    enriched = []
+    for pos in positions:
+        try:
+            stock = get_stock_data(pos["symbol"])
+            legs_dicts = []
+            for leg in pos.get("legs", []):
+                legs_dicts.append({
+                    "type": leg["type"],
+                    "action": leg["action"],
+                    "quantity": leg.get("quantity", 1),
+                    "qty": leg.get("quantity", 1),
+                    "strike": leg["strike"],
+                    "premium": leg.get("premium", 0),
+                    "iv": leg.get("iv", 0.3) or 0.3,
+                    "daysToExpiry": leg.get("daysToExpiry", 30),
+                })
+            g = calculate_greeks(legs_dicts, stock["price"])
+            for k in agg:
+                agg[k] += float(g.get(k, 0) or 0)
+            count_by_symbol[pos["symbol"]] = count_by_symbol.get(pos["symbol"], 0) + 1
+            enriched.append({
+                "id": pos["id"],
+                "name": pos["name"],
+                "symbol": pos["symbol"],
+                "currentPrice": stock["price"],
+                "greeks": g,
+                "legsCount": len(legs_dicts),
+                "expiration": pos.get("expiration"),
+            })
+        except Exception as e:
+            logging.warning(f"skipping position {pos.get('id')} in aggregation: {e}")
+    return {
+        "aggregated": {k: round(v, 4) for k, v in agg.items()},
+        "positionCount": len(positions),
+        "symbols": count_by_symbol,
+        "positions": enriched,
+    }
+
+
 # Include router and setup middleware
 app.include_router(api_router)
 
