@@ -1925,6 +1925,147 @@ async def get_unusual_options(symbol: str, min_ratio: float = 2.0, min_volume: i
         return {"symbol": symbol.upper(), "error": str(e), "results": []}
 
 
+# ========== P2 FEATURES: AI Trade Coach, Market-wide Flow ==========
+class AITradeAnalysisRequest(BaseModel):
+    symbol: str
+    stockPrice: float
+    legs: List[dict]
+    stats: dict  # {maxProfit, maxLoss, pop, roi, rr, capitalRequired, isMaxLossUnlimited}
+    greeks: Optional[dict] = None
+    ivRank: Optional[float] = None
+    daysToExpiry: Optional[int] = 30
+    userBalance: Optional[float] = None
+
+
+@api_router.post("/options/ai-analyze")
+async def ai_analyze_trade(req: AITradeAnalysisRequest):
+    """AI-powered options trade coach using Claude Sonnet 4.5."""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        key = os.environ.get("EMERGENT_LLM_KEY")
+        if not key:
+            raise HTTPException(status_code=500, detail="AI key not configured")
+
+        # Build structured prompt
+        legs_desc = []
+        for leg in req.legs:
+            if leg.get("type") == "stock":
+                legs_desc.append(f"{leg['action'].upper()} {leg.get('quantity', 100)} acciones @ ${leg.get('strike')}")
+            else:
+                legs_desc.append(
+                    f"{leg['action'].upper()} {leg.get('quantity', 1)}x {leg['type'].upper()} Strike ${leg['strike']} "
+                    f"@ ${leg.get('premium', 0):.2f} (IV {(leg.get('iv', 0.3) * 100):.0f}%)"
+                )
+        greeks_str = ""
+        if req.greeks:
+            greeks_str = (
+                f"\nGreeks: Delta={req.greeks.get('delta', 0):.3f} Gamma={req.greeks.get('gamma', 0):.4f} "
+                f"Theta={req.greeks.get('theta', 0):.3f} Vega={req.greeks.get('vega', 0):.3f}"
+            )
+        iv_str = f"\nIV Rank: {req.ivRank:.0f}%" if req.ivRank is not None else ""
+        balance_str = f"\nCapital disponible del trader: ${req.userBalance}" if req.userBalance else ""
+
+        prompt = f"""Actúa como un coach de trading de opciones experto y conciso. Analiza esta operación:
+
+Subyacente: {req.symbol} @ ${req.stockPrice:.2f}
+Vencimiento: {req.daysToExpiry}d
+
+Legs:
+{chr(10).join(['  - ' + l for l in legs_desc])}
+
+Métricas:
+- Máx. Beneficio: {'Ilimitado' if req.stats.get('isMaxProfitUnlimited') else '$' + str(req.stats.get('maxProfit', 0))}
+- Máx. Pérdida: {'Ilimitado' if req.stats.get('isMaxLossUnlimited') else '$' + str(req.stats.get('maxLoss', 0))}
+- POP: {req.stats.get('pop', '—')}%
+- ROI: {req.stats.get('roi', '—')}%
+- R/R: {req.stats.get('rr', '—')}
+- Capital requerido: ${req.stats.get('capitalRequired', 0)}{greeks_str}{iv_str}{balance_str}
+
+Proporciona tu análisis en ESPAÑOL con EXACTAMENTE esta estructura (Markdown):
+
+**✅ Puntos Fuertes**
+- (2-3 bullets concretos)
+
+**⚠️ Riesgos Principales**
+- (2-3 bullets concretos)
+
+**💡 Mejoras Sugeridas**
+- (2-3 acciones accionables específicas: strikes distintos, ajustar contratos, hedge, rolar, etc.)
+
+**📊 Veredicto**
+Una frase final recomendando ENTRAR / AJUSTAR / EVITAR y por qué.
+
+Sé directo, profesional y práctico. No repitas los números que ya tiene el trader — analiza el SIGNIFICADO. Máximo 250 palabras totales."""
+
+        chat = LlmChat(
+            api_key=key,
+            session_id=f"options-analysis-{req.symbol}",
+            system_message="Eres un coach de trading de opciones experto con 15+ años de experiencia en volatility trading. Respondes en español, directo, profesional, y basado en datos.",
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+        response = await chat.send_message(UserMessage(text=prompt))
+        return {"analysis": response, "model": "claude-sonnet-4-5"}
+    except Exception as e:
+        logging.error(f"AI analyze error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+
+
+# Popular tickers scanned by Market-Wide Flow
+MARKET_FLOW_TICKERS = [
+    "SPY", "QQQ", "IWM", "DIA", "AAPL", "MSFT", "NVDA", "TSLA", "META",
+    "AMZN", "GOOGL", "AMD", "COIN", "MARA", "PLTR", "NFLX", "BA", "JPM",
+    "GME", "AMC", "SOFI", "RIVN", "F", "UBER",
+]
+
+
+@api_router.get("/options/market-flow")
+async def market_wide_flow(min_ratio: float = 3.0, min_volume: int = 300, max_results: int = 30):
+    """Scan popular tickers for unusual options activity (market-wide flow)."""
+    try:
+        all_flow = []
+        for sym in MARKET_FLOW_TICKERS:
+            try:
+                stock = get_stock_data(sym)
+                expirations = get_available_expirations(sym) or []
+                for exp in expirations[:2]:  # Only 2 nearest for speed
+                    chain = get_options_chain_real(sym, exp["date"])
+                    if not chain:
+                        continue
+                    for row in chain:
+                        for side in ("call", "put"):
+                            opt = row.get(side, {})
+                            vol = opt.get("volume", 0) or 0
+                            oi = opt.get("openInterest", 0) or 0
+                            if vol < min_volume:
+                                continue
+                            ratio = vol / max(oi, 1)
+                            if ratio < min_ratio:
+                                continue
+                            all_flow.append({
+                                "symbol": sym, "stockPrice": stock["price"],
+                                "type": side, "strike": row["strike"],
+                                "expiration": exp["fullLabel"], "daysToExpiry": exp["daysToExpiry"],
+                                "volume": vol, "openInterest": oi,
+                                "ratio": round(ratio, 2),
+                                "iv": round(opt.get("iv", 0) or 0, 4),
+                                "premium": opt.get("mid", 0),
+                                "estNotional": round(vol * (opt.get("mid", 0) or 0) * 100, 0),
+                                "moneynessPct": round(((row["strike"] - stock["price"]) / stock["price"]) * 100, 2),
+                            })
+            except Exception as e:
+                logging.warning(f"market-flow skipping {sym}: {e}")
+                continue
+        all_flow.sort(key=lambda x: x["estNotional"], reverse=True)
+        return {
+            "scannedTickers": len(MARKET_FLOW_TICKERS),
+            "totalFound": len(all_flow),
+            "results": all_flow[:max_results],
+        }
+    except Exception as e:
+        logging.error(f"Market flow error: {e}")
+        return {"error": str(e), "results": []}
+
+
 # Include router and setup middleware
 app.include_router(api_router)
 

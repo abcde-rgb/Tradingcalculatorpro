@@ -19,6 +19,8 @@ import SavedPositionsPanel from './SavedPositionsPanel';
 import PortfolioGreeks from './PortfolioGreeks';
 import IVRankBadge from './IVRankBadge';
 import UnusualActivity from './UnusualActivity';
+import AITradeCoach from './AITradeCoach';
+import MarketFlow from './MarketFlow';
 import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy, Calculator } from 'lucide-react';
 
 const CalculatorPage = () => {
@@ -477,7 +479,12 @@ const CalculatorPage = () => {
       )}
 
       {activeTab === 'flow' && (
-        <UnusualActivity symbol={ticker} />
+        <div className="space-y-0">
+          <UnusualActivity symbol={ticker} />
+          <div className="px-4 pb-4">
+            <MarketFlow onSelectSymbol={(sym) => { setTicker(sym); setActiveTab('calculator'); }} />
+          </div>
+        </div>
       )}
       
       {activeTab === 'calculator' && (
@@ -687,6 +694,17 @@ const CalculatorPage = () => {
 
               {/* Explain Trade — auto-generated educational bullets */}
               <ExplainTrade legs={legs} stock={stock} breakEvens={breakEvens} stats={stats} />
+
+              {/* AI Trade Coach — Claude Sonnet 4.5 analysis on demand */}
+              <AITradeCoach
+                symbol={ticker}
+                stock={stock}
+                legs={legs}
+                stats={stats}
+                greeks={greeks}
+                daysToExpiry={currentExp?.daysToExpiry}
+                balance={accountBalance}
+              />
             </div>
 
             {/* Right Panel — simplified to 3 core controls */}

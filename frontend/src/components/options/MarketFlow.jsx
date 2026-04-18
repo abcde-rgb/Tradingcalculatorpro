@@ -1,0 +1,135 @@
+import React, { useState } from 'react';
+import { Globe, Loader2, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+
+const API = process.env.REACT_APP_BACKEND_URL;
+
+/**
+ * Market-Wide Flow — scans 20+ popular tickers for unusual activity.
+ * Shows top 30 ranked by notional (trade size).
+ */
+const MarketFlow = ({ onSelectSymbol }) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [minRatio, setMinRatio] = useState(3);
+
+  const scan = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/options/market-flow?min_ratio=${minRatio}&min_volume=300&max_results=30`);
+      if (res.ok) setData(await res.json());
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') console.warn('market flow error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-4" data-testid="market-flow">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <Globe className="w-4 h-4 text-[#c084fc]" />
+          <h4 className="text-sm font-bold text-foreground">Market-Wide Flow</h4>
+          <span className="text-[10px] text-muted-foreground">24 tickers populares</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-muted-foreground uppercase font-semibold">Ratio:</span>
+            {[2, 3, 5, 10].map((r) => (
+              <button
+                key={r}
+                onClick={() => setMinRatio(r)}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all ${
+                  minRatio === r ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-muted border-border text-muted-foreground'
+                }`}
+              >
+                {r}x
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={scan}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#c084fc] text-xs font-bold hover:bg-[#a855f7]/25 disabled:opacity-40"
+            data-testid="market-scan-btn"
+          >
+            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Escaneando mercado...</> : <><Globe className="w-3.5 h-3.5" /> Escanear mercado</>}
+          </button>
+        </div>
+      </div>
+
+      {!data && !loading && (
+        <p className="text-xs text-muted-foreground">
+          Pulsa <span className="text-[#c084fc] font-semibold">Escanear</span> para detectar unusual activity en SPY, QQQ, TSLA, NVDA, AAPL, META y 18 tickers más. Ordenado por notional ($).
+        </p>
+      )}
+
+      {loading && !data && (
+        <div className="flex items-center justify-center py-8 text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin mr-2" /> Escaneando 24 tickers...
+        </div>
+      )}
+
+      {data && data.results && data.results.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center py-4">
+          Sin actividad inusual detectada con ratio ≥ {minRatio}x actualmente.
+        </p>
+      )}
+
+      {data && data.results && data.results.length > 0 && (
+        <>
+          <div className="flex items-center gap-4 mb-2 text-[11px]">
+            <span className="text-muted-foreground">Tickers escaneados: <span className="text-foreground font-bold">{data.scannedTickers}</span></span>
+            <span className="text-muted-foreground">Señales detectadas: <span className="text-foreground font-bold">{data.totalFound}</span></span>
+          </div>
+          <div className="max-h-[380px] overflow-y-auto rounded-lg border border-border">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/60 border-b border-border sticky top-0 z-10">
+                <tr className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  <th className="px-2 py-1.5 text-left">Ticker</th>
+                  <th className="px-2 py-1.5 text-left">Tipo</th>
+                  <th className="px-2 py-1.5 text-right">Strike</th>
+                  <th className="px-2 py-1.5 text-left">Exp</th>
+                  <th className="px-2 py-1.5 text-right">Vol</th>
+                  <th className="px-2 py-1.5 text-right">Ratio</th>
+                  <th className="px-2 py-1.5 text-right">Notional</th>
+                  <th className="px-2 py-1.5"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.results.map((r, i) => (
+                  <tr key={i} className="border-b border-border/30 hover:bg-muted/40 transition-colors">
+                    <td className="px-2 py-1.5 font-bold font-mono text-foreground">{r.symbol}</td>
+                    <td className="px-2 py-1.5">
+                      <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
+                        r.type === 'call' ? 'bg-[#22c55e]/15 text-[#4ade80]' : 'bg-[#ef4444]/15 text-[#f87171]'
+                      }`}>{r.type === 'call' ? <TrendingUp className="w-2.5 h-2.5 inline" /> : <TrendingDown className="w-2.5 h-2.5 inline" />} {r.type.toUpperCase()}</span>
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-mono text-foreground">${r.strike}</td>
+                    <td className="px-2 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">{r.expiration}</td>
+                    <td className="px-2 py-1.5 text-right font-mono text-foreground">{r.volume.toLocaleString()}</td>
+                    <td className="px-2 py-1.5 text-right font-mono font-bold text-[#fbbf24]">{r.ratio}x</td>
+                    <td className="px-2 py-1.5 text-right font-mono text-[#a78bfa]">${(r.estNotional / 1000).toFixed(0)}k</td>
+                    <td className="px-2 py-1.5">
+                      {onSelectSymbol && (
+                        <button
+                          onClick={() => onSelectSymbol(r.symbol)}
+                          className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                          title={`Abrir ${r.symbol} en Calculator`}
+                        >
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default MarketFlow;
