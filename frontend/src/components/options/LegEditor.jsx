@@ -185,10 +185,24 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
                   </button>
                   <input
                     type="number"
+                    inputMode="numeric"
+                    step={1}
                     value={leg.quantity}
-                    onChange={(e) => updateLeg(idx, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^\d]/g, '');
+                      const parsed = parseInt(raw, 10);
+                      if (!raw || Number.isNaN(parsed) || parsed < 1) {
+                        updateLeg(idx, { quantity: 1 });
+                      } else {
+                        updateLeg(idx, { quantity: Math.min(10000, parsed) });
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                    }}
                     className="w-full bg-transparent text-center text-xs font-mono text-foreground focus:outline-none py-1.5"
                     min={1}
+                    data-testid={`leg-${idx}-quantity`}
                   />
                   <button
                     onClick={() => updateLeg(idx, { quantity: leg.quantity + 1 })}

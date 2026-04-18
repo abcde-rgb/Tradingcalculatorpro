@@ -499,22 +499,78 @@ const CalculatorPage = () => {
                     </div>
                   </div>
 
-                  {/* Contracts */}
+                  {/* Contracts — Whole numbers only (1 contract = 100 shares underlying) */}
                   <div className="p-4 border-b border-border">
-                    <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2.5 block">Contratos</label>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Contratos</label>
+                      <span className="text-[9px] font-mono text-muted-foreground">
+                        = {(contracts * 100).toLocaleString()} acciones
+                      </span>
+                    </div>
+
+                    {/* Editable integer input + steppers */}
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setContracts(Math.max(1, contracts - 1))} className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted transition-all">
+                      <button
+                        onClick={() => setContracts(Math.max(1, contracts - 1))}
+                        className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all"
+                        title="Restar 1 contrato"
+                        data-testid="contracts-decrement"
+                      >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
                       <input
-                        type="number" value={contracts} min={1}
-                        onChange={(e) => setContracts(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-center text-foreground font-bold font-mono focus:outline-none focus:border-primary"
+                        type="number"
+                        inputMode="numeric"
+                        step={1}
+                        min={1}
+                        value={contracts}
+                        onChange={(e) => {
+                          // Whole contracts only — no fractional (options markets don't allow it)
+                          const raw = e.target.value.replace(/[^\d]/g, '');
+                          const parsed = parseInt(raw, 10);
+                          if (!raw) { setContracts(1); return; }
+                          if (Number.isNaN(parsed) || parsed < 1) { setContracts(1); return; }
+                          setContracts(Math.min(10000, parsed));
+                        }}
+                        onKeyDown={(e) => {
+                          // Block fractional input (. , e +/-)
+                          if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                        }}
+                        className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-center text-lg text-foreground font-bold font-mono focus:outline-none focus:border-primary transition-colors"
+                        data-testid="contracts-input"
                       />
-                      <button onClick={() => setContracts(contracts + 1)} className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted transition-all">
+                      <button
+                        onClick={() => setContracts(Math.min(10000, contracts + 1))}
+                        className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all"
+                        title="Sumar 1 contrato"
+                        data-testid="contracts-increment"
+                      >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
                     </div>
+
+                    {/* Quick size shortcuts */}
+                    <div className="grid grid-cols-5 gap-1 mt-2.5">
+                      {[1, 5, 10, 25, 100].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => setContracts(n)}
+                          className={`px-1 py-1 rounded-md text-[10px] font-bold transition-all border ${
+                            contracts === n
+                              ? 'bg-primary/15 text-primary border-primary/40'
+                              : 'bg-muted text-muted-foreground border-border hover:border-primary/40 hover:text-foreground'
+                          }`}
+                          data-testid={`contracts-quick-${n}`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Info: contracts are integer-only per listed options rules */}
+                    <p className="text-[9px] text-muted-foreground/70 mt-2 leading-snug">
+                      Solo enteros — cada contrato controla 100 acciones. El mercado de opciones listadas no admite fracciones.
+                    </p>
                   </div>
                 </>
               )}
