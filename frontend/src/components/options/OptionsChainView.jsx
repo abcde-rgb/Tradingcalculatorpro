@@ -56,13 +56,13 @@ const OptionsChainView = ({ chain, stockPrice, expiration, expirations, selected
                   isATM ? 'bg-primary/5' : ''
                 }`}>
                   {/* Calls */}
-                  <td className={`py-1.5 px-2 text-right font-mono ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{row.call.bid}</td>
-                  <td className={`py-1.5 px-2 text-right font-mono ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{row.call.ask}</td>
-                  <td className={`py-1.5 px-2 text-right font-mono text-foreground ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{row.call.last}</td>
-                  <td className={`py-1.5 px-2 text-right font-mono text-muted-foreground ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{row.call.volume.toLocaleString()}</td>
-                  <td className={`py-1.5 px-2 text-right font-mono text-muted-foreground ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{row.call.openInterest.toLocaleString()}</td>
-                  <td className={`py-1.5 px-2 text-right font-mono ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{(row.call.iv * 100).toFixed(1)}%</td>
-                  <td className={`py-1.5 px-2 text-right font-mono ${isITMCall ? 'bg-[#22c55e]/5 text-[#4ade80]' : 'text-muted-foreground'}`}>{row.call.delta.toFixed(3)}</td>
+                  <td className={`py-1.5 px-2 text-right font-mono ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{row.call?.bid ?? '—'}</td>
+                  <td className={`py-1.5 px-2 text-right font-mono ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{row.call?.ask ?? '—'}</td>
+                  <td className={`py-1.5 px-2 text-right font-mono text-foreground ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{row.call?.last ?? '—'}</td>
+                  <td className={`py-1.5 px-2 text-right font-mono text-muted-foreground ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{(row.call?.volume ?? 0).toLocaleString()}</td>
+                  <td className={`py-1.5 px-2 text-right font-mono text-muted-foreground ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{(row.call?.openInterest ?? 0).toLocaleString()}</td>
+                  <td className={`py-1.5 px-2 text-right font-mono ${isITMCall ? 'bg-[#22c55e]/5' : ''}`}>{((row.call?.iv ?? 0) * 100).toFixed(1)}%</td>
+                  <td className={`py-1.5 px-2 text-right font-mono ${isITMCall ? 'bg-[#22c55e]/5 text-[#4ade80]' : 'text-muted-foreground'}`}>{(row.call?.delta ?? 0).toFixed(3)}</td>
                   {/* Strike */}
                   <td className={`py-1.5 px-3 text-center font-mono font-bold bg-muted border-x border-border ${
                     isATM ? 'text-primary' : isITMCall ? 'text-[#4ade80]' : 'text-[#f87171]'
@@ -71,13 +71,13 @@ const OptionsChainView = ({ chain, stockPrice, expiration, expirations, selected
                     {isATM && <span className="text-[8px] ml-1 text-primary opacity-70">ATM</span>}
                   </td>
                   {/* Puts */}
-                  <td className={`py-1.5 px-2 text-left font-mono ${isITMPut ? 'bg-[#ef4444]/5 text-[#f87171]' : 'text-muted-foreground'}`}>{row.put.delta.toFixed(3)}</td>
-                  <td className={`py-1.5 px-2 text-left font-mono ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{(row.put.iv * 100).toFixed(1)}%</td>
-                  <td className={`py-1.5 px-2 text-left font-mono text-muted-foreground ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{row.put.openInterest.toLocaleString()}</td>
-                  <td className={`py-1.5 px-2 text-left font-mono text-muted-foreground ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{row.put.volume.toLocaleString()}</td>
-                  <td className={`py-1.5 px-2 text-left font-mono text-foreground ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{row.put.last}</td>
-                  <td className={`py-1.5 px-2 text-left font-mono ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{row.put.ask}</td>
-                  <td className={`py-1.5 px-2 text-left font-mono ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{row.put.bid}</td>
+                  <td className={`py-1.5 px-2 text-left font-mono ${isITMPut ? 'bg-[#ef4444]/5 text-[#f87171]' : 'text-muted-foreground'}`}>{(row.put?.delta ?? 0).toFixed(3)}</td>
+                  <td className={`py-1.5 px-2 text-left font-mono ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{((row.put?.iv ?? 0) * 100).toFixed(1)}%</td>
+                  <td className={`py-1.5 px-2 text-left font-mono text-muted-foreground ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{(row.put?.openInterest ?? 0).toLocaleString()}</td>
+                  <td className={`py-1.5 px-2 text-left font-mono text-muted-foreground ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{(row.put?.volume ?? 0).toLocaleString()}</td>
+                  <td className={`py-1.5 px-2 text-left font-mono text-foreground ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{row.put?.last ?? '—'}</td>
+                  <td className={`py-1.5 px-2 text-left font-mono ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{row.put?.ask ?? '—'}</td>
+                  <td className={`py-1.5 px-2 text-left font-mono ${isITMPut ? 'bg-[#ef4444]/5' : ''}`}>{row.put?.bid ?? '—'}</td>
                 </tr>
               );
             })}

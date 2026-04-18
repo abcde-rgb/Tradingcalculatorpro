@@ -1459,6 +1459,32 @@ async def opt_get_options_chain(symbol: str, expiration_idx: int = 3):
     chain = get_options_chain_real(symbol, expiration["date"])
     if not chain:
         chain = generate_options_chain(stock["price"], expiration["daysToExpiry"])
+    else:
+        # Enrich real chain from yfinance with computed Greeks (yfinance doesn't return them)
+        from options_math import delta as _d, gamma_val as _g, theta_val as _th, vega_val as _v
+        import math as _m
+        T = max(expiration["daysToExpiry"], 1) / 365
+        r = 0.0525
+        for item in chain:
+            K = item["strike"]
+            for side in ("call", "put"):
+                leg = item.get(side, {})
+                iv = leg.get("iv") or 0.3
+                if iv <= 0:
+                    iv = 0.3
+                try:
+                    leg["delta"] = round(_d(stock["price"], K, T, r, iv, side), 4)
+                    leg["gamma"] = round(_g(stock["price"], K, T, r, iv), 6)
+                    leg["theta"] = round(_th(stock["price"], K, T, r, iv, side), 4)
+                    leg["vega"] = round(_v(stock["price"], K, T, r, iv), 4)
+                except (ValueError, ZeroDivisionError):
+                    leg["delta"] = 0.0
+                    leg["gamma"] = 0.0
+                    leg["theta"] = 0.0
+                    leg["vega"] = 0.0
+                # Ensure mid is present
+                if "mid" not in leg or leg.get("mid") is None:
+                    leg["mid"] = round(((leg.get("bid") or 0) + (leg.get("ask") or 0)) / 2, 2)
     return {"stock": stock, "expiration": expiration, "chain": chain}
 
 

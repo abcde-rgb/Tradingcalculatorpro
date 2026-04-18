@@ -140,7 +140,18 @@ const CalculatorPage = () => {
   }, [legs, stock]);
 
   const stats = useMemo(() => {
-    if (payoffData.length === 0) return {};
+    if (payoffData.length === 0) {
+      return {
+        maxProfit: '0',
+        maxLoss: '0',
+        premium: '0',
+        breakEvens: [],
+        roi: '0.0',
+        rr: '—',
+        isMaxProfitUnlimited: false,
+        pop: '0.0',
+      };
+    }
     const expPnls = payoffData.map((p) => p.pnlAtExpiry);
     const maxProfit = Math.max(...expPnls);
     const maxLoss = Math.min(...expPnls);
