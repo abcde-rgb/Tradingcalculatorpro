@@ -382,36 +382,120 @@ const CalculatorPage = () => {
               ) : (
                 /* Preset Controls */
                 <>
-                  {/* Strike Price */}
+                  {/* Strike Price — Configurable */}
                   <div className="p-4 border-b border-border">
-                    <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2.5 block">Precio Strike</label>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Precio Strike</label>
+                      {selectedStrike && stock?.price && (
+                        <span className={`text-[9px] font-mono font-semibold ${
+                          selectedStrike.strike < stock.price ? 'text-[#4ade80]' : selectedStrike.strike > stock.price ? 'text-[#f87171]' : 'text-primary'
+                        }`}>
+                          {selectedStrike.strike === stock.price ? 'ATM' : `${((selectedStrike.strike - stock.price) / stock.price * 100).toFixed(1)}%`}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Editable strike input + steppers */}
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setSelectedStrikeIdx(Math.max(0, selectedStrikeIdx - 1))} className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all">
+                      <button
+                        onClick={() => setSelectedStrikeIdx(Math.max(0, selectedStrikeIdx - 1))}
+                        className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all"
+                        title="Strike anterior"
+                        data-testid="strike-decrement"
+                      >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
-                      <div className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-center">
-                        <span className="text-lg font-bold text-foreground font-mono">${selectedStrike?.strike || '—'}</span>
+                      <div className="flex-1 relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-mono text-muted-foreground pointer-events-none">$</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={selectedStrike?.strike ?? ''}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (Number.isNaN(val) || chain.length === 0) return;
+                            // Snap to closest strike in the chain
+                            let bestIdx = 0;
+                            let bestDiff = Infinity;
+                            chain.forEach((s, idx) => {
+                              const diff = Math.abs(s.strike - val);
+                              if (diff < bestDiff) { bestDiff = diff; bestIdx = idx; }
+                            });
+                            setSelectedStrikeIdx(bestIdx);
+                          }}
+                          className="w-full bg-muted border border-border rounded-lg pl-7 pr-3 py-2 text-center text-lg font-bold text-foreground font-mono focus:outline-none focus:border-primary transition-colors"
+                          data-testid="strike-input"
+                        />
                       </div>
-                      <button onClick={() => setSelectedStrikeIdx(Math.min(chain.length - 1, selectedStrikeIdx + 1))} className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all">
+                      <button
+                        onClick={() => setSelectedStrikeIdx(Math.min(chain.length - 1, selectedStrikeIdx + 1))}
+                        className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all"
+                        title="Strike siguiente"
+                        data-testid="strike-increment"
+                      >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="mt-2 max-h-[120px] overflow-y-auto custom-scrollbar space-y-0.5 rounded-lg">
-                      {chain.map((s, idx) => (
-                        <button key={s.strike} onClick={() => setSelectedStrikeIdx(idx)}
-                          className={`w-full flex items-center justify-between px-2.5 py-1 rounded text-[11px] font-mono transition-all ${
-                            selectedStrikeIdx === idx ? 'bg-primary/15 text-primary'
-                            : s.strike <= (stock?.price || 0) ? 'text-[#4ade80]/70 hover:bg-muted'
-                            : 'text-[#f87171]/70 hover:bg-muted'
+
+                    {/* Quick moneyness shortcuts */}
+                    <div className="grid grid-cols-5 gap-1 mt-2.5">
+                      {[
+                        { label: '-10%', mult: 0.9 },
+                        { label: '-5%', mult: 0.95 },
+                        { label: 'ATM', mult: 1.0 },
+                        { label: '+5%', mult: 1.05 },
+                        { label: '+10%', mult: 1.10 },
+                      ].map(({ label, mult }) => (
+                        <button
+                          key={label}
+                          onClick={() => {
+                            if (!stock?.price || chain.length === 0) return;
+                            const target = stock.price * mult;
+                            let bestIdx = 0;
+                            let bestDiff = Infinity;
+                            chain.forEach((s, idx) => {
+                              const diff = Math.abs(s.strike - target);
+                              if (diff < bestDiff) { bestDiff = diff; bestIdx = idx; }
+                            });
+                            setSelectedStrikeIdx(bestIdx);
+                          }}
+                          className={`px-1 py-1 rounded-md text-[10px] font-bold transition-all border ${
+                            label === 'ATM'
+                              ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
+                              : 'bg-muted text-muted-foreground border-border hover:border-primary/40 hover:text-foreground'
                           }`}
+                          data-testid={`strike-quick-${label}`}
                         >
-                          <span>${s.strike}</span>
-                          <div className="flex gap-3 text-muted-foreground">
-                            <span>C ${s.call.mid}</span>
-                            <span>P ${s.put.mid}</span>
-                          </div>
+                          {label}
                         </button>
                       ))}
+                    </div>
+
+                    {/* Scrollable strike chain list */}
+                    <div className="mt-2.5 max-h-[140px] overflow-y-auto custom-scrollbar space-y-0.5 rounded-lg border border-border/50 p-1 bg-background/50">
+                      {chain.map((s, idx) => {
+                        const isITMCall = s.strike <= (stock?.price || 0);
+                        return (
+                          <button
+                            key={s.strike}
+                            onClick={() => setSelectedStrikeIdx(idx)}
+                            className={`w-full flex items-center justify-between px-2.5 py-1 rounded text-[11px] font-mono transition-all ${
+                              selectedStrikeIdx === idx
+                                ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
+                                : isITMCall
+                                  ? 'text-[#4ade80]/80 hover:bg-muted'
+                                  : 'text-[#f87171]/80 hover:bg-muted'
+                            }`}
+                            data-testid={`strike-option-${s.strike}`}
+                          >
+                            <span className="font-semibold">${s.strike}</span>
+                            <div className="flex gap-3 text-muted-foreground">
+                              <span>C ${s.call?.mid ?? '—'}</span>
+                              <span>P ${s.put?.mid ?? '—'}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
