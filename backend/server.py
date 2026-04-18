@@ -1647,7 +1647,6 @@ async def optimize_options_strategy(req: OptimizeRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ========== P0 FEATURES: Earnings, Saved Positions, Portfolio Greeks ==========
 @api_router.get("/options/earnings/{symbol}")
 async def get_next_earnings(symbol: str):
     """Next earnings date from yfinance (used to warn about IV crush)."""
@@ -1779,6 +1778,151 @@ async def portfolio_greeks(user=Depends(get_current_user)):
         "symbols": count_by_symbol,
         "positions": enriched,
     }
+
+
+# ========== P1 FEATURES: IV Rank & Unusual Options Activity ==========
+@api_router.get("/options/iv-rank/{symbol}")
+async def get_iv_rank(symbol: str):
+    """
+    Compute IV Rank & Percentile using stock's realized volatility over 52w
+    as proxy (since yfinance doesn't expose historical IV directly).
+    IV Rank = (IV_current - IV_low) / (IV_high - IV_low) × 100
+    IV Percentile = % of days in last 252 where IV was ≤ current IV
+    """
+    try:
+        import yfinance as yf
+        import numpy as np
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period="1y")
+        if hist.empty or len(hist) < 30:
+            return {"symbol": symbol.upper(), "available": False}
+
+        # Realized volatility: rolling 30-day std of log returns, annualized
+        closes = hist["Close"].dropna()
+        log_returns = np.log(closes / closes.shift(1)).dropna()
+        rolling_vol = log_returns.rolling(window=20).std() * np.sqrt(252)
+        rolling_vol = rolling_vol.dropna()
+
+        if len(rolling_vol) < 10:
+            return {"symbol": symbol.upper(), "available": False}
+
+        # Get current ATM IV from the nearest expiration as proxy for "current IV"
+        current_iv = None
+        try:
+            exps = get_available_expirations(symbol)
+            if exps:
+                chain = get_options_chain_real(symbol, exps[min(3, len(exps) - 1)]["date"])
+                if chain:
+                    spot = float(hist["Close"].iloc[-1])
+                    atm = min(chain, key=lambda c: abs(c["strike"] - spot))
+                    call_iv = atm.get("call", {}).get("iv")
+                    put_iv = atm.get("put", {}).get("iv")
+                    ivs = [v for v in [call_iv, put_iv] if v and v > 0]
+                    if ivs:
+                        current_iv = sum(ivs) / len(ivs)
+        except Exception as e:
+            logging.warning(f"IV rank ATM IV fetch failed: {e}")
+
+        iv_high = float(rolling_vol.max())
+        iv_low = float(rolling_vol.min())
+        iv_now = current_iv if current_iv else float(rolling_vol.iloc[-1])
+
+        iv_range = iv_high - iv_low
+        iv_rank = ((iv_now - iv_low) / iv_range * 100) if iv_range > 0.001 else 50.0
+        iv_rank = max(0, min(100, iv_rank))
+        iv_percentile = float((rolling_vol < iv_now).sum() / len(rolling_vol) * 100)
+
+        # Trading recommendation
+        if iv_rank >= 60:
+            recommendation = "sell_premium"
+            rec_label = "VENDE PRIMA"
+            rec_reason = "IV elevada — primas caras. Favorable para vendedores (short puts/calls, iron condors)."
+        elif iv_rank <= 30:
+            recommendation = "buy_premium"
+            rec_label = "COMPRA PRIMA"
+            rec_reason = "IV baja — primas baratas. Favorable para compradores (long calls/puts, straddles)."
+        else:
+            recommendation = "neutral"
+            rec_label = "NEUTRAL"
+            rec_reason = "IV en rango medio. Sin edge claro por volatilidad."
+
+        return {
+            "symbol": symbol.upper(),
+            "available": True,
+            "ivCurrent": round(iv_now, 4),
+            "ivHigh52w": round(iv_high, 4),
+            "ivLow52w": round(iv_low, 4),
+            "ivRank": round(iv_rank, 1),
+            "ivPercentile": round(iv_percentile, 1),
+            "recommendation": recommendation,
+            "recommendationLabel": rec_label,
+            "recommendationReason": rec_reason,
+        }
+    except Exception as e:
+        logging.error(f"IV rank error for {symbol}: {e}")
+        return {"symbol": symbol.upper(), "available": False, "error": str(e)}
+
+
+@api_router.get("/options/unusual/{symbol}")
+async def get_unusual_options(symbol: str, min_ratio: float = 2.0, min_volume: int = 100):
+    """
+    Detect unusual options activity: contracts with volume >> open interest.
+    Classic flow indicator used by institutional traders.
+    Returns ranked list of suspicious activity in the current chain.
+    """
+    try:
+        stock = get_stock_data(symbol)
+        expirations = get_available_expirations(symbol) or generate_expirations()
+
+        all_unusual = []
+        # Scan first 5 nearest expirations
+        for exp in expirations[:5]:
+            chain = get_options_chain_real(symbol, exp["date"])
+            if not chain:
+                continue
+            for row in chain:
+                for side in ("call", "put"):
+                    opt = row.get(side, {})
+                    vol = opt.get("volume", 0) or 0
+                    oi = opt.get("openInterest", 0) or 0
+                    if vol < min_volume:
+                        continue
+                    ratio = vol / max(oi, 1)
+                    if ratio < min_ratio:
+                        continue
+                    moneyness_pct = ((row["strike"] - stock["price"]) / stock["price"]) * 100
+                    is_itm = (side == "call" and row["strike"] < stock["price"]) or (side == "put" and row["strike"] > stock["price"])
+                    all_unusual.append({
+                        "symbol": symbol.upper(),
+                        "type": side,
+                        "strike": row["strike"],
+                        "expiration": exp["fullLabel"],
+                        "daysToExpiry": exp["daysToExpiry"],
+                        "volume": vol,
+                        "openInterest": oi,
+                        "ratio": round(ratio, 2),
+                        "iv": round(opt.get("iv", 0) or 0, 4),
+                        "premium": opt.get("mid", 0),
+                        "bid": opt.get("bid"),
+                        "ask": opt.get("ask"),
+                        "last": opt.get("last"),
+                        "moneynessPct": round(moneyness_pct, 2),
+                        "isITM": is_itm,
+                        "estNotional": round(vol * (opt.get("mid", 0) or 0) * 100, 0),
+                    })
+
+        # Sort by ratio desc (most unusual first), then by notional
+        all_unusual.sort(key=lambda x: (x["ratio"], x["estNotional"]), reverse=True)
+        return {
+            "symbol": symbol.upper(),
+            "stock": stock,
+            "totalFound": len(all_unusual),
+            "filters": {"minRatio": min_ratio, "minVolume": min_volume},
+            "results": all_unusual[:50],
+        }
+    except Exception as e:
+        logging.error(f"Unusual options error for {symbol}: {e}")
+        return {"symbol": symbol.upper(), "error": str(e), "results": []}
 
 
 # Include router and setup middleware

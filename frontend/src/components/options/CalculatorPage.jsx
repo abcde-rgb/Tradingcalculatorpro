@@ -17,6 +17,8 @@ import OptimizeView from './OptimizeView';
 import ExplainTrade from './ExplainTrade';
 import SavedPositionsPanel from './SavedPositionsPanel';
 import PortfolioGreeks from './PortfolioGreeks';
+import IVRankBadge from './IVRankBadge';
+import UnusualActivity from './UnusualActivity';
 import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy, Calculator } from 'lucide-react';
 
 const CalculatorPage = () => {
@@ -107,6 +109,16 @@ const CalculatorPage = () => {
         if (process.env.NODE_ENV !== 'production') console.warn('earnings lookup failed:', err);
       }
     })();
+    // Live price refresh every 15s — poll spot only, don't reload chain
+    const interval = setInterval(async () => {
+      try {
+        const freshStock = await fetchStock(ticker);
+        if (freshStock) setStock(freshStock);
+      } catch (err) {
+        if (process.env.NODE_ENV !== 'production') console.warn('live price refresh failed:', err);
+      }
+    }, 15000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticker]);
 
@@ -370,7 +382,7 @@ const CalculatorPage = () => {
         {stock && (
           <div className="flex items-center gap-3 ml-2">
             {loading && <Loader2 className="w-4 h-4 text-primary animate-spin" />}
-            <span className="text-xl font-bold text-foreground font-mono">${stock.price.toFixed(2)}</span>
+            <span className="text-xl font-bold text-foreground font-mono" data-testid="live-price">${stock.price.toFixed(2)}</span>
             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
               stock.change >= 0 ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-[#ef4444]/10 text-[#ef4444]'
             }`}>
@@ -378,6 +390,11 @@ const CalculatorPage = () => {
               {stock.change >= 0 ? '+' : ''}{stock.change} ({stock.changePercent}%)
             </div>
             <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{stock.sector}</span>
+            <span className="relative flex h-2 w-2" title="Precio en vivo (refresco cada 15s)">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            </span>
+            <IVRankBadge symbol={ticker} />
           </div>
         )}
 
@@ -388,6 +405,9 @@ const CalculatorPage = () => {
             </button>
             <button onClick={() => setActiveTab('optimize')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'optimize' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`} data-testid="tab-optimize">
               <Target className="w-3.5 h-3.5 inline mr-1" />Optimizar
+            </button>
+            <button onClick={() => setActiveTab('flow')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'flow' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`} data-testid="tab-flow">
+              <Activity className="w-3.5 h-3.5 inline mr-1" />Flow
             </button>
             <button onClick={() => setActiveTab('chain')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'chain' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
               <LayoutGrid className="w-3.5 h-3.5 inline mr-1" />Chain
@@ -454,6 +474,10 @@ const CalculatorPage = () => {
             setActiveTab('calculator');
           }}
         />
+      )}
+
+      {activeTab === 'flow' && (
+        <UnusualActivity symbol={ticker} />
       )}
       
       {activeTab === 'calculator' && (
