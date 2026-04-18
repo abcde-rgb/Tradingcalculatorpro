@@ -11,7 +11,7 @@ import EducationTab from './EducationTab';
 import GuideModal from './GuideModal';
 import SearchBar from './SearchBar';
 import LegEditor from './LegEditor';
-import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet } from 'lucide-react';
 
 const CalculatorPage = () => {
   const [ticker, setTicker] = useState('AAPL');
@@ -150,6 +150,8 @@ const CalculatorPage = () => {
         rr: '—',
         isMaxProfitUnlimited: false,
         pop: '0.0',
+        capitalRequired: '0',
+        isMaxLossUnlimited: false,
       };
     }
     const expPnls = payoffData.map((p) => p.pnlAtExpiry);
@@ -163,6 +165,37 @@ const CalculatorPage = () => {
     });
     const roi = premium !== 0 ? ((maxProfit / Math.abs(premium)) * 100) : 0;
     const rr = riskRewardRatio(maxProfit, maxLoss);
+
+    // Capital required (Reg-T approximation)
+    // - Defined-risk strategies: capital = |max loss|
+    // - Undefined risk (naked shorts): use Reg-T per-leg estimate
+    const isMaxLossUnlimited = maxLoss < -5000000;
+    let capitalRequired;
+    if (isMaxLossUnlimited && stock?.price) {
+      let naked = 0;
+      legs.forEach((l) => {
+        if (l.type === 'stock') return;
+        if (l.action !== 'sell') return;
+        const S = stock.price;
+        const K = l.strike || S;
+        const qty = l.quantity || 1;
+        const premRecv = (l.premium || 0) * 100;
+        if (l.type === 'call') {
+          const otm = Math.max(0, K - S);
+          const margin = Math.max(0.2 * S - otm, 0.1 * S) * 100;
+          naked += (margin + premRecv) * qty;
+        } else {
+          const otm = Math.max(0, S - K);
+          const margin = Math.max(0.2 * S - otm, 0.1 * K) * 100;
+          naked += (margin + premRecv) * qty;
+        }
+      });
+      capitalRequired = naked > 0 ? naked : Math.abs(premium);
+    } else {
+      // For debit (negative premium = we paid) use |premium|; for credit use |maxLoss|
+      capitalRequired = Math.max(Math.abs(maxLoss), premium < 0 ? Math.abs(premium) : 0);
+    }
+
     return {
       maxProfit: maxProfit > 5000000 ? 'Unlimited' : maxProfit.toFixed(0),
       maxLoss: maxLoss.toFixed(0),
@@ -171,9 +204,11 @@ const CalculatorPage = () => {
       roi: roi.toFixed(1),
       rr: rr > 100 ? '∞' : rr.toFixed(2),
       isMaxProfitUnlimited: maxProfit > 5000000,
+      isMaxLossUnlimited,
       pop: pop.toFixed(1),
+      capitalRequired: capitalRequired.toFixed(0),
     };
-  }, [payoffData, legs, breakEvens, pop]);
+  }, [payoffData, legs, breakEvens, pop, stock]);
 
   return (
     <div className="h-full flex flex-col bg-background text-foreground overflow-hidden" data-testid="options-calculator-root">
@@ -287,10 +322,11 @@ const CalculatorPage = () => {
           <div className="flex-1 flex overflow-hidden">
             {/* Chart + Controls */}
             <div className="flex-1 flex flex-col p-4 gap-3 min-w-0">
-              {/* Metrics Row - 7 metrics */}
-              <div className="grid grid-cols-7 gap-2">
+              {/* Metrics Row - 8 metrics */}
+              <div className="grid grid-cols-8 gap-2">
                 <StatCard icon={TrendingUp} label="Máx. Beneficio" value={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`} color="text-[#22c55e]" />
-                <StatCard icon={TrendingDown} label="Máx. Pérdida" value={`$${stats.maxLoss}`} color="text-[#ef4444]" />
+                <StatCard icon={TrendingDown} label="Máx. Pérdida" value={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`} color="text-[#ef4444]" />
+                <StatCard icon={Wallet} label="Capital Req." value={stats.isMaxLossUnlimited ? `~$${stats.capitalRequired}` : `$${stats.capitalRequired}`} color="text-[#f59e0b]" title="Estimación Reg-T del capital/margen requerido por la posición" />
                 <StatCard icon={Scale} label="Risk / Reward" value={stats.rr || '—'} color="text-[#eab308]" />
                 <StatCard icon={Target} label="Break-Even" value={breakEvens.length > 0 ? `$${breakEvens[0]}` : '—'} color="text-[#a78bfa]" />
                 <StatCard icon={Percent} label="Prob. Beneficio" value={`${stats.pop || 0}%`} color="text-primary" />
@@ -587,8 +623,8 @@ const CalculatorPage = () => {
   );
 };
 
-const StatCard = ({ icon: Icon, label, value, color }) => (
-  <div className="bg-card rounded-lg border border-border px-2.5 py-2.5 hover:border-border transition-colors">
+const StatCard = ({ icon: Icon, label, value, color, title }) => (
+  <div className="bg-card rounded-lg border border-border px-2.5 py-2.5 hover:border-primary/30 transition-colors" title={title}>
     <div className="flex items-center gap-1 mb-0.5">
       <Icon className={`w-3 h-3 ${color}`} />
       <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium truncate">{label}</span>
