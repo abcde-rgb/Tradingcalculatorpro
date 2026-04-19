@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Wallet, Save, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,28 +15,18 @@ export const SpotCalculator = () => {
   const { saveCalculation } = useCalculatorStore();
   const { t } = useTranslation();
   
-  const [persistedData, setPersistedData, clearPersistedData, isLoading] = usePersistedState('spot_calculator', {
+  const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('spot_calculator', {
     investment: 1000,
     buyPrice: 95000,
     sellPrice: ''
   });
-  
-  const [investment, setInvestment] = useState(persistedData.investment);
-  const [buyPrice, setBuyPrice] = useState(persistedData.buyPrice);
-  const [sellPrice, setSellPrice] = useState(persistedData.sellPrice);
+
+  const { investment, buyPrice, sellPrice } = persistedData;
   const [result, setResult] = useState(null);
 
-  useEffect(() => {
-    if (!isLoading) {
-      setInvestment(persistedData.investment);
-      setBuyPrice(persistedData.buyPrice);
-      setSellPrice(persistedData.sellPrice);
-    }
-  }, [persistedData, isLoading]);
-
-  useEffect(() => {
-    setPersistedData({ investment, buyPrice, sellPrice });
-  }, [investment, buyPrice, sellPrice, setPersistedData]);
+  const setInvestment = (v) => setPersistedData(prev => ({ ...prev, investment: v }));
+  const setBuyPrice   = (v) => setPersistedData(prev => ({ ...prev, buyPrice: v }));
+  const setSellPrice  = (v) => setPersistedData(prev => ({ ...prev, sellPrice: v }));
 
   const calculate = () => {
     if (!investment || !buyPrice || !sellPrice) return;

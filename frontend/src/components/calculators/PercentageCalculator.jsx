@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { TrendingUp, TrendingDown, Save, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,31 +17,20 @@ export const PercentageCalculator = () => {
   const { saveCalculation } = useCalculatorStore();
   const { t } = useTranslation();
   
-  const [persistedData, setPersistedData, clearPersistedData, isLoading] = usePersistedState('percentage_calculator', {
+  const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('percentage_calculator', {
     symbol: 'bitcoin',
     currentPrice: prices?.bitcoin?.usd || 95000,
     targetPrice: '',
     isLong: true
   });
-  
-  const [symbol, setSymbol] = useState(persistedData.symbol);
-  const [currentPrice, setCurrentPrice] = useState(persistedData.currentPrice);
-  const [targetPrice, setTargetPrice] = useState(persistedData.targetPrice);
-  const [isLong, setIsLong] = useState(persistedData.isLong);
+
+  const { symbol, currentPrice, targetPrice, isLong } = persistedData;
   const [result, setResult] = useState(null);
 
-  useEffect(() => {
-    if (!isLoading) {
-      setSymbol(persistedData.symbol);
-      setCurrentPrice(persistedData.currentPrice);
-      setTargetPrice(persistedData.targetPrice);
-      setIsLong(persistedData.isLong);
-    }
-  }, [persistedData, isLoading]);
-
-  useEffect(() => {
-    setPersistedData({ symbol, currentPrice, targetPrice, isLong });
-  }, [symbol, currentPrice, targetPrice, isLong]);
+  const setSymbol       = (v) => setPersistedData(prev => ({ ...prev, symbol: v }));
+  const setCurrentPrice = (v) => setPersistedData(prev => ({ ...prev, currentPrice: v }));
+  const setTargetPrice  = (v) => setPersistedData(prev => ({ ...prev, targetPrice: v }));
+  const setIsLong       = (v) => setPersistedData(prev => ({ ...prev, isLong: v }));
 
   // Actualizar precio cuando cambia el símbolo
   const handleSymbolChange = (newSymbol) => {

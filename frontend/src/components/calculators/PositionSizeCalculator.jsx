@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Calculator, Save, AlertTriangle, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,35 +13,24 @@ export const PositionSizeCalculator = () => {
   const { isAuthenticated } = useAuthStore();
   const { saveCalculation } = useCalculatorStore();
   
-  const [persistedData, setPersistedData, clearPersistedData, isLoading] = usePersistedState('position_size_calculator', {
+  const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('position_size_calculator', {
     accountBalance: 10000,
     riskPercent: 2,
     entryPrice: 95000,
     stopLoss: 94000
   });
-  
-  const [accountBalance, setAccountBalance] = useState(persistedData.accountBalance);
-  const [riskPercent, setRiskPercent] = useState([persistedData.riskPercent]);
-  const [entryPrice, setEntryPrice] = useState(persistedData.entryPrice);
-  const [stopLoss, setStopLoss] = useState(persistedData.stopLoss);
+
+  const { accountBalance, riskPercent, entryPrice, stopLoss } = persistedData;
   const [result, setResult] = useState(null);
 
-  useEffect(() => {
-    if (!isLoading) {
-      setAccountBalance(persistedData.accountBalance);
-      setRiskPercent([persistedData.riskPercent]);
-      setEntryPrice(persistedData.entryPrice);
-      setStopLoss(persistedData.stopLoss);
-    }
-  }, [persistedData, isLoading]);
-
-  useEffect(() => {
-    setPersistedData({ accountBalance, riskPercent: riskPercent[0], entryPrice, stopLoss });
-  }, [accountBalance, riskPercent, entryPrice, stopLoss]);
+  const setAccountBalance = (v) => setPersistedData(prev => ({ ...prev, accountBalance: v }));
+  const setRiskPercent    = (v) => setPersistedData(prev => ({ ...prev, riskPercent: Array.isArray(v) ? v[0] : v }));
+  const setEntryPrice     = (v) => setPersistedData(prev => ({ ...prev, entryPrice: v }));
+  const setStopLoss       = (v) => setPersistedData(prev => ({ ...prev, stopLoss: v }));
 
   const calculate = () => {
     const balance = parseFloat(accountBalance);
-    const risk = riskPercent[0];
+    const risk = riskPercent;
     const entry = parseFloat(entryPrice);
     const sl = parseFloat(stopLoss);
     
@@ -74,7 +63,7 @@ export const PositionSizeCalculator = () => {
 
   const handleSave = async () => {
     if (result && isAuthenticated) {
-      await saveCalculation('position_size', { accountBalance, riskPercent: riskPercent[0], entryPrice, stopLoss }, result);
+      await saveCalculation('position_size', { accountBalance, riskPercent, entryPrice, stopLoss }, result);
     }
   };
 
@@ -103,10 +92,10 @@ export const PositionSizeCalculator = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Riesgo por Operación</Label>
-                <span className="font-mono text-lg font-bold text-blue-500">{riskPercent[0]}%</span>
+                <span className="font-mono text-lg font-bold text-blue-500">{riskPercent}%</span>
               </div>
               <Slider
-                value={riskPercent}
+                value={[riskPercent]}
                 onValueChange={setRiskPercent}
                 min={0.5}
                 max={10}
@@ -182,8 +171,8 @@ export const PositionSizeCalculator = () => {
                 <div className="p-3 rounded-lg bg-accent/10 border border-accent/20 text-xs">
                   <p className="text-accent font-semibold">Gestión de Riesgo:</p>
                   <p className="text-muted-foreground mt-1">
-                    Con un riesgo del {riskPercent[0]}%, si tu SL se activa perderás {formatCurrency(result.riskAmount)} 
-                    ({riskPercent[0]}% de tu cuenta). Esto te permite sobrevivir a {Math.floor(100 / riskPercent[0])} pérdidas consecutivas.
+                    Con un riesgo del {riskPercent}%, si tu SL se activa perderás {formatCurrency(result.riskAmount)} 
+                    ({riskPercent}% de tu cuenta). Esto te permite sobrevivir a {Math.floor(100 / riskPercent)} pérdidas consecutivas.
                   </p>
                 </div>
                 

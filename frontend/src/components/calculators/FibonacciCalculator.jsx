@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,29 +16,19 @@ export function FibonacciCalculator() {
   const { saveCalculation } = useCalculatorStore();
   const { t } = useTranslation();
   
-  const [persistedData, setPersistedData, clearPersistedData, isLoading] = usePersistedState('fibonacci_calculator', {
+  const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('fibonacci_calculator', {
     trend: 'uptrend',
     highPrice: '',
     lowPrice: ''
   });
-  
-  const [trend, setTrend] = useState(persistedData.trend);
-  const [highPrice, setHighPrice] = useState(persistedData.highPrice);
-  const [lowPrice, setLowPrice] = useState(persistedData.lowPrice);
+
+  const { trend, highPrice, lowPrice } = persistedData;
   const [retracementLevels, setRetracementLevels] = useState(null);
   const [extensionLevels, setExtensionLevels] = useState(null);
 
-  useEffect(() => {
-    if (!isLoading) {
-      setTrend(persistedData.trend);
-      setHighPrice(persistedData.highPrice);
-      setLowPrice(persistedData.lowPrice);
-    }
-  }, [persistedData, isLoading]);
-
-  useEffect(() => {
-    setPersistedData({ trend, highPrice, lowPrice });
-  }, [trend, highPrice, lowPrice]);
+  const setTrend     = (v) => setPersistedData(prev => ({ ...prev, trend: v }));
+  const setHighPrice = (v) => setPersistedData(prev => ({ ...prev, highPrice: v }));
+  const setLowPrice  = (v) => setPersistedData(prev => ({ ...prev, lowPrice: v }));
 
   const calculateRetracement = () => {
     const high = parseFloat(highPrice);

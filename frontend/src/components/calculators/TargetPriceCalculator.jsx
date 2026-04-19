@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Target, Save, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,28 +17,18 @@ export const TargetPriceCalculator = () => {
   const { saveCalculation } = useCalculatorStore();
   const { t } = useTranslation();
   
-  const [persistedData, setPersistedData, clearPersistedData, isLoading] = usePersistedState('target_price_calculator', {
+  const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('target_price_calculator', {
     symbol: 'bitcoin',
     currentPrice: 95000,
     percentage: ''
   });
-  
-  const [symbol, setSymbol] = useState(persistedData.symbol);
-  const [currentPrice, setCurrentPrice] = useState(persistedData.currentPrice);
-  const [percentage, setPercentage] = useState(persistedData.percentage);
+
+  const { symbol, currentPrice, percentage } = persistedData;
   const [result, setResult] = useState(null);
 
-  useEffect(() => {
-    if (!isLoading) {
-      setSymbol(persistedData.symbol);
-      setCurrentPrice(persistedData.currentPrice);
-      setPercentage(persistedData.percentage);
-    }
-  }, [persistedData, isLoading]);
-
-  useEffect(() => {
-    setPersistedData({ symbol, currentPrice, percentage });
-  }, [symbol, currentPrice, percentage, setPersistedData]);
+  const setSymbol       = (v) => setPersistedData(prev => ({ ...prev, symbol: v }));
+  const setCurrentPrice = (v) => setPersistedData(prev => ({ ...prev, currentPrice: v }));
+  const setPercentage   = (v) => setPersistedData(prev => ({ ...prev, percentage: v }));
 
   const handleSymbolChange = (newSymbol) => {
     setSymbol(newSymbol);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,32 +24,21 @@ const FOREX_PAIRS = [
 
 export function LotSizeCalculator() {
   const { saveCalculation } = useCalculatorStore();
-  
-  const [persistedData, setPersistedData, clearPersistedData, isLoading] = usePersistedState('lot_size_calculator', {
+
+  const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('lot_size_calculator', {
     accountBalance: '10000',
     riskPercent: '1',
     stopLossPips: '50',
     selectedPair: 'EURUSD'
   });
-  
-  const [accountBalance, setAccountBalance] = useState(persistedData.accountBalance);
-  const [riskPercent, setRiskPercent] = useState(persistedData.riskPercent);
-  const [stopLossPips, setStopLossPips] = useState(persistedData.stopLossPips);
-  const [selectedPair, setSelectedPair] = useState(persistedData.selectedPair);
+
+  const { accountBalance, riskPercent, stopLossPips, selectedPair } = persistedData;
   const [results, setResults] = useState(null);
 
-  useEffect(() => {
-    if (!isLoading) {
-      setAccountBalance(persistedData.accountBalance);
-      setRiskPercent(persistedData.riskPercent);
-      setStopLossPips(persistedData.stopLossPips);
-      setSelectedPair(persistedData.selectedPair);
-    }
-  }, [persistedData, isLoading]);
-
-  useEffect(() => {
-    setPersistedData({ accountBalance, riskPercent, stopLossPips, selectedPair });
-  }, [accountBalance, riskPercent, stopLossPips, selectedPair]);
+  const setAccountBalance = (v) => setPersistedData(prev => ({ ...prev, accountBalance: v }));
+  const setRiskPercent    = (v) => setPersistedData(prev => ({ ...prev, riskPercent: v }));
+  const setStopLossPips   = (v) => setPersistedData(prev => ({ ...prev, stopLossPips: v }));
+  const setSelectedPair   = (v) => setPersistedData(prev => ({ ...prev, selectedPair: v }));
 
   const calculate = () => {
     const balance = parseFloat(accountBalance);

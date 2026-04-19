@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Hexagon, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { usePersistedState } from '@/hooks/usePersistedState';
 export const PatternTradingCalculator = () => {
   const { t } = useTranslation();
   
-  const [persistedData, setPersistedData, clearPersistedData, isLoading] = usePersistedState('pattern_trading_calculator', {
+  const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('pattern_trading_calculator', {
     accountBalance: 1000,
     leverage: 10,
     direction: 'long',
@@ -24,49 +24,23 @@ export const PatternTradingCalculator = () => {
     slPriceFixed: 94000,
     riskPercent: 2
   });
-  
-  const [accountBalance, setAccountBalance] = useState(persistedData.accountBalance);
-  const [leverage, setLeverage] = useState(persistedData.leverage);
-  const [direction, setDirection] = useState(persistedData.direction);
-  const [activationPrice, setActivationPrice] = useState(persistedData.activationPrice);
-  const [breakoutPrice, setBreakoutPrice] = useState(persistedData.breakoutPrice);
-  const [targetPercent, setTargetPercent] = useState(persistedData.targetPercent);
-  const [slMode, setSlMode] = useState(persistedData.slMode);
-  const [maxLoss, setMaxLoss] = useState(persistedData.maxLoss);
-  const [slPriceFixed, setSlPriceFixed] = useState(persistedData.slPriceFixed);
-  const [riskPercent, setRiskPercent] = useState(persistedData.riskPercent);
-  
+
+  const {
+    accountBalance, leverage, direction, activationPrice, breakoutPrice,
+    targetPercent, slMode, maxLoss, slPriceFixed, riskPercent,
+  } = persistedData;
   const [result, setResult] = useState(null);
 
-  useEffect(() => {
-    if (!isLoading) {
-      setAccountBalance(persistedData.accountBalance);
-      setLeverage(persistedData.leverage);
-      setDirection(persistedData.direction);
-      setActivationPrice(persistedData.activationPrice);
-      setBreakoutPrice(persistedData.breakoutPrice);
-      setTargetPercent(persistedData.targetPercent);
-      setSlMode(persistedData.slMode);
-      setMaxLoss(persistedData.maxLoss);
-      setSlPriceFixed(persistedData.slPriceFixed);
-      setRiskPercent(persistedData.riskPercent);
-    }
-  }, [persistedData, isLoading]);
-
-  useEffect(() => {
-    setPersistedData({
-      accountBalance,
-      leverage,
-      direction,
-      activationPrice,
-      breakoutPrice,
-      targetPercent,
-      slMode,
-      maxLoss,
-      slPriceFixed,
-      riskPercent
-    });
-  }, [accountBalance, leverage, direction, activationPrice, breakoutPrice, targetPercent, slMode, maxLoss, slPriceFixed, riskPercent]);
+  const setAccountBalance  = (v) => setPersistedData(prev => ({ ...prev, accountBalance: v }));
+  const setLeverage        = (v) => setPersistedData(prev => ({ ...prev, leverage: v }));
+  const setDirection       = (v) => setPersistedData(prev => ({ ...prev, direction: v }));
+  const setActivationPrice = (v) => setPersistedData(prev => ({ ...prev, activationPrice: v }));
+  const setBreakoutPrice   = (v) => setPersistedData(prev => ({ ...prev, breakoutPrice: v }));
+  const setTargetPercent   = (v) => setPersistedData(prev => ({ ...prev, targetPercent: v }));
+  const setSlMode          = (v) => setPersistedData(prev => ({ ...prev, slMode: v }));
+  const setMaxLoss         = (v) => setPersistedData(prev => ({ ...prev, maxLoss: v }));
+  const setSlPriceFixed    = (v) => setPersistedData(prev => ({ ...prev, slPriceFixed: v }));
+  const setRiskPercent     = (v) => setPersistedData(prev => ({ ...prev, riskPercent: v }));
 
   const calculate = () => {
     const balance = parseFloat(accountBalance);

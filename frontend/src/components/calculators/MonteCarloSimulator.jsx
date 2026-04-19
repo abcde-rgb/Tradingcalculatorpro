@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +20,7 @@ export function MonteCarloSimulator() {
   const [isLoadingState, setIsLoadingState] = useState(false);
   const [results, setResults] = useState(null);
   
-  const [persistedData, setPersistedData, clearPersistedData, isLoading] = usePersistedState('montecarlo_simulator', {
+  const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('montecarlo_simulator', {
     winRate: 55,
     avgWin: '100',
     avgLoss: '-50',
@@ -28,28 +28,15 @@ export function MonteCarloSimulator() {
     numTrades: 100,
     numSimulations: 1000
   });
-  
-  const [winRate, setWinRate] = useState(persistedData.winRate);
-  const [avgWin, setAvgWin] = useState(persistedData.avgWin);
-  const [avgLoss, setAvgLoss] = useState(persistedData.avgLoss);
-  const [initialCapital, setInitialCapital] = useState(persistedData.initialCapital);
-  const [numTrades, setNumTrades] = useState(persistedData.numTrades);
-  const [numSimulations, setNumSimulations] = useState(persistedData.numSimulations);
 
-  useEffect(() => {
-    if (!isLoading) {
-      setWinRate(persistedData.winRate);
-      setAvgWin(persistedData.avgWin);
-      setAvgLoss(persistedData.avgLoss);
-      setInitialCapital(persistedData.initialCapital);
-      setNumTrades(persistedData.numTrades);
-      setNumSimulations(persistedData.numSimulations);
-    }
-  }, [persistedData, isLoading]);
+  const { winRate, avgWin, avgLoss, initialCapital, numTrades, numSimulations } = persistedData;
 
-  useEffect(() => {
-    setPersistedData({ winRate, avgWin, avgLoss, initialCapital, numTrades, numSimulations });
-  }, [winRate, avgWin, avgLoss, initialCapital, numTrades, numSimulations]);
+  const setWinRate        = (v) => setPersistedData(prev => ({ ...prev, winRate: Array.isArray(v) ? v[0] : v }));
+  const setAvgWin         = (v) => setPersistedData(prev => ({ ...prev, avgWin: v }));
+  const setAvgLoss        = (v) => setPersistedData(prev => ({ ...prev, avgLoss: v }));
+  const setInitialCapital = (v) => setPersistedData(prev => ({ ...prev, initialCapital: v }));
+  const setNumTrades      = (v) => setPersistedData(prev => ({ ...prev, numTrades: Array.isArray(v) ? v[0] : v }));
+  const setNumSimulations = (v) => setPersistedData(prev => ({ ...prev, numSimulations: Array.isArray(v) ? v[0] : v }));
 
   const runSimulation = async () => {
     if (!isPremium) return;
