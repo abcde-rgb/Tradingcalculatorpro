@@ -37,8 +37,8 @@ const GuideModal = ({ isOpen, onClose }) => {
               key={item.t}
               className="bg-muted rounded-lg border border-border p-4 hover:border-border transition-colors"
             >
-              <h4 className="text-sm font-bold text-primary mb-1.5">{item.t}</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">{item.d}</p>
+              <h4 className="text-sm font-bold text-primary mb-1.5">{t(item.t)}</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">{t(item.d)}</p>
             </div>
           ))}
         </div>
@@ -49,7 +49,7 @@ const GuideModal = ({ isOpen, onClose }) => {
             onClick={onClose}
             className="w-full py-2.5 bg-primary/15 border border-primary/40 text-primary rounded-lg text-sm font-semibold hover:bg-primary/25 transition-colors"
           >
-            ENTENDIDO
+            {t('entendido_c32b2b')}
           </button>
         </div>
       </div>

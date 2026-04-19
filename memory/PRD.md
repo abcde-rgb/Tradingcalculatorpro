@@ -63,6 +63,15 @@
 ### Feb 2026 — Options strategy data i18n ✅ (mockData.js)
 
 ### Feb 2026 — ExplainTrade + AITradeCoach + chart labels ✅
+
+### Feb 2026 — Subtabs Options (Optimizar/Flow/IV Surface/Academia) ✅
+- **Optimizar (OptimizeView.jsx)**: SENTIMIENTO, PRESUPUESTO, Muy Bajista/Bajista/Neutral/Alcista/Muy Alcista, Max Retorno/Max Probabilidad, OPTIMIZAR AHORA, Top {n} estrategias, Profit máx, Capital, Abrir en Calculator, mensaje vacío — todos con `t()`.
+- **Flow (UnusualActivity.jsx)**: Refrescar, descripción "Strikes con volumen...", filtros Todos/Calls/Puts, tabla headers (Tipo, Prima, Vencimiento) — todos con `t()`.
+- **IV Surface (IVSurfaceView.jsx + IVRankBadge.jsx)**: `vencimientos`, `Promedio` tab, `Volatilidad:` label, tooltip del badge (`IV actual/Rango 52w/Percentil`) — todos con `t()`.
+- **Academia (EducationTab.jsx + GuideModal.jsx)**: subtítulo "De cero a profesional...", `Referencia de Estrategias`, `Estrategia/Bias` headers, `ABRIR SIMULADOR`, `ENTENDIDO`, BIAS_STYLES `VOLÁTIL` → labelKey pattern.
+- **EDU_MODULES (5 módulos) + GUIDE_ITEMS (6 items) en mockData.js** — 57 strings únicos (titles/content/items/t/d) convertidos a keys. **mockData.js: 57 field values reemplazados**. EducationTab y GuideModal ahora wrap `t(mod.title)`, `t(mod.content)`, `t(item)`, `t(item.t)`, `t(item.d)`.
+- **Traducciones LLM**: 30 keys del subtab UI (sub_translations) + 57 keys del Academia (edu_translations) — **en/de/fr** completos; **ru/zh/ja/ar** con fallback español por budget exceeded $2.01 → pendiente de recarga.
+- Verificado visual: Academia en alemán renderiza los 5 módulos expandidos con todo el contenido técnico en alemán nativo (Grundlagen: Optionen kaufen vs. verkaufen, Die Griechen, Moneyness: ITM/ATM/OTM (erklärt), Implizite Volatilität (IV), So liest man das Payoff-Diagramm).
 - **25 template strings** (con placeholders `{symbol}`, `{be}`, `{amount}`, `{strike}`, `{iv}`, `{n}`, `{analyzeBold}`, `{berange}`) traducidos a 8 idiomas vía Claude 4.5.
 - **`ExplainTrade.jsx`**: 12 narrative bullets ahora usan `t(key)` con `fmt()` helper para interpolar placeholders. Ejemplos visibles en alemán: "BULLISCHE Ausrichtung: Du gewinnst, wenn AAPL steigt", "NEGATIVES Theta: Du zahlst Prämie, die täglich verfällt", "MAXIMALER Verlust definiert: $716", etc.
 - **`AITradeCoach.jsx`**: intro con bold inline usando split de `{analyzeBold}`, botón "Analizar/Analizando.../Re-analizar", disclaimer "Análisis generado por IA..." — todo i18n.

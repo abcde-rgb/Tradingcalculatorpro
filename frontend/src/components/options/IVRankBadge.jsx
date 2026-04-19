@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Flame, Snowflake, Minus } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -8,6 +9,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
  * Color-coded: green (high → sell premium), red (low → buy premium), yellow (neutral).
  */
 const IVRankBadge = ({ symbol }) => {
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +48,7 @@ const IVRankBadge = ({ symbol }) => {
   return (
     <div
       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold ${palette}`}
-      title={`${data.recommendationLabel} · ${data.recommendationReason}\nIV actual: ${(data.ivCurrent * 100).toFixed(1)}%\nRango 52w: ${(data.ivLow52w * 100).toFixed(1)}% → ${(data.ivHigh52w * 100).toFixed(1)}%\nPercentil: ${data.ivPercentile}%`}
+      title={`${data.recommendationLabel} · ${data.recommendationReason}\n${t('ivCurrent_iv004')}: ${(data.ivCurrent * 100).toFixed(1)}%\n${t('range52w_iv005')}: ${(data.ivLow52w * 100).toFixed(1)}% → ${(data.ivHigh52w * 100).toFixed(1)}%\n${t('percentile_iv006')}: ${data.ivPercentile}%`}
       data-testid="iv-rank-badge"
     >
       <Icon className="w-3 h-3" />

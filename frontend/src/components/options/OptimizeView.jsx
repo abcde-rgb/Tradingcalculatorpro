@@ -6,11 +6,11 @@ import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } fro
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const SENTIMENTS = [
-  { id: 'very_bearish', label: 'Muy Bajista', icon: '↓↓', color: 'text-[#ef4444]', bg: 'bg-[#ef4444]/15 border-[#ef4444]/40' },
-  { id: 'bearish',      label: 'Bajista',     icon: '↓',  color: 'text-[#f87171]', bg: 'bg-[#f87171]/15 border-[#f87171]/40' },
-  { id: 'neutral',      label: 'Neutral',     icon: '→',  color: 'text-[#eab308]', bg: 'bg-[#eab308]/15 border-[#eab308]/40' },
-  { id: 'bullish',      label: 'Alcista',     icon: '↑',  color: 'text-[#4ade80]', bg: 'bg-[#4ade80]/15 border-[#4ade80]/40' },
-  { id: 'very_bullish', label: 'Muy Alcista', icon: '↑↑', color: 'text-[#22c55e]', bg: 'bg-[#22c55e]/15 border-[#22c55e]/40' },
+  { id: 'very_bearish', labelKey: 'sentVeryBearish_6aa1', icon: '↓↓', color: 'text-[#ef4444]', bg: 'bg-[#ef4444]/15 border-[#ef4444]/40' },
+  { id: 'bearish',      labelKey: 'sentBearish_6aa2',     icon: '↓',  color: 'text-[#f87171]', bg: 'bg-[#f87171]/15 border-[#f87171]/40' },
+  { id: 'neutral',      labelKey: 'sentNeutral_6aa3',     icon: '→',  color: 'text-[#eab308]', bg: 'bg-[#eab308]/15 border-[#eab308]/40' },
+  { id: 'bullish',      labelKey: 'sentBullish_6aa4',     icon: '↑',  color: 'text-[#4ade80]', bg: 'bg-[#4ade80]/15 border-[#4ade80]/40' },
+  { id: 'very_bullish', labelKey: 'sentVeryBullish_6aa5', icon: '↑↑', color: 'text-[#22c55e]', bg: 'bg-[#22c55e]/15 border-[#22c55e]/40' },
 ];
 
 const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
@@ -76,7 +76,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Sentiment */}
           <div>
-            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">Sentimiento</label>
+            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">{t('sentimiento_op001')}</label>
             <div className="grid grid-cols-5 gap-1.5">
               {SENTIMENTS.map((s) => (
                 <button
@@ -88,7 +88,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
                   data-testid={`sentiment-${s.id}`}
                 >
                   <div className="text-base leading-none mb-0.5">{s.icon}</div>
-                  <div className="text-[9px] leading-tight">{s.label}</div>
+                  <div className="text-[9px] leading-tight">{t(s.labelKey)}</div>
                 </button>
               ))}
             </div>
@@ -114,7 +114,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">Presupuesto</label>
+              <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">{t('presupuesto_op002')}</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none font-mono">$</span>
                 <input
@@ -154,7 +154,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
                 data-testid="mode-max-return"
               >
                 <Zap className="w-3.5 h-3.5" />
-                Max Retorno
+                {t('maxReturn_op003')}
               </button>
               <button
                 onClick={() => setMode('max_chance')}
@@ -164,7 +164,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
                 data-testid="mode-max-chance"
               >
                 <Shield className="w-3.5 h-3.5" />
-                Max Probabilidad
+                {t('maxProbability_op004')}
               </button>
             </div>
           </div>
@@ -176,7 +176,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
           className="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-primary to-[#4ade80] text-black font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           data-testid="optimize-run"
         >
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('analizandoMercado_334c80')}</> : <><Target className="w-4 h-4" /> OPTIMIZAR AHORA</>}
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('analizandoMercado_334c80')}</> : <><Target className="w-4 h-4" /> {t('optimizeNow_op005')}</>}
         </button>
       </div>
 
@@ -189,7 +189,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-foreground">
-              Top {results.results.length} estrategias para tu tesis
+              {t('topStrategiesForThesis_op006').replace('{n}', results.results.length)}
             </h3>
             <div className="text-[11px] text-muted-foreground">
               ${results.stock.price} → ${results.target.price} · {results.expiration?.fullLabel}
@@ -210,7 +210,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
 
       {results && results.results && results.results.length === 0 && (
         <div className="bg-muted/40 border border-border rounded-lg p-6 text-center text-sm text-muted-foreground">
-          No hay estrategias que cumplan tu tesis con el presupuesto indicado. Prueba ampliar el presupuesto o cambiar el precio objetivo.
+          {t('noStrategiesFound_op007')}
         </div>
       )}
     </div>
@@ -218,6 +218,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
 };
 
 const StrategyCard = ({ rank, result, onOpen }) => {
+  const { t } = useTranslation();
   const points = (result.payoffPoints || []).map((p) => ({
     price: p.price,
     pnl: p.pnlAtExpiry,
@@ -234,7 +235,7 @@ const StrategyCard = ({ rank, result, onOpen }) => {
           }`}>
             {rank === 1 ? <Trophy className="w-3.5 h-3.5" /> : `#${rank}`}
           </div>
-          <h4 className="text-sm font-bold text-foreground truncate">{result.name}</h4>
+          <h4 className="text-sm font-bold text-foreground truncate">{t(result.name)}</h4>
         </div>
       </div>
 
@@ -278,8 +279,8 @@ const StrategyCard = ({ rank, result, onOpen }) => {
       <div className="grid grid-cols-2 gap-1.5 mb-3">
         <Metric icon={Zap} label="ROI" value={`${result.roi}%`} color="text-[#fbbf24]" />
         <Metric icon={Percent} label="POP" value={`${result.pop}%`} color="text-primary" />
-        <Metric icon={TrendingUp} label="Profit max" value={result.maxProfitUnlimited ? '∞' : `$${result.maxProfit}`} color="text-[#4ade80]" />
-        <Metric icon={Wallet} label="Capital" value={`$${result.capitalRequired}`} color="text-[#a78bfa]" />
+        <Metric icon={TrendingUp} label={t('profitMax_op008')} value={result.maxProfitUnlimited ? '∞' : `$${result.maxProfit}`} color="text-[#4ade80]" />
+        <Metric icon={Wallet} label={t('capital_op009')} value={`$${result.capitalRequired}`} color="text-[#a78bfa]" />
       </div>
 
       <button
@@ -287,7 +288,7 @@ const StrategyCard = ({ rank, result, onOpen }) => {
         className="w-full py-2 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/20 transition-all flex items-center justify-center gap-1.5"
         data-testid={`open-${result.strategyId}`}
       >
-        Abrir en Calculator <ArrowRight className="w-3 h-3" />
+        {t('openInCalculator_op010')} <ArrowRight className="w-3 h-3" />
       </button>
     </div>
   );

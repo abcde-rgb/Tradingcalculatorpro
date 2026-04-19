@@ -100,7 +100,7 @@ const IVSurfaceView = ({ stock, chain }) => {
           <div>
             <h2 className="text-base font-bold text-foreground">{t('superficieDeVolatilidadImplicita_e82796')}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {stock.symbol} @ ${stock.price} · {surfaceData.expirations.length} vencimientos
+              {stock.symbol} @ ${stock.price} · {surfaceData.expirations.length} {t('expirations_iv002')}
             </p>
           </div>
         </div>
@@ -125,7 +125,7 @@ const IVSurfaceView = ({ stock, chain }) => {
                 : 'bg-muted text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
-            Promedio
+            {t('promedio_iv001')}
           </button>
           <button
             onClick={() => setViewMode('puts')}
@@ -142,7 +142,7 @@ const IVSurfaceView = ({ stock, chain }) => {
 
       {/* Legend */}
       <div className="px-6 py-3 bg-card border-b border-border flex items-center gap-4">
-        <span className="text-xs text-muted-foreground font-medium">Volatilidad:</span>
+        <span className="text-xs text-muted-foreground font-medium">{t('volatility_iv003')}:</span>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
             <div className="w-12 h-3 rounded" style={{ background: 'linear-gradient(to right, rgb(59, 130, 246), rgb(59, 185, 80), rgb(234, 179, 8), rgb(239, 68, 68))' }} />
@@ -236,7 +236,7 @@ const IVSurfaceView = ({ stock, chain }) => {
                                   <span className="text-[#8b5cf6] font-mono">{(strikeData.put_iv * 100).toFixed(2)}%</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-4 pt-1 border-t border-border">
-                                  <span className="text-muted-foreground">Promedio:</span>
+                                  <span className="text-muted-foreground">{t('promedio_iv001')}:</span>
                                   <span className="text-foreground font-mono font-bold">{(strikeData.avg_iv * 100).toFixed(2)}%</span>
                                 </div>
                               </div>

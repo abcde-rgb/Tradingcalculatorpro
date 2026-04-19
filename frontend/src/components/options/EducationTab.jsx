@@ -7,7 +7,7 @@ const BIAS_STYLES = {
   Bullish: { color: '#22c55e', bg: 'rgba(34,197,94,0.08)', labelKey: 'alcista_8e20d3', label: 'ALCISTA' },
   Bearish: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', labelKey: 'bajista_ab69a0', label: 'BAJISTA' },
   Neutral: { color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', labelKey: 'neutral_9e8b6e', label: 'NEUTRAL' },
-  Volatile: { color: '#eab308', bg: 'rgba(234,179,8,0.08)', labelKey: 'volTil_9eeb74', label: 'VOLÁTIL' },
+  Volatile: { color: '#eab308', bg: 'rgba(234,179,8,0.08)', labelKey: 'volTil_9eeb74' },
 };
 
 const EducationTab = ({ onSwitchToCalc }) => {
@@ -24,7 +24,7 @@ const EducationTab = ({ onSwitchToCalc }) => {
             <h1 className="text-2xl font-bold text-foreground">{t('academiaDeOpciones_930f18')}</h1>
           </div>
           <p className="text-muted-foreground text-sm max-w-2xl">
-            De cero a profesional. Domina los derivados financieros con la profundidad que los brokers no te enseñan.
+            {t('deCeroAProfesional_c32b2c')}
           </p>
         </div>
 
@@ -48,8 +48,8 @@ const EducationTab = ({ onSwitchToCalc }) => {
                   {mod.icon}
                 </span>
                 <div className="flex-1">
-                  <h3 className="text-sm font-bold text-foreground">{mod.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{mod.content}</p>
+                  <h3 className="text-sm font-bold text-foreground">{t(mod.title)}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{t(mod.content)}</p>
                 </div>
                 <ChevronRight
                   className={`w-4 h-4 text-muted-foreground transition-transform ${
@@ -59,7 +59,7 @@ const EducationTab = ({ onSwitchToCalc }) => {
               </button>
               {expandedModule === mod.title && (
                 <div className="px-5 pb-5">
-                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{mod.content}</p>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{t(mod.content)}</p>
                   <div className="space-y-2">
                     {mod.items.map((item) => (
                       <div
@@ -67,7 +67,7 @@ const EducationTab = ({ onSwitchToCalc }) => {
                         className="flex items-start gap-2.5 text-xs bg-muted rounded-lg px-4 py-3 border border-border"
                       >
                         <Zap className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: mod.color }} />
-                        <span className="text-foreground leading-relaxed">{item}</span>
+                        <span className="text-foreground leading-relaxed">{t(item)}</span>
                       </div>
                     ))}
                   </div>
@@ -80,13 +80,13 @@ const EducationTab = ({ onSwitchToCalc }) => {
         {/* Strategy Reference Table */}
         <div className="mb-10">
           <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-            <span className="text-primary">◆</span> Referencia de Estrategias
+            <span className="text-primary">◆</span> {t('referenciaDeEstrategias_ed001')}
           </h2>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-muted">
-                  {['Estrategia', 'Bias', t('maxProfit_cd2e46'), t('maxLoss_11dd51'), t('cuandoUsar_299994')].map((h) => (
+                  {[t('estrategia_ed002'), t('bias_ed003'), t('maxProfit_cd2e46'), t('maxLoss_11dd51'), t('cuandoUsar_299994')].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-muted-foreground font-semibold uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -120,13 +120,13 @@ const EducationTab = ({ onSwitchToCalc }) => {
         <div className="bg-gradient-to-r from-muted to-card rounded-xl border border-border p-6 text-center">
           <h3 className="text-lg font-bold text-foreground mb-2">{t('listoParaOperar_98196f')}</h3>
           <p className="text-sm text-muted-foreground mb-4 max-w-lg mx-auto">
-            Abre el simulador y prueba cómo el paso del tiempo (Theta) o un spike de volatilidad (Vega) afectan tu posición antes de arriesgar capital real.
+            {t('simuladorDesc_ed004')}
           </p>
           <button
             onClick={onSwitchToCalc}
             className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary/15 border border-primary/40 text-primary rounded-lg text-sm font-semibold hover:bg-primary/25 transition-colors"
           >
-            ABRIR SIMULADOR <ArrowRight className="w-4 h-4" />
+            {t('abrirSimulador_ed005')} <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>

@@ -55,11 +55,11 @@ const UnusualActivity = ({ symbol }) => {
             data-testid="refresh-unusual"
           >
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            Refrescar
+            {t('refresh_ua003')}
           </button>
         </div>
         <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
-          Strikes con volumen actual &gt;&gt; open interest — señal clásica de flujo institucional o unusual activity. Scanea las 5 expiraciones más cercanas.
+          {t('unusualActivityDesc_ua004')}
         </p>
 
         {/* Filters */}
@@ -80,10 +80,10 @@ const UnusualActivity = ({ symbol }) => {
           </div>
           <div className="flex items-center gap-1">
             {[
-              { id: 'all', label: 'Todos' },
-              { id: 'calls', label: 'Calls' },
-              { id: 'puts', label: 'Puts' },
-            ].map(({ id, label }) => (
+              { id: 'all', labelKey: 'filterAll_ua005' },
+              { id: 'calls', labelKey: 'filterCalls_ua006' },
+              { id: 'puts', labelKey: 'filterPuts_ua007' },
+            ].map(({ id, labelKey }) => (
               <button
                 key={id}
                 onClick={() => setFilter(id)}
@@ -91,7 +91,7 @@ const UnusualActivity = ({ symbol }) => {
                   filter === id ? 'bg-muted border-foreground/30 text-foreground' : 'bg-background border-border/50 text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </div>
