@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { Loader2, Target, TrendingUp, Shield, Zap, Trophy, Percent, DollarSign, Wallet, ArrowRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
 
@@ -13,6 +14,7 @@ const SENTIMENTS = [
 ];
 
 const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
+  const { t } = useTranslation();
   const [sentiment, setSentiment] = useState('bullish');
   const [targetPrice, setTargetPrice] = useState('');
   const [budget, setBudget] = useState(1500);
@@ -67,8 +69,8 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
       <div className="bg-card border border-border rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <Target className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-bold text-foreground">Optimizar Estrategia</h2>
-          <span className="text-xs text-muted-foreground ml-2">Describe tu tesis y te recomendamos las mejores estrategias</span>
+          <h2 className="text-lg font-bold text-foreground">{t('optimizarEstrategia_830ea3')}</h2>
+          <span className="text-xs text-muted-foreground ml-2">{t('describeTuTesisYTe_cc284a')}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -95,7 +97,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
           {/* Target Price + Budget */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">Precio objetivo</label>
+              <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">{t('precioObjetivo_beefc6')}</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none font-mono">$</span>
                 <input
@@ -127,7 +129,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
 
           {/* Expiration */}
           <div>
-            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">Vencimiento objetivo</label>
+            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">{t('vencimientoObjetivo_0277d0')}</label>
             <select
               value={expirationIdx}
               onChange={(e) => setExpirationIdx(Number(e.target.value))}
@@ -142,7 +144,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
 
           {/* Mode */}
           <div>
-            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">Optimizar por</label>
+            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2 block">{t('optimizarPor_f196ea')}</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setMode('max_return')}
@@ -174,7 +176,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
           className="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-primary to-[#4ade80] text-black font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           data-testid="optimize-run"
         >
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Analizando mercado...</> : <><Target className="w-4 h-4" /> OPTIMIZAR AHORA</>}
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('analizandoMercado_334c80')}</> : <><Target className="w-4 h-4" /> OPTIMIZAR AHORA</>}
         </button>
       </div>
 

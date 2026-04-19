@@ -228,7 +228,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
             <div className="flex items-center justify-between px-3 pb-2 text-[9px] text-[#3a4f6e]">
               <span>IV: {(leg.iv * 100).toFixed(1)}%</span>
               <span>
-                {leg.action === 'buy' ? 'Débito' : 'Crédito'}: ${(leg.premium * leg.quantity * 100).toFixed(0)}
+                {leg.action === 'buy' ? t('debito_33f877') : t('credito_93e87a')}: ${(leg.premium * leg.quantity * 100).toFixed(0)}
               </span>
             </div>
           </div>
@@ -237,7 +237,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
         {legs.length === 0 && (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground mb-1">{t('optLegsEmpty')}</p>
-            <p className="text-[10px] text-[#3a4f6e]">Añade calls o puts para construir tu estrategia</p>
+            <p className="text-[10px] text-[#3a4f6e]">{t('anadeCallsOPutsPara_423bc0')}</p>
           </div>
         )}
       </div>
@@ -275,7 +275,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
         {legs.length > 0 && (
           <div className="bg-background rounded-lg border border-border p-2.5 flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-              {netPremium >= 0 ? 'Crédito Neto' : 'Débito Neto'}
+              {netPremium >= 0 ? t('creditoNeto_a96b7e') : t('debitoNeto_39b7f9')}
             </span>
             <span className={`text-sm font-bold font-mono ${netPremium >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
               {netPremium >= 0 ? '+' : ''}${netPremium.toFixed(0)}

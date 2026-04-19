@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { Search, Clock, TrendingUp, Star, ArrowUpRight, ArrowDownRight, X, Flame } from 'lucide-react';
 import { fetchStock, searchTickersAPI } from '../../services/optionsApi';
 
@@ -18,6 +19,7 @@ const highlightMatch = (text, query) => {
 };
 
 const SearchBar = ({ currentTicker, stockData, onSelect }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -287,8 +289,8 @@ const SearchBar = ({ currentTicker, stockData, onSelect }) => {
           {/* No results */}
           {showNoResults && (
             <div className="px-4 py-6 text-center">
-              <p className="text-sm text-muted-foreground">No se encontraron resultados para "<span className="text-muted-foreground">{query}</span>"</p>
-              <p className="text-xs text-[#3a4f6e] mt-1">Pulsa Enter para buscar de todos modos</p>
+              <p className="text-sm text-muted-foreground">{t('noSeEncontraronResultadosPara_035a76')}<span className="text-muted-foreground">{query}</span>"</p>
+              <p className="text-xs text-[#3a4f6e] mt-1">{t('pulsaEnterParaBuscarDe_12c630')}</p>
             </div>
           )}
 
@@ -297,7 +299,7 @@ const SearchBar = ({ currentTicker, stockData, onSelect }) => {
             <div className="px-3.5 py-2 border-t border-border flex items-center gap-3 text-[9px] text-[#3a4f6e]">
               <span><kbd className="px-1 py-0.5 bg-[#1a2238] rounded text-muted-foreground">↑↓</kbd> Navegar</span>
               <span><kbd className="px-1 py-0.5 bg-[#1a2238] rounded text-muted-foreground">Enter</kbd> Seleccionar</span>
-              <span><kbd className="px-1 py-0.5 bg-[#1a2238] rounded text-muted-foreground">Esc</kbd> Cerrar</span>
+              <span><kbd className="px-1 py-0.5 bg-[#1a2238] rounded text-muted-foreground">Esc</kbd> {t('cerrar_92eb39')}</span>
             </div>
           )}
         </div>

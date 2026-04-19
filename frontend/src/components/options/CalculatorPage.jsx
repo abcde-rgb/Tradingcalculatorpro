@@ -312,7 +312,7 @@ const CalculatorPage = () => {
               {stock.change >= 0 ? '+' : ''}{stock.change} ({stock.changePercent}%)
             </div>
             <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{stock.sector}</span>
-            <span className="relative flex h-2 w-2" title="Precio en vivo (refresco cada 15s)">
+            <span className="relative flex h-2 w-2" title={t('precioEnVivoRefrescoCada_73be80')}>
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>

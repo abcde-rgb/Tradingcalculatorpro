@@ -97,7 +97,7 @@ export const TargetPriceCalculator = () => {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Porcentaje de Movimiento (%)</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('porcentajeDeMovimiento_a3a404')}</Label>
               <Input
                 type="number"
                 value={percentage}

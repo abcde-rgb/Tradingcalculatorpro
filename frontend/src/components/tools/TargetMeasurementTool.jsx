@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { Ruler, TrendingUp, TrendingDown, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { formatNumber, formatCurrency } from '@/lib/utils';
 import { FIBONACCI_LEVELS } from '@/lib/constants';
 
 export const TargetMeasurementTool = () => {
+  const { t } = useTranslation();
   const [pointA, setPointA] = useState('');
   const [pointB, setPointB] = useState('');
   const [confirmationPoint, setConfirmationPoint] = useState('');
@@ -97,7 +99,7 @@ export const TargetMeasurementTool = () => {
                     type="number"
                     value={pointA}
                     onChange={(e) => setPointA(e.target.value)}
-                    placeholder="Precio inicio"
+                    placeholder={t('precioInicio_6ccc35')}
                     className="font-mono bg-black/50 border-white/10"
                     data-testid="point-a-input"
                   />
@@ -111,7 +113,7 @@ export const TargetMeasurementTool = () => {
                     type="number"
                     value={pointB}
                     onChange={(e) => setPointB(e.target.value)}
-                    placeholder="Precio fin"
+                    placeholder={t('precioFin_fca973')}
                     className="font-mono bg-black/50 border-white/10"
                     data-testid="point-b-input"
                   />
@@ -128,7 +130,7 @@ export const TargetMeasurementTool = () => {
                 type="number"
                 value={confirmationPoint}
                 onChange={(e) => setConfirmationPoint(e.target.value)}
-                placeholder="Precio de ruptura del patrón"
+                placeholder={t('precioDeRupturaDelPatron_666552')}
                 className="font-mono bg-black/50 border-white/10"
               />
             </div>
@@ -187,7 +189,7 @@ export const TargetMeasurementTool = () => {
                 
                 {/* Niveles Fibonacci */}
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Niveles de Fibonacci (Retrocesos)</p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">{t('nivelesDeFibonacciRetrocesos_a43a7b')}</p>
                   <div className="space-y-1">
                     {result.fibLevels.map((fib, idx) => (
                       <div key={`fib-${fib.label}-${idx}`} className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/10">

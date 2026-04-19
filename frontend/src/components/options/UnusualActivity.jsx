@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { Zap, RefreshCw, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -8,6 +9,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
  * Classic institutional flow indicator.
  */
 const UnusualActivity = ({ symbol }) => {
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [minRatio, setMinRatio] = useState(2);
@@ -63,7 +65,7 @@ const UnusualActivity = ({ symbol }) => {
         {/* Filters */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-muted-foreground uppercase font-semibold">Ratio mín:</span>
+            <span className="text-[10px] text-muted-foreground uppercase font-semibold">{t('ratioMin_e7f44a')}</span>
             {[1.5, 2, 3, 5, 10].map((r) => (
               <button
                 key={r}
@@ -120,7 +122,7 @@ const UnusualActivity = ({ symbol }) => {
           <p className="text-sm text-muted-foreground">
             No se detectó actividad inusual con ratio ≥ {minRatio}x en las próximas 5 expiraciones.
           </p>
-          <p className="text-[11px] text-muted-foreground/70 mt-1">Prueba bajar el ratio mínimo.</p>
+          <p className="text-[11px] text-muted-foreground/70 mt-1">{t('pruebaBajarElRatioMinimo_5339a2')}</p>
         </div>
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -130,7 +132,7 @@ const UnusualActivity = ({ symbol }) => {
                 <th className="px-3 py-2 text-left">Tipo</th>
                 <th className="px-3 py-2 text-right">Strike</th>
                 <th className="px-3 py-2 text-left">Vencimiento</th>
-                <th className="px-3 py-2 text-right">Volumen</th>
+                <th className="px-3 py-2 text-right">{t('volumen_186110')}</th>
                 <th className="px-3 py-2 text-right">OI</th>
                 <th className="px-3 py-2 text-right">Vol/OI</th>
                 <th className="px-3 py-2 text-right">IV</th>

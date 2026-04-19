@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { TrendingUp, Info } from 'lucide-react';
 
 const IVSurfaceView = ({ stock, chain }) => {
+  const { t } = useTranslation();
   const [surfaceData, setSurfaceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('avg'); // 'avg', 'calls', 'puts'
@@ -76,7 +78,7 @@ const IVSurfaceView = ({ stock, chain }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground text-sm">Cargando superficie de IV...</div>
+        <div className="text-muted-foreground text-sm">{t('cargandoSuperficieDeIv_190f62')}</div>
       </div>
     );
   }
@@ -84,7 +86,7 @@ const IVSurfaceView = ({ stock, chain }) => {
   if (!surfaceData) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground text-sm">No hay datos de IV disponibles</div>
+        <div className="text-muted-foreground text-sm">{t('noHayDatosDeIv_dec029')}</div>
       </div>
     );
   }
@@ -96,7 +98,7 @@ const IVSurfaceView = ({ stock, chain }) => {
         <div className="flex items-center gap-3">
           <TrendingUp className="w-5 h-5 text-primary" />
           <div>
-            <h2 className="text-base font-bold text-foreground">Superficie de Volatilidad Implícita</h2>
+            <h2 className="text-base font-bold text-foreground">{t('superficieDeVolatilidadImplicita_e82796')}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               {stock.symbol} @ ${stock.price} · {surfaceData.expirations.length} vencimientos
             </p>
@@ -151,7 +153,7 @@ const IVSurfaceView = ({ stock, chain }) => {
         </div>
         <div className="flex items-center gap-1.5 ml-auto text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5" />
-          <span>Hover para ver valores exactos</span>
+          <span>{t('hoverParaVerValoresExactos_b8324c')}</span>
         </div>
       </div>
 
@@ -258,7 +260,7 @@ const IVSurfaceView = ({ stock, chain }) => {
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <p className="leading-relaxed">
-            <span className="font-bold text-foreground">Interpretación:</span> La volatilidad implícita (IV) refleja las expectativas del mercado 
+            <span className="font-bold text-foreground">{t('interpretacion_1cc069')}</span> La volatilidad implícita (IV) refleja las expectativas del mercado 
             sobre la futura volatilidad del activo. IV alta (rojo) indica mayor incertidumbre y primas más caras. 
             IV baja (azul) sugiere mercados tranquilos y opciones más baratas. El "skew" (asimetría) muestra diferencias 
             entre strikes ITM/ATM/OTM.

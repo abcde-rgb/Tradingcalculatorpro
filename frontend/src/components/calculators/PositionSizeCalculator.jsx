@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { Calculator, Save, AlertTriangle, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { formatNumber, formatCurrency } from '@/lib/utils';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
 export const PositionSizeCalculator = () => {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const { saveCalculation } = useCalculatorStore();
   
@@ -79,7 +81,7 @@ export const PositionSizeCalculator = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Balance de Cuenta ($)</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('balanceDeCuenta_89aff2')}</Label>
               <Input
                 type="number"
                 value={accountBalance}
@@ -91,7 +93,7 @@ export const PositionSizeCalculator = () => {
             
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Riesgo por Operación</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('riesgoPorOperacion_3d966d')}</Label>
                 <span className="font-mono text-lg font-bold text-blue-500">{riskPercent}%</span>
               </div>
               <Slider
@@ -104,14 +106,14 @@ export const PositionSizeCalculator = () => {
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>0.5%</span>
-                <span>2% (recomendado)</span>
+                <span>{t('_2Recomendado_867927')}</span>
                 <span>10%</span>
               </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Precio Entrada ($)</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('precioEntrada_caf850')}</Label>
                 <Input
                   type="number"
                   value={entryPrice}
@@ -139,7 +141,7 @@ export const PositionSizeCalculator = () => {
             {result && (
               <div className="space-y-4">
                 <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                  <p className="text-xs uppercase tracking-wider text-blue-500 mb-1">Tamaño de Posición Recomendado</p>
+                  <p className="text-xs uppercase tracking-wider text-blue-500 mb-1">{t('tamanoDePosicionRecomendado_7d9b61')}</p>
                   <p className="font-mono text-3xl font-bold text-blue-500">{formatCurrency(result.positionSize)}</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {formatNumber(result.positionInCoins, 6)} BTC
@@ -148,7 +150,7 @@ export const PositionSizeCalculator = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Riesgo en $</p>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{t('riesgoEn_24ce17')}</p>
                     <p className="font-mono text-xl font-bold text-destructive">{formatCurrency(result.riskAmount)}</p>
                   </div>
                   <div className="p-4 rounded-xl bg-muted/50 border border-border">
@@ -158,7 +160,7 @@ export const PositionSizeCalculator = () => {
                 </div>
                 
                 <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                  <p className="text-xs uppercase tracking-wider text-yellow-500 mb-1">Apalancamiento Necesario</p>
+                  <p className="text-xs uppercase tracking-wider text-yellow-500 mb-1">{t('apalancamientoNecesario_f6ca45')}</p>
                   <p className="font-mono text-xl font-bold text-yellow-500">{formatNumber(result.leverageNeeded, 1)}x</p>
                   {result.leverageNeeded > 20 && (
                     <div className="flex items-center gap-2 mt-2 text-xs text-yellow-500">
@@ -169,7 +171,7 @@ export const PositionSizeCalculator = () => {
                 </div>
                 
                 <div className="p-3 rounded-lg bg-accent/10 border border-accent/20 text-xs">
-                  <p className="text-accent font-semibold">Gestión de Riesgo:</p>
+                  <p className="text-accent font-semibold">{t('gestionDeRiesgo_bee33b')}</p>
                   <p className="text-muted-foreground mt-1">
                     Con un riesgo del {riskPercent}%, si tu SL se activa perderás {formatCurrency(result.riskAmount)} 
                     ({riskPercent}% de tu cuenta). Esto te permite sobrevivir a {Math.floor(100 / riskPercent)} pérdidas consecutivas.

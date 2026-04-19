@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { Globe, Loader2, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -8,6 +9,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
  * Shows top 30 ranked by notional (trade size).
  */
 const MarketFlow = ({ onSelectSymbol }) => {
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [minRatio, setMinRatio] = useState(3);
@@ -53,7 +55,7 @@ const MarketFlow = ({ onSelectSymbol }) => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#c084fc] text-xs font-bold hover:bg-[#a855f7]/25 disabled:opacity-40"
             data-testid="market-scan-btn"
           >
-            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Escaneando mercado...</> : <><Globe className="w-3.5 h-3.5" /> Escanear mercado</>}
+            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('escaneandoMercado_ba90ca')}</> : <><Globe className="w-3.5 h-3.5" /> {t('escanearMercado_d2e533')}</>}
           </button>
         </div>
       </div>
@@ -80,7 +82,7 @@ const MarketFlow = ({ onSelectSymbol }) => {
         <>
           <div className="flex items-center gap-4 mb-2 text-[11px]">
             <span className="text-muted-foreground">Tickers escaneados: <span className="text-foreground font-bold">{data.scannedTickers}</span></span>
-            <span className="text-muted-foreground">Señales detectadas: <span className="text-foreground font-bold">{data.totalFound}</span></span>
+            <span className="text-muted-foreground">{t('senalesDetectadas_d07517')} <span className="text-foreground font-bold">{data.totalFound}</span></span>
           </div>
           <div className="max-h-[380px] overflow-y-auto rounded-lg border border-border">
             <table className="w-full text-xs">

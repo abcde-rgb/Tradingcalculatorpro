@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { Calculator, AlertTriangle, TrendingUp, Shield, Zap } from 'lucide-react';
 
 /**
@@ -9,13 +10,14 @@ import { Calculator, AlertTriangle, TrendingUp, Shield, Zap } from 'lucide-react
  * Fractional Kelly (½, ¼) recommended due to estimation error.
  */
 const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxLossUnlimited, accountBalance, onBalanceChange }) => {
+  const { t } = useTranslation();
   const kelly = useMemo(() => {
     const p = Math.max(0, Math.min(1, (pop || 0) / 100));
     const mp = Number(maxProfit);
     const ml = Number(maxLoss);
 
     if (!Number.isFinite(mp) || !Number.isFinite(ml) || ml >= 0 || isMaxLossUnlimited) {
-      return { status: 'invalid', reason: isMaxLossUnlimited ? 'Riesgo ilimitado' : 'Sin pérdida definida', fullPct: 0 };
+      return { status: 'invalid', reason: isMaxLossUnlimited ? 'Riesgo ilimitado' : t('sinPerdidaDefinida_89d5d7'), fullPct: 0 };
     }
     if (p <= 0 || p >= 1) {
       return { status: 'invalid', reason: 'POP no disponible', fullPct: 0 };
@@ -25,7 +27,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxLossUnli
     const fullF = p - (1 - p) / R;
 
     if (fullF <= 0) {
-      return { status: 'negative', reason: 'Sin edge estadístico (evitar trade)', fullPct: fullF * 100 };
+      return { status: 'negative', reason: t('sinEdgeEstadisticoEvitarTrade_c81cb1'), fullPct: fullF * 100 };
     }
 
     return {
@@ -56,7 +58,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxLossUnli
           target="_blank"
           rel="noopener noreferrer"
           className="text-[9px] text-muted-foreground hover:text-primary transition-colors"
-          title="Qué es Kelly Criterion"
+          title={t('queEsKellyCriterion_47552a')}
         >
           ¿qué es?
         </a>
@@ -64,7 +66,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxLossUnli
 
       {/* Account Balance Input */}
       <div className="mb-3">
-        <label className="text-[9px] text-muted-foreground/80 uppercase tracking-wider mb-1 block">Saldo de cuenta</label>
+        <label className="text-[9px] text-muted-foreground/80 uppercase tracking-wider mb-1 block">{t('saldoDeCuenta_5c8520')}</label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none font-mono">$</span>
           <input
@@ -118,7 +120,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxLossUnli
               pct={kelly.halfPct}
               contracts={suggestedContracts(kelly.halfPct)}
               color="text-primary"
-              subtitle="Recomendado"
+              subtitle={t('recomendado_32ab69')}
               tid="kelly-half"
               highlighted
             />

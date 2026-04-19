@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { useNavigate, Link } from 'react-router-dom';
 import { Bitcoin, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
 
 export const LoginPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login, isLoading } = useAuthStore();
   const [email, setEmail] = useState('');
@@ -18,7 +20,7 @@ export const LoginPage = () => {
     e.preventDefault();
     const result = await login(email, password);
     if (result.success) {
-      toast.success('¡Bienvenido!');
+      toast.success(t('bienvenido_b33c1f'));
       navigate('/dashboard');
     } else {
       toast.error(result.error);
@@ -32,8 +34,8 @@ export const LoginPage = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <Bitcoin className="w-10 h-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-unbounded">Iniciar Sesión</CardTitle>
-          <p className="text-muted-foreground text-sm mt-2">Accede a BTC Trading Calculator Pro</p>
+          <CardTitle className="text-2xl font-unbounded">{t('iniciarSesion_9faefe')}</CardTitle>
+          <p className="text-muted-foreground text-sm mt-2">{t('accedeABtcTradingCalculator_119926')}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -54,7 +56,7 @@ export const LoginPage = () => {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Contraseña</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('contrasena_6e7bc0')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -75,18 +77,18 @@ export const LoginPage = () => {
               className="w-full bg-primary text-black hover:bg-primary/90"
               data-testid="login-submit"
             >
-              {isLoading ? 'Cargando...' : 'Iniciar Sesión'}
+              {isLoading ? t('loading') : t('iniciarSesion_9faefe')}
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </form>
           
           <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">¿No tienes cuenta? </span>
-            <Link to="/register" className="text-primary hover:underline">Regístrate</Link>
+            <span className="text-muted-foreground">{t('noTienesCuenta_ba7c96')} </span>
+            <Link to="/register" className="text-primary hover:underline">{t('registrate_48a11f')}</Link>
           </div>
           
           <div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10 text-xs text-muted-foreground">
-            <p className="font-semibold mb-1">Demo: Usa las credenciales</p>
+            <p className="font-semibold mb-1">{t('demoUsaLasCredenciales_a06869')}</p>
             <p>Email: demo@btccalc.pro</p>
             <p>Password: 1234</p>
           </div>
@@ -106,12 +108,12 @@ export const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password.length < 4) {
-      toast.error('La contraseña debe tener al menos 4 caracteres');
+      toast.error(t('laContrasenaDebeTenerAl_47b500'));
       return;
     }
     const result = await register(name, email, password);
     if (result.success) {
-      toast.success('¡Cuenta creada exitosamente!');
+      toast.success(t('cuentaCreadaExitosamente_f4aa3e'));
       navigate('/dashboard');
     } else {
       toast.error(result.error);
@@ -125,8 +127,8 @@ export const RegisterPage = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
             <Bitcoin className="w-10 h-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-unbounded">Crear Cuenta</CardTitle>
-          <p className="text-muted-foreground text-sm mt-2">Regístrate en BTC Trading Calculator Pro</p>
+          <CardTitle className="text-2xl font-unbounded">{t('crearCuenta_f32c7c')}</CardTitle>
+          <p className="text-muted-foreground text-sm mt-2">{t('registrateEnBtcTradingCalculator_18dbac')}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -163,14 +165,14 @@ export const RegisterPage = () => {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Contraseña</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('contrasena_6e7bc0')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 4 caracteres"
+                  placeholder={t('minimo4Caracteres_793e1d')}
                   className="pl-10 bg-black/50 border-white/10"
                   required
                   data-testid="register-password"
@@ -184,14 +186,14 @@ export const RegisterPage = () => {
               className="w-full bg-primary text-black hover:bg-primary/90"
               data-testid="register-submit"
             >
-              {isLoading ? 'Creando...' : 'Crear Cuenta'}
+              {isLoading ? t('loading') : t('crearCuenta_f32c7c')}
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </form>
           
           <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">¿Ya tienes cuenta? </span>
-            <Link to="/login" className="text-primary hover:underline">Inicia Sesión</Link>
+            <span className="text-muted-foreground">{t('yaTienesCuenta_7e833c')} </span>
+            <Link to="/login" className="text-primary hover:underline">{t('iniciaSesion_0e195f')}</Link>
           </div>
         </CardContent>
       </Card>

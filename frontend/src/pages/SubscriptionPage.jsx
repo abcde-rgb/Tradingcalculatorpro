@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../lib/store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { Footer } from '@/components/layout/Footer';
 const API = process.env.REACT_APP_BACKEND_URL;
 
 export default function SubscriptionPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { token, isAuthenticated, user } = useAuthStore();
   const [subscription, setSubscription] = useState(null);
@@ -53,7 +55,7 @@ export default function SubscriptionPage() {
   }, [isAuthenticated, navigate, fetchSubscriptionData]);
 
   const handleCancelSubscription = async () => {
-    if (!window.confirm('¿Estás seguro de que deseas cancelar tu suscripción? Mantendrás el acceso hasta el final del período actual.')) {
+    if (!window.confirm(t('estasSeguroDeQueDeseas_8d79cb'))) {
       return;
     }
 
@@ -69,16 +71,16 @@ export default function SubscriptionPage() {
       });
 
       if (response.ok) {
-        alert('Suscripción cancelada. Mantendrás el acceso hasta el final del período.');
+        alert(t('suscripcionCanceladaMantendrasElAcc_7621f5'));
         fetchSubscriptionData();
       } else {
-        alert('Error al cancelar la suscripción');
+        alert(t('errorAlCancelarLaSuscripcion_6a0cfe'));
       }
     } catch (error) {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error canceling subscription:', error);
       }
-      alert('Error al cancelar la suscripción');
+      alert(t('errorAlCancelarLaSuscripcion_6a0cfe'));
     } finally {
       setActionLoading(false);
     }
@@ -93,16 +95,16 @@ export default function SubscriptionPage() {
       });
 
       if (response.ok) {
-        alert('Suscripción reactivada exitosamente');
+        alert(t('suscripcionReactivadaExitosamente_9d30d3'));
         fetchSubscriptionData();
       } else {
-        alert('Error al reactivar la suscripción');
+        alert(t('errorAlReactivarLaSuscripcion_e38716'));
       }
     } catch (error) {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error resuming subscription:', error);
       }
-      alert('Error al reactivar la suscripción');
+      alert(t('errorAlReactivarLaSuscripcion_e38716'));
     } finally {
       setActionLoading(false);
     }
@@ -130,7 +132,7 @@ export default function SubscriptionPage() {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error opening portal:', error);
       }
-      alert('Error al abrir el portal de facturación');
+      alert(t('errorAlAbrirElPortal_8e87c5'));
     } finally {
       setActionLoading(false);
     }
@@ -187,15 +189,15 @@ export default function SubscriptionPage() {
       <main className="p-4 pt-20">
         <div className="max-w-4xl mx-auto space-y-6">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Mi Suscripción</h1>
-            <p className="text-muted-foreground">Gestiona tu suscripción y facturación</p>
+            <h1 className="text-3xl font-bold mb-2">{t('miSuscripcion_6e5d29')}</h1>
+            <p className="text-muted-foreground">{t('gestionaTuSuscripcionYFacturacion_2479a9')}</p>
           </div>
 
         {/* Subscription Status Card */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Estado de la Suscripción</CardTitle>
+              <CardTitle>{t('estadoDeLaSuscripcion_5c2c42')}</CardTitle>
               {subscription?.status && getStatusBadge(subscription.status)}
             </div>
           </CardHeader>
@@ -208,7 +210,7 @@ export default function SubscriptionPage() {
                     <p className="text-lg font-semibold">{subscription.plan_id || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Próxima Renovación</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t('proximaRenovacion_a01686')}</p>
                     <p className="text-lg font-semibold flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       {formatDate(subscription.current_period_end)}
@@ -263,7 +265,7 @@ export default function SubscriptionPage() {
             ) : (
               <div className="text-center py-8">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-lg font-medium mb-2">No tienes una suscripción activa</p>
+                <p className="text-lg font-medium mb-2">{t('noTienesUnaSuscripcionActiva_84a892')}</p>
                 <p className="text-muted-foreground mb-4">
                   Suscríbete para acceder a todas las funcionalidades Premium
                 </p>
@@ -278,7 +280,7 @@ export default function SubscriptionPage() {
         {/* Billing History Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Historial de Facturación</CardTitle>
+            <CardTitle>{t('historialDeFacturacion_91509b')}</CardTitle>
             <CardDescription>Tus facturas y pagos recientes</CardDescription>
           </CardHeader>
           <CardContent>

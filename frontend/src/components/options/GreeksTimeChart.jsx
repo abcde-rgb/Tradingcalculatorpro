@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts';
@@ -20,11 +21,12 @@ const GREEKS_CONFIG = [
 // Chart layout constants (module-level to avoid inline-object re-renders)
 const CHART_MARGIN = { top: 5, right: 20, left: 0, bottom: 5 };
 const AXIS_TICK = { fill: '#8b9ab8', fontSize: 10, fontFamily: 'JetBrains Mono' };
-const AXIS_LABEL_X = { value: 'Días desde hoy →', position: 'insideBottom', offset: -2, fill: '#6b7a94', fontSize: 10 };
 const TOOLTIP_STYLE = { background: '#0a0a0a', border: '1px solid #262626', borderRadius: 8, fontSize: 11 };
 const LEGEND_STYLE = { fontSize: 10, paddingTop: 8 };
 
 const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
+  const { t } = useTranslation();
+  const AXIS_LABEL_X = { value: t('diasDesdeHoy_114266'), position: 'insideBottom', offset: -2, fill: '#6b7a94', fontSize: 10 };
   const [visible, setVisible] = useState({ delta: true, gamma: true, theta: true, vega: true });
   const [normalize, setNormalize] = useState(false);
 
@@ -93,7 +95,7 @@ const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
     <div className="bg-card rounded-xl border border-border p-4" data-testid="greeks-time-chart">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
-          <h4 className="text-sm font-bold text-foreground">Evolución de las Greeks hasta el vencimiento</h4>
+          <h4 className="text-sm font-bold text-foreground">{t('evolucionDeLasGreeksHasta_088c5c')}</h4>
           <p className="text-[10px] text-muted-foreground">
             Asumiendo precio spot constante en ${stockPrice.toFixed(2)} · T = {daysToExpiry}d
           </p>

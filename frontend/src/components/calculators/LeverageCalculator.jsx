@@ -190,7 +190,7 @@ export const LeverageCalculator = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Poder de Compra</p>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{t('poderDeCompra_b329b3')}</p>
                     <p className="font-mono text-xl font-bold">{formatCurrency(result.buyingPower)}</p>
                   </div>
                   <div className={`p-4 rounded-xl border ${result.isProfit ? 'bg-primary/10 border-primary/20' : 'bg-destructive/10 border-destructive/20'}`}>
@@ -215,7 +215,7 @@ export const LeverageCalculator = () => {
                 </div>
                 
                 <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
-                  <p className="text-xs uppercase tracking-wider text-destructive mb-1">Precio de Liquidación</p>
+                  <p className="text-xs uppercase tracking-wider text-destructive mb-1">{t('precioDeLiquidacion_df5984')}</p>
                   <p className="font-mono text-lg text-destructive">
                     ${formatNumber(result.liquidationPrice)}
                   </p>
@@ -225,11 +225,11 @@ export const LeverageCalculator = () => {
                 </div>
                 
                 <div className="p-3 rounded-lg bg-accent/10 border border-accent/20 text-xs">
-                  <p className="text-accent font-semibold">Explicación:</p>
+                  <p className="text-accent font-semibold">{t('explicacion_b7856e')}</p>
                   <p className="text-muted-foreground mt-1">
                     {isLong 
-                      ? `En LONG con ${leverage}x: si el precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, tu ${result.isProfit ? 'ganancia' : 'pérdida'} es ${formatNumber(Math.abs(result.roi))}% (${leverage}x el movimiento).`
-                      : `En SHORT con ${leverage}x: si el precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, tu ${result.isProfit ? 'ganancia' : 'pérdida'} es ${formatNumber(Math.abs(result.roi))}% (inverso al movimiento x${leverage}).`
+                      ? `En LONG con ${leverage}x: si el precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, tu ${result.isProfit ? t('ganancia_c67565') : t('perdida_f5eb7c')} es ${formatNumber(Math.abs(result.roi))}% (${leverage}x el movimiento).`
+                      : `En SHORT con ${leverage}x: si el precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, tu ${result.isProfit ? t('ganancia_c67565') : t('perdida_f5eb7c')} es ${formatNumber(Math.abs(result.roi))}% (inverso al movimiento x${leverage}).`
                     }
                   </p>
                 </div>

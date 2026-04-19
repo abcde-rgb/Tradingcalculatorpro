@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { Sparkles, Loader2, RefreshCw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -9,6 +10,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
  * and displays natural-language analysis with strengths/risks/improvements/verdict.
  */
 const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank, balance }) => {
+  const { t } = useTranslation();
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -66,7 +68,7 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#c084fc] text-xs font-bold hover:bg-[#a855f7]/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           data-testid="ai-analyze-btn"
         >
-          {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analizando...</> : analysis ? <><RefreshCw className="w-3.5 h-3.5" /> Re-analizar</> : <><Sparkles className="w-3.5 h-3.5" /> Analizar esta operación</>}
+          {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analizando...</> : analysis ? <><RefreshCw className="w-3.5 h-3.5" /> Re-analizar</> : <><Sparkles className="w-3.5 h-3.5" /> {t('analizarEstaOperacion_804981')}</>}
         </button>
       </div>
 

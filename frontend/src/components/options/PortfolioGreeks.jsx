@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { Briefcase, RefreshCw, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const GREEK_ROWS = [
-  { key: 'delta', label: 'Delta Δ', sub: 'por $1 de movimiento', good: (v) => Math.abs(v) < 100, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
-  { key: 'gamma', label: 'Gamma Γ', sub: 'velocidad del Delta', good: () => true, color: () => 'text-[#fbbf24]' },
-  { key: 'theta', label: 'Theta Θ', sub: 'por cada día', good: (v) => v >= 0, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
-  { key: 'vega', label: 'Vega ν', sub: 'por +1% IV', good: () => true, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
-  { key: 'rho', label: 'Rho ρ', sub: 'por +1% tasas', good: () => true, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
+  { key: 'delta', label: 'Delta Δ', subKey: 'greekDeltaSub_bc3a40', good: (v) => Math.abs(v) < 100, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
+  { key: 'gamma', label: 'Gamma Γ', subKey: 'greekGammaSub_bc3a41', good: () => true, color: () => 'text-[#fbbf24]' },
+  { key: 'theta', label: 'Theta Θ', subKey: 'porCadaDia_ca6f47', good: (v) => v >= 0, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
+  { key: 'vega', label: 'Vega ν', subKey: 'greekVegaSub_bc3a42', good: () => true, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
+  { key: 'rho', label: 'Rho ρ', subKey: 'greekRhoSub_bc3a43', good: () => true, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },
 ];
 
 /**
@@ -17,6 +18,7 @@ const GREEK_ROWS = [
  * Shows net exposure per Greek. Helps traders see total portfolio risk at a glance.
  */
 const PortfolioGreeks = () => {
+  const { t } = useTranslation();
   const { token, isAuthenticated } = useAuthStore();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -54,9 +56,9 @@ const PortfolioGreeks = () => {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Briefcase className="w-4 h-4 text-primary" />
-          <h4 className="text-sm font-bold text-foreground">Greeks agregadas del Portfolio</h4>
+          <h4 className="text-sm font-bold text-foreground">{t('greeksAggregatedTitle_bc3a50')}</h4>
           <span className="text-[10px] text-muted-foreground">
-            {data?.positionCount || 0} {data?.positionCount === 1 ? 'posición' : 'posiciones'}
+            {data?.positionCount || 0} {data?.positionCount === 1 ? t('posicion_5aef61') : t('posiciones_bc3a51')}
           </span>
         </div>
         <button
@@ -78,7 +80,7 @@ const PortfolioGreeks = () => {
         <>
           {/* Aggregated row */}
           <div className="grid grid-cols-5 gap-2 mb-4">
-            {GREEK_ROWS.map(({ key, label, sub, color }) => {
+            {GREEK_ROWS.map(({ key, label, subKey, color }) => {
               const val = agg[key] || 0;
               const colorCls = color(val);
               return (
@@ -87,7 +89,7 @@ const PortfolioGreeks = () => {
                   <div className={`text-base font-bold font-mono mt-0.5 ${colorCls}`}>
                     {val >= 0 ? '+' : ''}{val.toFixed(key === 'gamma' ? 4 : 2)}
                   </div>
-                  <div className="text-[8px] text-muted-foreground/70 mt-0.5">{sub}</div>
+                  <div className="text-[8px] text-muted-foreground/70 mt-0.5">{t(subKey)}</div>
                 </div>
               );
             })}

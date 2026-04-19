@@ -292,7 +292,7 @@ export function SimulatorPro() {
         <CardContent>
           <div className="text-center py-8">
             <FlaskConical className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold mb-2">Función Premium</h3>
+            <h3 className="font-semibold mb-2">{t('funcionPremium_bb683a')}</h3>
             <p className="text-muted-foreground text-sm mb-4">
               Simula operaciones en fases progresivas con configuración avanzada.
             </p>
@@ -840,7 +840,7 @@ export function SimulatorPro() {
                         dataKey="operacion" 
                         stroke="rgba(255,255,255,0.5)"
                         style={{ fontSize: '12px' }}
-                        label={{ value: 'Número de Operación', position: 'insideBottom', offset: -5, fill: 'rgba(255,255,255,0.7)' }}
+                        label={{ value: t('numeroDeOperacion_9c9c72'), position: 'insideBottom', offset: -5, fill: 'rgba(255,255,255,0.7)' }}
                       />
                       <YAxis 
                         stroke="rgba(255,255,255,0.5)"
@@ -876,7 +876,7 @@ export function SimulatorPro() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Win Rate Distribution */}
                   <div className="p-4 rounded-lg bg-muted/30 border border-border">
-                    <p className="text-xs text-muted-foreground mb-2">Distribución Win/Loss</p>
+                    <p className="text-xs text-muted-foreground mb-2">{t('distribucionWinLoss_c5a5a9')}</p>
                     <div className="flex items-center justify-center gap-4 h-32">
                       <div className="text-center">
                         <div 
@@ -899,7 +899,7 @@ export function SimulatorPro() {
 
                   {/* P&L Distribution */}
                   <div className="p-4 rounded-lg bg-muted/30 border border-border">
-                    <p className="text-xs text-muted-foreground mb-2">Distribución P&L</p>
+                    <p className="text-xs text-muted-foreground mb-2">{t('distribucionPL_b6b1ab')}</p>
                     <div className="flex items-center justify-center h-32">
                       <div className="relative w-32 h-32">
                         <div 
@@ -933,7 +933,7 @@ export function SimulatorPro() {
                       <th className="text-left p-2 font-semibold text-muted-foreground">Fase</th>
                       <th className="text-left p-2 font-semibold text-muted-foreground">Capital</th>
                       <th className="text-left p-2 font-semibold text-muted-foreground">P&L</th>
-                      <th className="text-left p-2 font-semibold text-muted-foreground">Comisión</th>
+                      <th className="text-left p-2 font-semibold text-muted-foreground">{t('comision_7fb096')}</th>
                       <th className="text-left p-2 font-semibold text-muted-foreground">Resultado</th>
                       <th className="text-left p-2 font-semibold text-muted-foreground">ROI</th>
                     </tr>

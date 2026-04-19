@@ -57,6 +57,18 @@
 - Verificación manual: Chinese (zh_CN), Japanese (ja), Arabic (ar_AE) screenshots confirman widget + UI traducidos + RTL funcionando.
 
 ### Feb 2026 — Fragmentos Trading Journal + Monte Carlo "Limpiar Datos" ✅
+
+### Feb 2026 — Barrido automático completo i18n ✅
+- **Extracción automática**: 101 strings hardcoded identificados en 25 archivos JSX (jsx text, atributos `placeholder/title/aria-label`, toasts, prompts, alerts).
+- **Traducción batch**: 808 traducciones (101 strings × 8 locales) vía Claude Sonnet 4.5 usando EMERGENT LLM KEY. Segundo pase añadió 17 strings más (JSX-expression context) + 6 greek sub-labels + 3 bias labels + 2 ternary auth strings = **129 nuevos keys** por locale.
+- **Inyección automática**: script Python inyecta keys en `/lib/i18n.js` respetando el cierre de cada bloque locale, y añade automáticamente `import { useTranslation }` + `const { t } = useTranslation()` en componentes que lo necesitan.
+- **Reemplazo masivo**: 107 replacements en 25 archivos (AuthPages +15, SubscriptionPage +14, LotSize/PositionSize/MonteCarlo +8 c/u, OptimizeView +6, PaymentPages +6, IVSurface +5, EducationTab +5, LeverageCalculator +3+4, SearchBar +3, KellyPanel +3+2, MarketFlow +3, UnusualActivity +3, PortfolioGreeks +2+2, AITradeCoach/ExplainTrade/CalculatorPage/LegEditor/GreeksTimeChart/GuideModal +1-4 c/u, etc.).
+- **Bugs corregidos durante aplicación**:
+  - Key `2Recomendado_867927` (prefijo numérico inválido en JS) → renombrado `_2Recomendado_867927` en i18n.js y PositionSizeCalculator.jsx.
+  - `useTranslation()` inyectado en helper fn `highlightMatch` dentro de SearchBar.jsx → movido al componente correcto.
+  - 3 runtime errors "t is not a function" por `t()` llamado a nivel de módulo (EducationTab `BIAS_STYLES`, GreeksTimeChart `AXIS_LABEL_X`, PortfolioGreeks `GREEK_ROWS`) → cambiados a `labelKey`/`subKey` strings con lookup dentro del componente.
+- Verificación: `/options` y `/dashboard` en chino y alemán renderizados sin Spanish fragments visibles, sin runtime errors, lint limpio.
+- **Pendiente (datos vs UI)**: `lib/tradingEducation.js` (~400 entradas educativas) y `lib/constants.js` (~320 entradas de patrones gráficos) siguen en español. Son datos long-form didácticos, mejor traducir manualmente por capítulo si el usuario lo pide.
 - **TradingJournal.jsx** completamente traducido: título ("Diario de Trading" → `tradingJournal`), botón "Nueva Operación" → `addTrade`, stats labels (Total Trades/Win Rate/P&L Total/Ratio W/L → `totalTrades`/`winRate`/`pnlTotal`/`ratioWL`), empty state "No hay operaciones registradas" → `noTrades`, form labels (Símbolo/Dirección/Precio Entrada/Tamaño/Apalancamiento/Estrategia/Notas), placeholders, toasts, prompt, status badges (Abierta/Cerrada → `tradeStatusOpen`/`tradeStatusClosed`), botón Cerrar → `closeTrade`.
 - **JournalStats.jsx**: 6 stat labels ahora traducidos (Win Rate, P&L Total, Profit Factor, Expectancy, Max Drawdown, Total Trades).
 - **4 calculadoras**: "Limpiar Datos" hardcoded → `t('clearData')` en MonteCarloSimulator, FibonacciCalculator, PatternTradingCalculator, LotSizeCalculator (con `useTranslation` import agregado a LotSize).

@@ -172,7 +172,7 @@ export const PercentageCalculator = () => {
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Mov. Precio</p>
+                    <p className="text-xs text-muted-foreground">{t('movPrecio_67b809')}</p>
                     <p className={`font-mono text-lg ${result.priceMovement >= 0 ? 'text-primary' : 'text-destructive'}`}>
                       {formatPercentage(result.priceMovement)}
                     </p>

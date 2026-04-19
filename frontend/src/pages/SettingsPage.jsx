@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { User, Mail, Crown, Calendar, LogOut, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,12 +10,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    toast.success('Sesión cerrada');
+    toast.success(t('sesionCerrada_f86688'));
     navigate('/');
   };
 
@@ -38,7 +40,7 @@ export default function SettingsPage() {
       
       <main className="pt-24 pb-12 px-4">
         <div className="max-w-2xl mx-auto space-y-6">
-          <h1 className="font-unbounded text-2xl font-bold">Configuración</h1>
+          <h1 className="font-unbounded text-2xl font-bold">{t('configuracion_1a0150')}</h1>
           
           {/* Profile Card */}
           <Card className="bg-card border-border">
@@ -77,7 +79,7 @@ export default function SettingsPage() {
                   <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
                     <div className="flex items-center gap-2 mb-2">
                       <Crown className="w-5 h-5 text-yellow-500" />
-                      <span className="font-semibold text-yellow-500">Premium Activo</span>
+                      <span className="font-semibold text-yellow-500">{t('premiumActivo_433549')}</span>
                     </div>
                     <p className="text-sm text-zinc-400">
                       Plan: <span className="text-white capitalize">{user.subscription_plan}</span>
@@ -93,7 +95,7 @@ export default function SettingsPage() {
               ) : (
                 <>
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                    <p className="text-zinc-400 mb-4">No tienes una suscripción activa</p>
+                    <p className="text-zinc-400 mb-4">{t('noTienesUnaSuscripcionActiva_84a892')}</p>
                     <Link to="/pricing">
                       <Button className="bg-yellow-500 text-black hover:bg-yellow-400">
                         <Crown className="w-4 h-4 mr-2" /> Ver Planes Premium

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { Lightbulb } from 'lucide-react';
 
 /**
@@ -6,6 +7,7 @@ import { Lightbulb } from 'lucide-react';
  * Rules-based (no LLM) — deterministic bullets based on legs topology.
  */
 const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
+  const { t } = useTranslation();
   if (!legs || legs.length === 0 || !stock) return null;
 
   const bullets = [];
@@ -118,7 +120,7 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
     <div className="bg-card/60 border border-border/60 rounded-xl p-3.5" data-testid="explain-trade">
       <div className="flex items-center gap-1.5 mb-2">
         <Lightbulb className="w-3.5 h-3.5 text-[#fbbf24]" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-[#fbbf24]">Entiende esta operación</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-[#fbbf24]">{t('entiendeEstaOperacion_11df0f')}</span>
       </div>
       <ul className="space-y-1.5">
         {bullets.map((b, i) => (

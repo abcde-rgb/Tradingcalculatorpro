@@ -267,7 +267,7 @@ export function MonteCarloSimulator() {
 
             {/* Percentiles */}
             <div className="p-4 rounded-lg bg-muted/50">
-              <p className="text-sm font-medium mb-3">Distribución de Resultados</p>
+              <p className="text-sm font-medium mb-3">{t('distribucionDeResultados_032fd8')}</p>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-red-400">Peor 5%</span>
@@ -278,7 +278,7 @@ export function MonteCarloSimulator() {
                   <span className="font-mono font-semibold">${results.statistics.percentile50.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-green-500">Mejor 5%</span>
+                  <span className="text-sm text-green-500">{t('mejor5_4e0b8a')}</span>
                   <span className="font-mono font-semibold">${results.statistics.percentile95.toLocaleString()}</span>
                 </div>
               </div>
@@ -287,7 +287,7 @@ export function MonteCarloSimulator() {
             {/* Risk Metrics */}
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-lg bg-destructive/10 text-center">
-                <p className="text-xs text-muted-foreground">Riesgo de Ruina</p>
+                <p className="text-xs text-muted-foreground">{t('riesgoDeRuina_ce3690')}</p>
                 <p className="text-lg font-bold text-destructive flex items-center justify-center gap-1" data-testid="ruin-risk">
                   {results.statistics.riskOfRuin > 10 && <AlertTriangle className="w-4 h-4" />}
                   {results.statistics.riskOfRuin}%
@@ -303,7 +303,7 @@ export function MonteCarloSimulator() {
 
             {/* Mini Equity Chart Visual */}
             <div className="p-4 rounded-lg bg-muted/30">
-              <p className="text-xs text-muted-foreground mb-2">Muestra de 5 Simulaciones</p>
+              <p className="text-xs text-muted-foreground mb-2">{t('muestraDe5Simulaciones_359555')}</p>
               <div className="h-32 flex items-end gap-1">
                 {results.simulations.slice(0, 5).map((sim, idx) => {
                   const final = sim[sim.length - 1];
@@ -331,13 +331,13 @@ export function MonteCarloSimulator() {
 
             {/* Interpretation */}
             <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
-              <p className="font-medium mb-1">Interpretación:</p>
+              <p className="font-medium mb-1">{t('interpretacion_1cc069')}</p>
               {results.statistics.profitProbability >= 60 ? (
-                <p className="text-green-500">✓ Tu estrategia tiene una ventaja estadística positiva</p>
+                <p className="text-green-500">{t('tuEstrategiaTieneUnaVentaja_3ba865')}</p>
               ) : results.statistics.profitProbability >= 45 ? (
-                <p className="text-yellow-500">⚠ Ventaja marginal, considera optimizar parámetros</p>
+                <p className="text-yellow-500">{t('ventajaMarginalConsideraOptimizarPa_746aa8')}</p>
               ) : (
-                <p className="text-red-500">✗ Alta probabilidad de pérdida, revisa tu estrategia</p>
+                <p className="text-red-500">{t('altaProbabilidadDePerdidaRevisa_a4b9b2')}</p>
               )}
               {results.statistics.riskOfRuin > 5 && (
                 <p className="text-red-400 mt-1">⚠ Riesgo de ruina elevado ({results.statistics.riskOfRuin}%)</p>

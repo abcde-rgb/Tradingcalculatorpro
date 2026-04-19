@@ -102,7 +102,7 @@ export function LotSizeCalculator() {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-sm">Par de Divisas</Label>
+            <Label className="text-sm">{t('parDeDivisas_f0f7cd')}</Label>
             <Select value={selectedPair} onValueChange={setSelectedPair}>
               <SelectTrigger data-testid="pair-select">
                 <SelectValue />
@@ -117,7 +117,7 @@ export function LotSizeCalculator() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm">Balance de Cuenta ($)</Label>
+            <Label className="text-sm">{t('balanceDeCuenta_89aff2')}</Label>
             <Input
               type="number"
               value={accountBalance}
@@ -130,7 +130,7 @@ export function LotSizeCalculator() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-sm">Riesgo por Trade (%)</Label>
+            <Label className="text-sm">{t('riesgoPorTrade_c5f760')}</Label>
             <Input
               type="number"
               value={riskPercent}
@@ -165,9 +165,9 @@ export function LotSizeCalculator() {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 rounded-lg bg-primary/10 text-center">
-                <p className="text-xs text-muted-foreground">Tamaño de Lote</p>
+                <p className="text-xs text-muted-foreground">{t('tamanoDeLote_6ff2de')}</p>
                 <p className="text-2xl font-bold text-primary" data-testid="result-lot-size">{results.lotSize}</p>
-                <p className="text-xs text-muted-foreground">lotes estándar</p>
+                <p className="text-xs text-muted-foreground">{t('lotesEstandar_a4b8ec')}</p>
               </div>
               <div className="p-3 rounded-lg bg-blue-500/10 text-center">
                 <p className="text-xs text-muted-foreground">Unidades</p>
@@ -185,13 +185,13 @@ export function LotSizeCalculator() {
                 <p className="font-semibold">{results.microLots}</p>
               </div>
               <div className="p-2 rounded bg-muted">
-                <p className="text-xs text-muted-foreground">Valor por Pip</p>
+                <p className="text-xs text-muted-foreground">{t('valorPorPip_61cdca')}</p>
                 <p className="font-semibold">${results.pipValue}</p>
               </div>
             </div>
 
             <div className="p-3 rounded-lg bg-destructive/10 text-center">
-              <p className="text-xs text-muted-foreground">Pérdida Máxima si Toca SL</p>
+              <p className="text-xs text-muted-foreground">{t('perdidaMaximaSiTocaSl_1986d0')}</p>
               <p className="text-xl font-bold text-destructive">${results.maxLoss}</p>
               <p className="text-xs text-muted-foreground">({riskPercent}% de tu cuenta)</p>
             </div>
@@ -204,7 +204,7 @@ export function LotSizeCalculator() {
         </Button>
 
         <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
-          <p className="font-medium mb-1">Fórmula:</p>
+          <p className="font-medium mb-1">{t('formula_92c698')}</p>
           <code>Lotes = (Balance × Riesgo%) / (SL pips × $10)</code>
           <p className="mt-2">Para pares mayores XXX/USD, $10 = valor de 1 pip por lote estándar</p>
         </div>

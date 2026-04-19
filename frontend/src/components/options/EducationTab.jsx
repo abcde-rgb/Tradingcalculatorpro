@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { EDU_MODULES, STRATEGIES } from '../../data/mockData';
 import { BookOpen, ChevronRight, Zap, ArrowRight } from 'lucide-react';
 
 const BIAS_STYLES = {
-  Bullish: { color: '#22c55e', bg: 'rgba(34,197,94,0.08)', label: 'ALCISTA' },
-  Bearish: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', label: 'BAJISTA' },
-  Neutral: { color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', label: 'NEUTRAL' },
-  Volatile: { color: '#eab308', bg: 'rgba(234,179,8,0.08)', label: 'VOLÁTIL' },
+  Bullish: { color: '#22c55e', bg: 'rgba(34,197,94,0.08)', labelKey: 'alcista_8e20d3', label: 'ALCISTA' },
+  Bearish: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', labelKey: 'bajista_ab69a0', label: 'BAJISTA' },
+  Neutral: { color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', labelKey: 'neutral_9e8b6e', label: 'NEUTRAL' },
+  Volatile: { color: '#eab308', bg: 'rgba(234,179,8,0.08)', labelKey: 'volTil_9eeb74', label: 'VOLÁTIL' },
 };
 
 const EducationTab = ({ onSwitchToCalc }) => {
+  const { t } = useTranslation();
   const [expandedModule, setExpandedModule] = useState(null);
 
   return (
@@ -19,7 +21,7 @@ const EducationTab = ({ onSwitchToCalc }) => {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">
             <BookOpen className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">Academia de Opciones</h1>
+            <h1 className="text-2xl font-bold text-foreground">{t('academiaDeOpciones_930f18')}</h1>
           </div>
           <p className="text-muted-foreground text-sm max-w-2xl">
             De cero a profesional. Domina los derivados financieros con la profundidad que los brokers no te enseñan.
@@ -84,7 +86,7 @@ const EducationTab = ({ onSwitchToCalc }) => {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-muted">
-                  {['Estrategia', 'Bias', 'Máx. Profit', 'Máx. Loss', 'Cuándo usar'].map((h) => (
+                  {['Estrategia', 'Bias', t('maxProfit_cd2e46'), t('maxLoss_11dd51'), t('cuandoUsar_299994')].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-muted-foreground font-semibold uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -100,12 +102,12 @@ const EducationTab = ({ onSwitchToCalc }) => {
                           className="px-2 py-0.5 rounded text-[10px] font-bold"
                           style={{ backgroundColor: bs.bg, color: bs.color }}
                         >
-                          {bs.label}
+                          {t(bs.labelKey)}
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-[#4ade80]">{s.maxProfit || 'Variable'}</td>
                       <td className="px-4 py-2.5 text-[#f87171]">{s.maxLoss || 'Variable'}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{s.whenToUse || 'Ver descripción'}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{s.whenToUse || t('verDescripcion_8d4e1f')}</td>
                     </tr>
                   );
                 })}
@@ -116,7 +118,7 @@ const EducationTab = ({ onSwitchToCalc }) => {
 
         {/* CTA */}
         <div className="bg-gradient-to-r from-muted to-card rounded-xl border border-border p-6 text-center">
-          <h3 className="text-lg font-bold text-foreground mb-2">¿Listo para operar?</h3>
+          <h3 className="text-lg font-bold text-foreground mb-2">{t('listoParaOperar_98196f')}</h3>
           <p className="text-sm text-muted-foreground mb-4 max-w-lg mx-auto">
             Abre el simulador y prueba cómo el paso del tiempo (Theta) o un spike de volatilidad (Vega) afectan tu posición antes de arriesgar capital real.
           </p>

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { useAuthStore } from '@/lib/store';
 const API = process.env.REACT_APP_BACKEND_URL;
 
 export const PaymentSuccessPage = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { token, refreshUser } = useAuthStore();
@@ -57,15 +59,15 @@ export const PaymentSuccessPage = () => {
             <>
               <Loader2 className="w-16 h-16 mx-auto mb-4 text-primary animate-spin" />
               <h2 className="text-xl font-bold mb-2">Verificando pago...</h2>
-              <p className="text-zinc-400">Por favor espera mientras confirmamos tu pago</p>
+              <p className="text-zinc-400">{t('porFavorEsperaMientrasConfirmamos_b1b193')}</p>
             </>
           )}
           
           {status === 'success' && (
             <>
               <CheckCircle className="w-16 h-16 mx-auto mb-4 text-primary" />
-              <h2 className="text-xl font-bold mb-2">¡Pago Completado!</h2>
-              <p className="text-zinc-400 mb-6">Tu cuenta ha sido actualizada a Premium</p>
+              <h2 className="text-xl font-bold mb-2">{t('pagoCompletado_8f3808')}</h2>
+              <p className="text-zinc-400 mb-6">{t('tuCuentaHaSidoActualizada_ccea28')}</p>
               <Button onClick={() => navigate('/dashboard')} className="bg-primary text-black">
                 Ir al Dashboard
               </Button>
@@ -76,7 +78,7 @@ export const PaymentSuccessPage = () => {
             <>
               <Loader2 className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
               <h2 className="text-xl font-bold mb-2">Pago en Proceso</h2>
-              <p className="text-zinc-400 mb-6">Tu pago está siendo procesado. Recibirás un email cuando se complete.</p>
+              <p className="text-zinc-400 mb-6">{t('tuPagoEstaSiendoProcesado_e1da9e')}</p>
               <Button onClick={() => navigate('/dashboard')} variant="outline">
                 Ir al Dashboard
               </Button>
@@ -87,7 +89,7 @@ export const PaymentSuccessPage = () => {
             <>
               <XCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
               <h2 className="text-xl font-bold mb-2">Error</h2>
-              <p className="text-zinc-400 mb-6">No pudimos verificar tu pago. Contacta soporte si el problema persiste.</p>
+              <p className="text-zinc-400 mb-6">{t('noPudimosVerificarTuPago_0c114f')}</p>
               <Button onClick={() => navigate('/pricing')} variant="outline">
                 Volver a Intentar
               </Button>
@@ -108,7 +110,7 @@ export const PaymentCancelPage = () => {
         <CardContent className="p-8 text-center">
           <XCircle className="w-16 h-16 mx-auto mb-4 text-zinc-500" />
           <h2 className="text-xl font-bold mb-2">Pago Cancelado</h2>
-          <p className="text-zinc-400 mb-6">Has cancelado el proceso de pago. Puedes intentarlo de nuevo cuando quieras.</p>
+          <p className="text-zinc-400 mb-6">{t('hasCanceladoElProcesoDe_c37e10')}</p>
           <div className="space-y-2">
             <Button onClick={() => navigate('/pricing')} className="w-full bg-primary text-black">
               Ver Planes
