@@ -52,7 +52,7 @@ export function Footer() {
               <span className="font-bold text-lg">{t('appName') || 'Trading Calculator PRO'}</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-              {t('tagline') || 'Calculadoras profesionales, opciones con Greeks en tiempo real, backtesting y más — todo en una sola plataforma.'}
+              {t('tagline')}
             </p>
             <div className="flex items-center gap-2 mt-5">
               <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="X (formerly Twitter)" data-testid="footer-x" asChild>
@@ -85,21 +85,21 @@ export function Footer() {
 
           {/* Product */}
           <div>
-            <h4 className="font-bold mb-4 text-sm uppercase tracking-wider text-foreground/90">{t('product') || 'Producto'}</h4>
+            <h4 className="font-bold mb-4 text-sm uppercase tracking-wider text-foreground/90">{t('product')}</h4>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
               <li><Link to="/dashboard" className="hover:text-primary transition-colors" data-testid="footer-dashboard">{t('dashboard') || 'Dashboard'}</Link></li>
-              <li><Link to="/options" className="hover:text-primary transition-colors" data-testid="footer-options">Opciones</Link></li>
+              <li><Link to="/options" className="hover:text-primary transition-colors" data-testid="footer-options">{t('options')}</Link></li>
               <li><Link to="/pricing" className="hover:text-primary transition-colors" data-testid="footer-pricing">{t('pricing') || 'Precios'}</Link></li>
-              <li><Link to="/subscription" className="hover:text-primary transition-colors" data-testid="footer-subscription">Suscripción</Link></li>
+              <li><Link to="/subscription" className="hover:text-primary transition-colors" data-testid="footer-subscription">{t('subscription')}</Link></li>
             </ul>
           </div>
 
           {/* Resources */}
           <div>
-            <h4 className="font-bold mb-4 text-sm uppercase tracking-wider text-foreground/90">{t('resources') || 'Recursos'}</h4>
+            <h4 className="font-bold mb-4 text-sm uppercase tracking-wider text-foreground/90">{t('resources')}</h4>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
-              <li><Link to="/education" className="hover:text-primary transition-colors" data-testid="footer-education">{t('educationCenter') || 'Aprendizaje'}</Link></li>
-              <li><Link to="/options" className="hover:text-primary transition-colors">Academia de Opciones</Link></li>
+              <li><Link to="/education" className="hover:text-primary transition-colors" data-testid="footer-education">{t('educationCenter')}</Link></li>
+              <li><Link to="/options" className="hover:text-primary transition-colors">{t('optionsAcademy')}</Link></li>
               <li><a href="#" className="hover:text-primary transition-colors">{t('apiDocs') || 'API Docs'}</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">{t('support') || 'Soporte'}</a></li>
             </ul>
@@ -107,11 +107,11 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="font-bold mb-4 text-sm uppercase tracking-wider text-foreground/90">{t('legal') || 'Legal'}</h4>
+            <h4 className="font-bold mb-4 text-sm uppercase tracking-wider text-foreground/90">{t('legal')}</h4>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">{t('terms') || 'Términos'}</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">{t('privacyPolicy') || 'Privacidad'}</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">{t('cookies') || 'Cookies'}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('terms')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('privacyPolicy')}</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">{t('cookies')}</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Disclaimer</a></li>
             </ul>
           </div>
@@ -121,18 +121,18 @@ export function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-6 border-t border-border">
           <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center md:text-left">
             <p className="text-muted-foreground text-xs">
-              © {year} {t('appName') || 'Trading Calculator PRO'}. {t('allRightsReserved') || 'Todos los derechos reservados'}.
+              © {year} {t('appName')}. {t('allRightsReserved')}.
             </p>
             <span className="hidden md:inline text-muted-foreground/40">·</span>
             <p className="text-muted-foreground/70 text-[11px] max-w-xl leading-snug">
-              Los datos son informativos. No constituyen asesoramiento financiero. Invertir conlleva riesgos.
+              {t('disclaimer')}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9" aria-label="Cambiar tema">
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9" aria-label={t('themeAriaLabel')}>
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Idioma">
+            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={t('languageAriaLabel')}>
               <Globe className="w-4 h-4" />
             </Button>
           </div>

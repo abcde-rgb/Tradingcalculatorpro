@@ -60,37 +60,37 @@ export default function DashboardPage() {
               <Calculator className="relative h-24 w-24 text-primary mx-auto" />
             </div>
             
-            <h1 className="text-4xl font-bold">Dashboard Premium</h1>
+            <h1 className="text-4xl font-bold">{t('dashboardGateTitle')}</h1>
             <p className="text-xl text-muted-foreground">
-              El Dashboard completo con todas las calculadoras profesionales está disponible solo para usuarios Premium
+              {t('dashboardGateDescription')}
             </p>
             
             <div className="bg-card border rounded-lg p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Funcionalidades Premium:</h3>
+              <h3 className="text-lg font-semibold">{t('dashboardFeaturesTitle')}</h3>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
                 <li className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-primary" />
-                  <span>Gráficos TradingView</span>
+                  <span>{t('featureTVChart')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Calculator className="h-5 w-5 text-primary" />
-                  <span>10+ Calculadoras Pro</span>
+                  <span>{t('featureCalculators')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-primary" />
-                  <span>Simulador Monte Carlo</span>
+                  <span>{t('featureMonteCarlo')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-primary" />
-                  <span>Fibonacci Avanzado</span>
+                  <span>{t('featureFiboAdvanced')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-primary" />
-                  <span>Diario de Trading</span>
+                  <span>{t('featureTradingJournal')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-primary" />
-                  <span>Alertas de Precios</span>
+                  <span>{t('featurePriceAlerts')}</span>
                 </li>
               </ul>
             </div>
@@ -100,12 +100,12 @@ export default function DashboardPage() {
                 <>
                   <Link to="/login">
                     <Button size="lg" className="w-full sm:w-auto">
-                      Iniciar Sesión
+                      {t('login')}
                     </Button>
                   </Link>
                   <Link to="/pricing">
                     <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                      Ver Planes Premium
+                      {t('viewPremiumPlans')}
                     </Button>
                   </Link>
                 </>
@@ -113,12 +113,12 @@ export default function DashboardPage() {
                 <>
                   <Link to="/pricing">
                     <Button size="lg" className="w-full sm:w-auto">
-                      Ver Planes Premium
+                      {t('viewPremiumPlans')}
                     </Button>
                   </Link>
                   <Link to="/">
                     <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                      Volver al Inicio
+                      {t('backHome')}
                     </Button>
                   </Link>
                 </>

@@ -125,7 +125,7 @@ export function Header() {
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <User className="w-4 h-4 text-primary" />
                     </div>
-                    <span className="hidden sm:block text-sm">{user?.name || 'Usuario'}</span>
+                    <span className="hidden sm:block text-sm">{user?.name || t('userFallback')}</span>
                     {isPremium && <Crown className="w-4 h-4 text-yellow-500" />}
                     <ChevronDown className="w-4 h-4" />
                   </Button>
