@@ -67,6 +67,17 @@
 ### Feb 2026 — Subtabs Options (Optimizar/Flow/IV Surface/Academia) ✅
 
 ### Feb 2026 — Fragmentos restantes Flow/IV/Calculator ✅
+
+### Feb 2026 — Revisión final i18n Options en los 8 idiomas ✅
+- **EDU_MODULES completado en ru/zh/ja/ar**: 57 strings (previously fallback ES) ahora traducidos nativamente via Claude 4.5. `edu_fixup.py` reemplazó valores en i18n.js con traducciones reales.
+- **Normalización de indentación**: 1 key (`edu_fundamentosComprarVsVende_6227e3cc`) tenía indent de 6 spaces por artefacto del primer inject; normalizado a 4.
+- **IV Rank Badge backend → frontend i18n**: antes `server.py` devolvía labels españoles hardcoded (`VENDE PRIMA`, `COMPRA PRIMA`, `NEUTRAL`) con razones. Ahora el frontend (`IVRankBadge.jsx`) mapea el `recommendation` key (`sell_premium/buy_premium/neutral`) a 6 translation keys (label + reason) y ya no lee los campos `recommendationLabel/Reason` del backend. **48 traducciones nuevas** (6 × 8 locales).
+- **Paridad final verificada**: los 8 locales tienen exactamente **1174 keys** cada uno (`extract_missing.py` confirma 0 missing).
+- **Verificación visual**:
+  - **Japonés** `/options` + Academia expanded: 50+ textos técnicos renderizan en japonés nativo (強気バイアス, プレミアム, 満期, 現在の出来高..., アカデミー tab, etc.). Zero Spanish leaks.
+  - **Árabe** `/options`: `<html dir="rtl">` aplicado, 33 strategy cards (`محدود (العلاوة المدفوعة)`), nav header (التعليم/الأسعار/الخيارات/لوحة التحكم), Earnings banner, filter tabs (الكل/صاعد/هابط/محايد). Zero Spanish leaks.
+  - **Ruso** `/options`: header (Панель/Опционы/Цены/Обучение), IV Rank (ПРОДАВАЙ ПРЕМИЮ), Earnings, 33 strategy cards con risk/reward en ruso, Multi-Leg Конструктор + Leg Editor (Количество/ПРЕМИЯ), todas las 6 tabs. Zero Spanish leaks.
+- HTML assertion batch sobre 16 fragmentos españoles clave → todos ausentes en los 4 locales testados.
 - **MarketFlow.jsx**: intro "Pulsa Escanear para detectar unusual activity en SPY, QQQ, TSLA... y 18 tickers más" → `flowIntroDesc_mf001` con placeholder `{scan}` + `escanear_mf002` inline bold. "Escaneando 24 tickers..." → `scanning24_mf003`. "Sin actividad inusual detectada con ratio ≥ {ratio}x" → `noUnusualActivity_mf004` con placeholder.
 - **IVSurfaceView.jsx**: footer "Interpretation: La volatilidad implícita (IV) refleja... IV alta (rojo) indica mayor incertidumbre... skew (asimetría) muestra diferencias entre strikes ITM/ATM/OTM" — párrafo completo extraído a `ivInterpretationDesc_sf001`.
 - **LegEditor.jsx**: label "Prima" del leg editor → `t('prima_ua002')` (reutilizando key existente).

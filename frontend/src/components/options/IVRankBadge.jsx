@@ -35,6 +35,16 @@ const IVRankBadge = ({ symbol }) => {
 
   if (!data || !data.available) return null;
 
+  // Map backend recommendation key to i18n keys
+  const REC_MAP = {
+    sell_premium: { label: 'ivRecSellPremium_ir001', reason: 'ivRecSellPremiumReason_ir002' },
+    buy_premium: { label: 'ivRecBuyPremium_ir003', reason: 'ivRecBuyPremiumReason_ir004' },
+    neutral: { label: 'ivRecNeutral_ir005', reason: 'ivRecNeutralReason_ir006' },
+  };
+  const rec = REC_MAP[data.recommendation] || REC_MAP.neutral;
+  const recLabel = t(rec.label);
+  const recReason = t(rec.reason);
+
   const rank = data.ivRank;
   const isHigh = rank >= 60;
   const isLow = rank <= 30;
@@ -48,13 +58,13 @@ const IVRankBadge = ({ symbol }) => {
   return (
     <div
       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold ${palette}`}
-      title={`${data.recommendationLabel} · ${data.recommendationReason}\n${t('ivCurrent_iv004')}: ${(data.ivCurrent * 100).toFixed(1)}%\n${t('range52w_iv005')}: ${(data.ivLow52w * 100).toFixed(1)}% → ${(data.ivHigh52w * 100).toFixed(1)}%\n${t('percentile_iv006')}: ${data.ivPercentile}%`}
+      title={`${recLabel} · ${recReason}\n${t('ivCurrent_iv004')}: ${(data.ivCurrent * 100).toFixed(1)}%\n${t('range52w_iv005')}: ${(data.ivLow52w * 100).toFixed(1)}% → ${(data.ivHigh52w * 100).toFixed(1)}%\n${t('percentile_iv006')}: ${data.ivPercentile}%`}
       data-testid="iv-rank-badge"
     >
       <Icon className="w-3 h-3" />
       <span>IV Rank</span>
       <span className="font-mono text-xs">{rank.toFixed(0)}%</span>
-      <span className="hidden sm:inline text-[9px] opacity-80 uppercase">· {data.recommendationLabel}</span>
+      <span className="hidden sm:inline text-[9px] opacity-80 uppercase">· {recLabel}</span>
     </div>
   );
 };
