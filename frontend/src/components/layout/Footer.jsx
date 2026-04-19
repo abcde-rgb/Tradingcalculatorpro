@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { TrendingUp, Sun, Moon, Globe, Github, Linkedin, Mail } from 'lucide-react';
+import { TrendingUp, Sun, Moon, Globe, Linkedin, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 import { useThemeStore } from '@/lib/theme';
@@ -25,6 +25,18 @@ const YoutubeLogo = (props) => (
     {...props}
   >
     <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+  </svg>
+);
+
+// TradingView logo mark (stylized candlestick chart)
+const TradingViewLogo = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    {...props}
+  >
+    <path d="M1.5 9h4.75v1.5H4v10.5H2.5V10.5H1.5V9zM8 9h6a3 3 0 1 1-3 3h-3V9zm3 1.5v3a1.5 1.5 0 1 0 0-3zm6.5 4 3.5 6H19l-1.5-2.7L16 20.5h-2l3.5-6zm0-5.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5z" />
   </svg>
 );
 
@@ -62,9 +74,9 @@ export function Footer() {
                   <YoutubeLogo className="w-4 h-4" />
                 </a>
               </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="GitHub" data-testid="footer-github" asChild>
-                <a href="https://github.com" target="_blank" rel="noreferrer">
-                  <Github className="w-4 h-4" />
+              <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="TradingView" data-testid="footer-tradingview" asChild>
+                <a href="https://tradingview.com" target="_blank" rel="noreferrer">
+                  <TradingViewLogo className="w-4 h-4" />
                 </a>
               </Button>
               <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="LinkedIn" data-testid="footer-linkedin" asChild>
