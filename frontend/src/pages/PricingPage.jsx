@@ -25,12 +25,21 @@ const PLANS_DATA = [
 
 // Payment methods will use t() for dynamic translation
 const PAYMENT_METHODS_DATA = [
-  { id: 'card', icon: CreditCard, color: 'text-blue-500' },
-  { id: 'sepa', icon: Building, color: 'text-emerald-500' },
-  { id: 'klarna', icon: ShoppingCart, color: 'text-pink-500' },
-  { id: 'paypal', icon: Wallet, color: 'text-blue-400' },
-  { id: 'crypto', icon: Bitcoin, color: 'text-orange-500' },
+  { id: 'card', icon: CreditCard, color: 'text-blue-500', nameKey: 'creditDebitCard', descKey: 'creditCardDesc' },
+  { id: 'sepa', icon: Building, color: 'text-emerald-500', nameKey: 'sepaDebit', descKey: 'sepaDesc' },
+  { id: 'klarna', icon: ShoppingCart, color: 'text-pink-500', nameKey: 'klarnaPayment', descKey: 'klarnaDesc' },
+  { id: 'paypal', icon: Wallet, color: 'text-blue-400', nameKey: 'paypalPayment', descKey: 'paypalDesc' },
+  { id: 'crypto', icon: Bitcoin, color: 'text-orange-500', nameKey: 'cryptoPayment', descKey: 'cryptoDesc' },
 ];
+
+// Processor name displayed in "Secure payment via {processor}" footer
+const PAYMENT_PROCESSOR_NAMES = {
+  card: 'Stripe',
+  crypto: 'Stripe (Crypto)',
+  paypal: 'PayPal',
+  sepa: 'Stripe (SEPA)',
+  klarna: 'Klarna',
+};
 
 export default function PricingPage() {
   const [searchParams] = useSearchParams();
@@ -182,8 +191,8 @@ export default function PricingPage() {
                   >
                     <method.icon className={`w-8 h-8 ${method.color}`} />
                     <div className="text-left">
-                      <p className="font-semibold">{method.id === 'card' ? t('creditDebitCard') : method.id === 'sepa' ? t('sepaDebit') : method.id === 'klarna' ? t('klarnaPayment') : method.id === 'paypal' ? t('paypalPayment') : t('cryptoPayment')}</p>
-                      <p className="text-sm text-muted-foreground">{method.id === 'card' ? t('creditCardDesc') : method.id === 'sepa' ? t('sepaDesc') : method.id === 'klarna' ? t('klarnaDesc') : method.id === 'paypal' ? t('paypalDesc') : t('cryptoDesc')}</p>
+                      <p className="font-semibold">{t(method.nameKey)}</p>
+                      <p className="text-sm text-muted-foreground">{t(method.descKey)}</p>
                     </div>
                     {selectedPayment === method.id && (
                       <Check className="w-5 h-5 text-primary ml-auto" />
@@ -233,13 +242,7 @@ export default function PricingPage() {
                     
                     <div className="text-xs text-center text-muted-foreground space-y-1">
                       <p>
-                        {t('securePayment')} {
-                          selectedPayment === 'crypto' ? 'Stripe (Crypto)' : 
-                          selectedPayment === 'paypal' ? 'PayPal' : 
-                          selectedPayment === 'sepa' ? 'Stripe (SEPA)' :
-                          selectedPayment === 'klarna' ? 'Klarna' :
-                          'Stripe'
-                        }
+                        {t('securePayment')} {PAYMENT_PROCESSOR_NAMES[selectedPayment] || 'Stripe'}
                       </p>
                       <p>{t('cancelAnytime')}</p>
                     </div>
