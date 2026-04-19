@@ -46,6 +46,16 @@
 - **O(n²) → O(n) en SimulatorPro**: `drawdownData` ahora calcula running peak en single pass + `useMemo`. Para 180 ops: 32,400 array ops → 180 (180x faster)
 - **`get_journal_stats()` backend**: merged 5 iteraciones separadas (wins/losses/pnl/consecutive/equity) en un single-pass loop. Para 1000 trades: 5x → 1x iteración. Testeado con 5 trades de prueba: winRate 40%, maxDrawdown 15, profitFactor 1.0 — todos coinciden con valores esperados.
 
+### Feb 2026 — Cierre del epic i18n (zh, ja, ar + widgets) ✅
+- **TradingView widget locale dinámico**: `src/components/charts/TradingViewChart.jsx` mapea `es→es, en→en, de→de_DE, fr→fr, ru→ru, zh→zh_CN, ja→ja, ar→ar_AE` y recarga el iframe cuando cambia el idioma. Antes estaba hardcoded a `locale=es`.
+- **Backfill masivo de traducciones**: generadas vía Claude Sonnet 4.5 (EMERGENT LLM KEY) y inyectadas en `lib/i18n.js`:
+  - en: +38 keys • de/fr/ru: +61 each • zh/ja: +186 each • ar: +268
+  - Paridad alcanzada: todos los locales tienen 770 keys = master `es`
+- **RTL fix en hidratación**: `useI18nStore` ahora aplica `<html dir="rtl" lang="ar">` en `onRehydrateStorage`, no solo al llamar `setLocale`. Antes el RTL solo se aplicaba al cambiar idioma manualmente, no en primer load.
+- **Category keys i18n**: añadidas `categoryCrypto/Forex/Stocks/Indices/Commodities/Futures` en los 8 locales; el `TradingViewChart` ya no muestra "Criptomonedas" fijo en español.
+- **Strings hardcoded del chart traducidos**: "Cargando gráfico…", "No se pudo cargar el gráfico", "Reintentar", "Limpiar configuración" → ahora vía `t()`.
+- Verificación manual: Chinese (zh_CN), Japanese (ja), Arabic (ar_AE) screenshots confirman widget + UI traducidos + RTL funcionando.
+
 ## Backlog
 
 ### P1 (próximo)

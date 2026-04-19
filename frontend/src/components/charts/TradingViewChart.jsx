@@ -1,16 +1,31 @@
 import { useEffect, useRef, useState, memo, useCallback } from 'react';
 import { useAssetsStore, ALL_ASSETS, ASSET_CATEGORIES, getAssetsByCategory } from '@/lib/assets';
 import { useThemeStore } from '@/lib/theme';
+import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Maximize2, Minimize2, Star, StarOff, AlertCircle, RefreshCw, CandlestickChart, Trash2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
+// TradingView supported locale mapping. See https://www.tradingview.com/widget/advanced-chart/
+const TV_LOCALE_MAP = {
+  es: 'es',
+  en: 'en',
+  de: 'de_DE',
+  fr: 'fr',
+  ru: 'ru',
+  zh: 'zh_CN',
+  ja: 'ja',
+  ar: 'ar_AE',
+};
+
 function TradingViewWidgetComponent() {
   const containerRef = useRef(null);
   const { selectedAsset, setSelectedAsset, selectedCategory, setSelectedCategory, favorites, addFavorite, removeFavorite } = useAssetsStore();
   const { theme } = useThemeStore();
+  const { locale, t } = useTranslation();
+  const tvLocale = TV_LOCALE_MAP[locale] || 'en';
   
   const [persistedData, setPersistedData, clearPersistedData, isLoadingPersistedState] = usePersistedState('tradingview_chart', {
     interval: 'D',
@@ -64,7 +79,7 @@ function TradingViewWidgetComponent() {
       // Create TradingView widget using iframe approach (more reliable)
       const iframe = document.createElement('iframe');
       iframe.id = 'tradingview-widget-iframe';
-      iframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=${encodeURIComponent(tradingviewSymbol)}&interval=${interval}&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=RSI%40tv-basicstudies&theme=${tvTheme}&style=1&timezone=Etc%2FUTC&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=es&utm_source=&utm_medium=widget_new&utm_campaign=chart&utm_term=${encodeURIComponent(tradingviewSymbol)}`;
+      iframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=${encodeURIComponent(tradingviewSymbol)}&interval=${interval}&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=RSI%40tv-basicstudies&theme=${tvTheme}&style=1&timezone=Etc%2FUTC&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=${tvLocale}&utm_source=&utm_medium=widget_new&utm_campaign=chart&utm_term=${encodeURIComponent(tradingviewSymbol)}`;
       iframe.style.width = '100%';
       iframe.style.height = '100%';
       iframe.style.border = 'none';
@@ -93,7 +108,7 @@ function TradingViewWidgetComponent() {
       setLoadError(true);
       setIsLoading(false);
     }
-  }, [tradingviewSymbol, interval, getTradingViewTheme]); // Fixed: added getTradingViewTheme dependency
+  }, [tradingviewSymbol, interval, getTradingViewTheme, tvLocale]); // Fixed: added tvLocale so widget reloads when language changes
 
   useEffect(() => {
     loadWidget();
@@ -148,7 +163,7 @@ function TradingViewWidgetComponent() {
             <SelectContent>
               {Object.values(ASSET_CATEGORIES).map(cat => (
                 <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
+                  {t(`category${cat.id.charAt(0).toUpperCase() + cat.id.slice(1)}`) || cat.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -216,7 +231,7 @@ function TradingViewWidgetComponent() {
           </Button>
 
           {/* Clear Settings */}
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={clearPersistedData} title="Limpiar configuración">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={clearPersistedData} title={t('clearSettings')}>
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
@@ -228,7 +243,7 @@ function TradingViewWidgetComponent() {
           <div className="absolute inset-0 flex items-center justify-center bg-card z-10">
             <div className="text-center">
               <CandlestickChart className="w-12 h-12 text-primary mx-auto mb-3 animate-pulse" />
-              <p className="text-sm text-muted-foreground">Cargando gráfico...</p>
+              <p className="text-sm text-muted-foreground">{t('chartLoading')}</p>
             </div>
           </div>
         )}
@@ -237,12 +252,12 @@ function TradingViewWidgetComponent() {
           <div className="absolute inset-0 flex items-center justify-center bg-card z-10">
             <div className="text-center p-6">
               <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">No se pudo cargar el gráfico</h3>
+              <h3 className="font-semibold mb-2">{t('chartLoadFailed')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                El widget de TradingView no está disponible en este momento
+                {t('chartNotAvailable')}
               </p>
               <Button onClick={loadWidget} variant="outline" className="gap-2">
-                <RefreshCw className="w-4 h-4" /> Reintentar
+                <RefreshCw className="w-4 h-4" /> {t('retry')}
               </Button>
             </div>
           </div>
