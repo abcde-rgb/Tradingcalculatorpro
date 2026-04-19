@@ -37,7 +37,7 @@ const CalculatorPage = () => {
   const [activeTab, setActiveTab] = useState('calculator');
   const [loading, setLoading] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  const [builderMode, setBuilderMode] = useState('preset'); // 'preset' | 'custom'
+  const [builderMode, setBuilderMode] = useState('custom'); // 'preset' | 'custom' — default 'custom' so Constructor Multi-Leg is always open
   const [customLegs, setCustomLegs] = useState([]);
   const [compareMode, setCompareMode] = useState(false);
   const [selectedStrategyB, setSelectedStrategyB] = useState(STRATEGIES.find((s) => s.id === 'short_put') || STRATEGIES[1]);
@@ -195,6 +195,41 @@ const CalculatorPage = () => {
 
   // Active legs based on mode
   const legs = builderMode === 'custom' ? customBuiltLegs : presetLegs;
+
+  // Auto-seed the custom builder with the preset strategy's legs when:
+  //   • Constructor Multi-Leg is active
+  //   • Custom builder is empty
+  //   • Preset legs have been built (chain loaded, stock present)
+  // This ensures the Constructor is never shown with "0 patas" on first load or
+  // after ticker changes that temporarily wipe the chain.
+  const seededRef = useRef(null);
+  useEffect(() => {
+    if (builderMode !== 'custom') return;
+    if (customLegs.length > 0) return;
+    if (presetLegs.length === 0) return;
+    // Only seed once per (strategy, ticker, strikeIdx) combo to avoid wiping user edits
+    const key = `${selectedStrategy.id}-${ticker}-${selectedStrikeIdx}`;
+    if (seededRef.current === key) return;
+    seededRef.current = key;
+    setCustomLegs(
+      presetLegs
+        .filter((l) => l.type !== 'stock')
+        .map((l, i) => {
+          const idx = chain.findIndex((s) => s.strike === l.strike);
+          return {
+            id: `seed-${Date.now()}-${i}`,
+            type: l.type,
+            action: l.action,
+            quantity: l.quantity || 1,
+            strikeIdx: idx >= 0 ? idx : selectedStrikeIdx,
+            strike: l.strike,
+            premium: l.premium,
+            iv: l.iv,
+            enabled: true,
+          };
+        })
+    );
+  }, [builderMode, customLegs.length, presetLegs, selectedStrategy.id, ticker, selectedStrikeIdx, chain]);
 
   // Strategy B (for comparison mode) — uses same chain/strike/contracts/expiration
   const legsB = useMemo(() => {
