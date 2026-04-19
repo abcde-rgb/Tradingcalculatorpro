@@ -59,6 +59,17 @@
 ### Feb 2026 — Fragmentos Trading Journal + Monte Carlo "Limpiar Datos" ✅
 
 ### Feb 2026 — Barrido automático completo i18n ✅
+
+### Feb 2026 — Options strategy data i18n ✅ (mockData.js)
+- **136 strings únicos** de STRATEGIES (name/description/risk/reward/maxProfit/maxLoss/whenToUse) traducidos a 8 idiomas vía Claude 4.5 (~1088 traducciones).
+- **Transformación de datos**: mockData.js ahora almacena **translation keys** en lugar de strings españoles. Ejemplo: `name: 'mock_longCallBuy_780ea6ab'` en vez de `name: 'Long Call · BUY'`. **231 field values** reemplazados en el bloque STRATEGIES.
+- **Render sites wrapped con `t()`**: `StrategyBar.jsx`, `EducationTab.jsx`, `CalculatorPage.jsx` (chart title, compare labels, select options), `SimulatorPro.jsx` (strategy select).
+- **Traducción incremental** con guardado por locale (evita perder progreso si budget se agota) — resolvió el incidente "budget exceeded $1.01" recargando saldo mid-flight.
+- **Extras añadidos**:
+  - Compare cell labels: `Métrica/Máx. Beneficio/Máx. Pérdida/Capital Req.` → keys en 8 idiomas.
+  - Earnings banner: `HOY/en 11d/dentro de tu vencimiento/Espera IV crush post-evento` → keys en 8 idiomas con placeholder `{n}` para días.
+  - Label "Comparando" → `comparing_1f0e14`.
+- **Verificación**: screenshots `/options` logged-in en alemán + chino. 33 strategy cards, chart, earnings banner, compare bar — todo traducido sin strings españoles detectables por assertion HTML.
 - **Extracción automática**: 101 strings hardcoded identificados en 25 archivos JSX (jsx text, atributos `placeholder/title/aria-label`, toasts, prompts, alerts).
 - **Traducción batch**: 808 traducciones (101 strings × 8 locales) vía Claude Sonnet 4.5 usando EMERGENT LLM KEY. Segundo pase añadió 17 strings más (JSX-expression context) + 6 greek sub-labels + 3 bias labels + 2 ternary auth strings = **129 nuevos keys** por locale.
 - **Inyección automática**: script Python inyecta keys en `/lib/i18n.js` respetando el cierre de cada bloque locale, y añade automáticamente `import { useTranslation }` + `const { t } = useTranslation()` en componentes que lo necesitan.

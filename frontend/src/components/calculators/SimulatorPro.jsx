@@ -551,7 +551,7 @@ export function SimulatorPro() {
                             <SelectContent>
                               {STRATEGIES.map(s => (
                                 <SelectItem key={s.id} value={s.id} className="text-xs">
-                                  {t(s.nameKey)}
+                                  {t(s.name)}
                                 </SelectItem>
                               ))}
                             </SelectContent>

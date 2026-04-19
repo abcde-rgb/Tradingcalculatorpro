@@ -134,8 +134,8 @@ const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
               <ShapeSVG shape={strategy.shape} color={selected.id === strategy.id ? '#22c55e' : strategy.color} />
             </div>
             <div className="text-left">
-              <div className="text-xs font-semibold whitespace-nowrap text-foreground">{strategy.name}</div>
-              <div className="text-[9px] text-muted-foreground whitespace-nowrap">{strategy.risk} {t('riskLabel')} · {strategy.reward} {t('rewardLabel')}</div>
+              <div className="text-xs font-semibold whitespace-nowrap text-foreground">{t(strategy.name)}</div>
+              <div className="text-[9px] text-muted-foreground whitespace-nowrap">{t(strategy.risk)} {t('riskLabel')} · {t(strategy.reward)} {t('rewardLabel')}</div>
             </div>
           </button>
         ))}

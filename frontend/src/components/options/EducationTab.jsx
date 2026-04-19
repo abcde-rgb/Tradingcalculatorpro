@@ -96,7 +96,7 @@ const EducationTab = ({ onSwitchToCalc }) => {
                   const bs = BIAS_STYLES[s.category] || BIAS_STYLES.Neutral;
                   return (
                     <tr key={s.id} className="border-t border-border hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-2.5 font-medium text-foreground">{s.name}</td>
+                      <td className="px-4 py-2.5 font-medium text-foreground">{t(s.name)}</td>
                       <td className="px-4 py-2.5">
                         <span
                           className="px-2 py-0.5 rounded text-[10px] font-bold"
@@ -105,9 +105,9 @@ const EducationTab = ({ onSwitchToCalc }) => {
                           {t(bs.labelKey)}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-[#4ade80]">{s.maxProfit || 'Variable'}</td>
-                      <td className="px-4 py-2.5 text-[#f87171]">{s.maxLoss || 'Variable'}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{s.whenToUse || t('verDescripcion_8d4e1f')}</td>
+                      <td className="px-4 py-2.5 text-[#4ade80]">{s.maxProfit ? t(s.maxProfit) : 'Variable'}</td>
+                      <td className="px-4 py-2.5 text-[#f87171]">{s.maxLoss ? t(s.maxLoss) : 'Variable'}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{s.whenToUse ? t(s.whenToUse) : t('verDescripcion_8d4e1f')}</td>
                     </tr>
                   );
                 })}

@@ -417,7 +417,7 @@ const CalculatorPage = () => {
                 <span className="text-base leading-none">📊</span>
                 <span className="text-[#fbbf24] font-semibold">Earnings {nextEarnings}</span>
                 <span className="text-muted-foreground">
-                  ({daysToEarnings === 0 ? 'HOY' : `en ${daysToEarnings}d`}) — dentro de tu vencimiento ({currentExp.daysToExpiry}d). Espera IV crush post-evento.
+                  ({daysToEarnings === 0 ? t('earningsToday_1f0e11') : t('earningsInDays_1f0e12').replace('{n}', daysToEarnings)}) — {t('earningsWithinExpiry_1f0e13').replace('{n}', currentExp.daysToExpiry)}
                 </span>
               </div>
             );
@@ -536,9 +536,9 @@ const CalculatorPage = () => {
                 <div className="bg-gradient-to-r from-[#a855f7]/5 to-transparent border border-[#a855f7]/30 rounded-xl p-3" data-testid="compare-panel">
                   <div className="flex items-center gap-3 mb-2">
                     <GitCompare className="w-4 h-4 text-[#c084fc]" />
-                    <span className="text-xs font-bold text-[#c084fc] uppercase tracking-wider">Comparando</span>
+                    <span className="text-xs font-bold text-[#c084fc] uppercase tracking-wider">{t('comparing_1f0e14')}</span>
                     <span className="text-[11px] text-muted-foreground">
-                      <span className="text-[#4ade80] font-bold">A:</span> {selectedStrategy.name}
+                      <span className="text-[#4ade80] font-bold">A:</span> {t(selectedStrategy.name)}
                       <span className="mx-2 text-muted-foreground/50">vs</span>
                       <span className="text-[#c084fc] font-bold">B:</span>
                     </span>
@@ -555,7 +555,7 @@ const CalculatorPage = () => {
                         <optgroup key={cat} label={cat}>
                           {STRATEGIES.filter((s) => s.category === cat).map((s) => (
                             <option key={s.id} value={s.id} disabled={s.id === selectedStrategy.id}>
-                              {s.name}
+                              {t(s.name)}
                             </option>
                           ))}
                         </optgroup>
@@ -564,10 +564,10 @@ const CalculatorPage = () => {
                   </div>
                   {/* Comparison metrics table */}
                   <div className="grid grid-cols-7 gap-1.5 mt-2 text-[11px] font-mono">
-                    <CompareCell label="Métrica" headers />
-                    <CompareCell label="Máx. Beneficio" a={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`} b={statsB.isMaxProfitUnlimited ? '∞' : `$${statsB.maxProfit}`} winner={compareNumeric(stats.maxProfit, statsB.maxProfit, 'higher', stats.isMaxProfitUnlimited, statsB.isMaxProfitUnlimited)} />
-                    <CompareCell label="Máx. Pérdida" a={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`} b={statsB.isMaxLossUnlimited ? '−∞' : `$${statsB.maxLoss}`} winner={compareNumeric(stats.maxLoss, statsB.maxLoss, 'higher', stats.isMaxLossUnlimited, statsB.isMaxLossUnlimited)} />
-                    <CompareCell label="Capital Req." a={`$${stats.capitalRequired}`} b={`$${statsB.capitalRequired}`} winner={compareNumeric(stats.capitalRequired, statsB.capitalRequired, 'lower')} />
+                    <CompareCell label={t('metric_c8a9b1')} headers />
+                    <CompareCell label={t('maxBeneficio_c8a9b2')} a={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`} b={statsB.isMaxProfitUnlimited ? '∞' : `$${statsB.maxProfit}`} winner={compareNumeric(stats.maxProfit, statsB.maxProfit, 'higher', stats.isMaxProfitUnlimited, statsB.isMaxProfitUnlimited)} />
+                    <CompareCell label={t('maxPerdida_c8a9b3')} a={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`} b={statsB.isMaxLossUnlimited ? '−∞' : `$${statsB.maxLoss}`} winner={compareNumeric(stats.maxLoss, statsB.maxLoss, 'higher', stats.isMaxLossUnlimited, statsB.isMaxLossUnlimited)} />
+                    <CompareCell label={t('capitalReq_c8a9b4')} a={`$${stats.capitalRequired}`} b={`$${statsB.capitalRequired}`} winner={compareNumeric(stats.capitalRequired, statsB.capitalRequired, 'lower')} />
                     <CompareCell label="POP %" a={`${stats.pop}%`} b={`${statsB.pop}%`} winner={compareNumeric(stats.pop, statsB.pop, 'higher')} />
                     <CompareCell label="R/R" a={stats.rr} b={statsB.rr} winner={compareNumeric(stats.rr, statsB.rr, 'higher')} />
                     <CompareCell label="ROI %" a={`${stats.roi}%`} b={`${statsB.roi}%`} winner={compareNumeric(stats.roi, statsB.roi, 'higher')} />
@@ -583,11 +583,11 @@ const CalculatorPage = () => {
                   stockPrice={stock?.price}
                   legs={legs}
                   dataB={compareMode ? payoffDataB : null}
-                  labelA={selectedStrategy.name}
-                  labelB={selectedStrategyB.name}
+                  labelA={t(selectedStrategy.name)}
+                  labelB={t(selectedStrategyB.name)}
                   title={compareMode
-                    ? `${selectedStrategy.name} vs ${selectedStrategyB.name} — ${ticker}`
-                    : `${selectedStrategy.name} — ${ticker}`}
+                    ? `${t(selectedStrategy.name)} vs ${t(selectedStrategyB.name)} — ${ticker}`
+                    : `${t(selectedStrategy.name)} — ${ticker}`}
                 />
               </div>
 
