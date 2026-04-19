@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { Plus, Trash2, GripVertical, ToggleLeft, ToggleRight, ChevronDown, Copy, RotateCcw } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
+  const { t } = useTranslation();
   const [dragIdx, setDragIdx] = useState(null);
 
   const addLeg = useCallback((type = 'call', action = 'buy') => {
@@ -85,8 +87,8 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <div>
-          <h3 className="text-xs font-bold text-foreground uppercase tracking-widest">Constructor de Legs</h3>
-          <p className="text-[9px] text-muted-foreground mt-0.5">{legs.filter(l => l.enabled).length} patas activas</p>
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-widest">{t('optLegsBuilder')}</h3>
+          <p className="text-[9px] text-muted-foreground mt-0.5">{legs.filter(l => l.enabled).length} {t('optLegsActive')}</p>
         </div>
         <div className="flex items-center gap-1.5">
           <button
@@ -234,7 +236,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
 
         {legs.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground mb-1">Sin patas</p>
+            <p className="text-sm text-muted-foreground mb-1">{t('optLegsEmpty')}</p>
             <p className="text-[10px] text-[#3a4f6e]">Añade calls o puts para construir tu estrategia</p>
           </div>
         )}

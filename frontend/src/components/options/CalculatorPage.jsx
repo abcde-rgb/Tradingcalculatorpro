@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { STRATEGIES, STRATEGY_CATEGORIES } from '../../data/mockData';
 import { calculateStrategyPayoff, findBreakEvenPoints, calculateStrategyGreeks, probabilityOfProfit } from '../../utils/blackScholes';
 import { computeStrategyStats } from '../../utils/strategyStats';
+import { useTranslation } from '@/lib/i18n';
 import { fetchStock, fetchOptionsChain, fetchExpirations } from '../../services/optionsApi';
 import PayoffChart from './PayoffChart';
 import StrategyBar from './StrategyBar';
@@ -25,6 +26,7 @@ import MarketFlow from './MarketFlow';
 import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy, Calculator } from 'lucide-react';
 
 const CalculatorPage = () => {
+  const { t } = useTranslation();
   const [ticker, setTicker] = useState('AAPL');
   const [stock, setStock] = useState(null);
   const [expirations, setExpirations] = useState([]);
@@ -321,25 +323,25 @@ const CalculatorPage = () => {
         <div className="ml-auto flex items-center gap-2">
           <div className="flex bg-muted rounded-lg border border-border overflow-hidden">
             <button onClick={() => setActiveTab('calculator')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'calculator' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              <BarChart2 className="w-3.5 h-3.5 inline mr-1" />Calculator
+              <BarChart2 className="w-3.5 h-3.5 inline mr-1" />{t('optTabCalculator')}
             </button>
             <button onClick={() => setActiveTab('optimize')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'optimize' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`} data-testid="tab-optimize">
-              <Target className="w-3.5 h-3.5 inline mr-1" />Optimizar
+              <Target className="w-3.5 h-3.5 inline mr-1" />{t('optTabOptimize')}
             </button>
             <button onClick={() => setActiveTab('flow')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'flow' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`} data-testid="tab-flow">
-              <Activity className="w-3.5 h-3.5 inline mr-1" />Flow
+              <Activity className="w-3.5 h-3.5 inline mr-1" />{t('optTabFlow')}
             </button>
             <button onClick={() => setActiveTab('chain')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'chain' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              <LayoutGrid className="w-3.5 h-3.5 inline mr-1" />Chain
+              <LayoutGrid className="w-3.5 h-3.5 inline mr-1" />{t('optTabChain')}
             </button>
             <button onClick={() => setActiveTab('iv-surface')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'iv-surface' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              <Activity className="w-3.5 h-3.5 inline mr-1" />IV Surface
+              <Activity className="w-3.5 h-3.5 inline mr-1" />{t('optTabIVSurface')}
             </button>
             <button onClick={() => setActiveTab('education')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'education' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              <BookOpen className="w-3.5 h-3.5 inline mr-1" />Academia
+              <BookOpen className="w-3.5 h-3.5 inline mr-1" />{t('optTabAcademy')}
             </button>
           </div>
-          <button onClick={() => setShowGuide(true)} className="p-1.5 rounded-lg hover:bg-muted transition-colors" title="Guía Rápida">
+          <button onClick={() => setShowGuide(true)} className="p-1.5 rounded-lg hover:bg-muted transition-colors" title={t('optQuickGuide')}>
             <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-[#eab308]" />
           </button>
           <div className="flex items-center gap-1.5 text-xs ml-1">
@@ -442,7 +444,7 @@ const CalculatorPage = () => {
               }`}
               data-testid="compare-toggle"
             >
-              <GitCompare className="w-3 h-3" /> {compareMode ? 'COMPARANDO' : 'COMPARAR A vs B'}
+              <GitCompare className="w-3 h-3" /> {compareMode ? t('optComparing') : t('optCompareToggle')}
             </button>
           </div>
 
@@ -450,12 +452,12 @@ const CalculatorPage = () => {
           <div className="bg-card border-b border-border px-5 py-2 flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Wrench className="w-4 h-4 text-[#f59e0b]" />
-              <h3 className="text-sm font-bold text-foreground">Constructor Multi-Leg</h3>
+              <h3 className="text-sm font-bold text-foreground">{t('optConstructorTitle')}</h3>
             </div>
             <span className="text-[10px] bg-[#f59e0b]/10 px-2 py-0.5 rounded-full text-[#fbbf24] font-semibold">
-              {customLegs.filter(l => l.enabled).length} patas
+              {customLegs.filter(l => l.enabled).length} {t('optLegs')}
             </span>
-            <span className="text-[10px] text-muted-foreground ml-2">· Edita legs a la derecha o selecciona una estrategia arriba</span>
+            <span className="text-[10px] text-muted-foreground ml-2">· {t('optConstructorHint')}</span>
           </div>
 
           {/* Main Content */}
@@ -464,10 +466,10 @@ const CalculatorPage = () => {
             <div className="flex-1 flex flex-col p-3 gap-2.5 min-w-0">
               {/* Metrics Row - 5 primary KPIs (larger, breathable) */}
               <div className="grid grid-cols-5 gap-2">
-                <StatCard icon={TrendingUp} label="Máx. Beneficio" value={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`} color="text-[#22c55e]" />
-                <StatCard icon={TrendingDown} label="Máx. Pérdida" value={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`} color="text-[#ef4444]" />
-                <StatCard icon={Wallet} label="Capital Req." value={stats.isMaxLossUnlimited ? `~$${stats.capitalRequired}` : `$${stats.capitalRequired}`} color="text-[#f59e0b]" title="Estimación Reg-T del capital/margen requerido" />
-                <StatCard icon={Percent} label="Prob. Beneficio" value={`${stats.pop || 0}%`} color="text-primary" />
+                <StatCard icon={TrendingUp} label={t('optMaxProfit')} value={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`} color="text-[#22c55e]" />
+                <StatCard icon={TrendingDown} label={t('optMaxLoss')} value={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`} color="text-[#ef4444]" />
+                <StatCard icon={Wallet} label={t('optCapitalReq')} value={stats.isMaxLossUnlimited ? `~$${stats.capitalRequired}` : `$${stats.capitalRequired}`} color="text-[#f59e0b]" title="Reg-T estimation of required capital/margin" />
+                <StatCard icon={Percent} label={t('optProbProfit')} value={`${stats.pop || 0}%`} color="text-primary" />
                 <StatCard icon={ArrowUpRight} label="ROI" value={`${stats.roi}%`} color="text-primary" />
               </div>
 
@@ -475,24 +477,24 @@ const CalculatorPage = () => {
               <div className="flex items-center gap-3 flex-wrap bg-card/50 border border-border/60 rounded-lg px-3 py-2 text-[11px]">
                 <div className="flex items-center gap-1.5">
                   <Scale className="w-3 h-3 text-[#eab308]" />
-                  <span className="text-muted-foreground">R/R</span>
+                  <span className="text-muted-foreground">{t('optRiskReward')}</span>
                   <span className="font-mono font-bold text-[#eab308]">{stats.rr || '—'}</span>
                 </div>
                 <span className="text-muted-foreground/40">·</span>
                 <div className="flex items-center gap-1.5">
                   <Target className="w-3 h-3 text-[#a78bfa]" />
-                  <span className="text-muted-foreground">Break-Even</span>
+                  <span className="text-muted-foreground">{t('optBreakEven')}</span>
                   <span className="font-mono font-bold text-[#a78bfa]">{breakEvens.length > 0 ? `$${breakEvens[0]}` : '—'}</span>
                 </div>
                 <span className="text-muted-foreground/40">·</span>
                 <div className="flex items-center gap-1.5">
                   <DollarSign className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Prima</span>
+                  <span className="text-muted-foreground">{t('optPremium')}</span>
                   <span className={`font-mono font-bold ${parseFloat(stats.premium) >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>${stats.premium}</span>
                 </div>
                 <span className="text-muted-foreground/40">·</span>
-                <div className="flex items-center gap-1.5" title="Comisión por contrato (Reg-T estándar ~$0.65)">
-                  <span className="text-muted-foreground text-[10px]">Com/ctr</span>
+                <div className="flex items-center gap-1.5" title="Commission per contract (Reg-T standard ~$0.65)">
+                  <span className="text-muted-foreground text-[10px]">{t('optCommPerCtr')}</span>
                   <input
                     type="number" step="0.05" min={0} max={10}
                     value={commission}
@@ -619,7 +621,7 @@ const CalculatorPage = () => {
             <aside className="w-[272px] min-w-[272px] bg-card border-l border-border flex flex-col">
               {/* Expiration - always shown */}
               <div className="p-4 border-b border-border">
-                <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2.5 block">Fecha de Expiración</label>
+                <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2.5 block">{t('optExpirationDate')}</label>
                 <div className="grid grid-cols-3 gap-1.5">
                   {expirations.slice(0, 9).map((exp, idx) => (
                     <button

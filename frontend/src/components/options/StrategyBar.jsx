@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layers, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 const ShapeSVG = ({ shape, color }) => {
   const paths = {
@@ -42,12 +43,12 @@ const ShapeSVG = ({ shape, color }) => {
   );
 };
 
-// ============= CATEGORY CONFIG (module-level, no inline objects in render) =============
+// ============= CATEGORY CONFIG (i18n keys, not hardcoded labels) =============
 const CATEGORIES = {
-  Bullish:  { label: 'Alcistas',  icon: TrendingUp,   color: '#22c55e', ring: 'ring-[#22c55e]/50',  bgActive: 'bg-[#22c55e]/15',  bgHover: 'hover:bg-[#22c55e]/10',  text: 'text-[#22c55e]' },
-  Bearish:  { label: 'Bajistas',  icon: TrendingDown, color: '#ef4444', ring: 'ring-[#ef4444]/50',  bgActive: 'bg-[#ef4444]/15',  bgHover: 'hover:bg-[#ef4444]/10',  text: 'text-[#ef4444]' },
-  Neutral:  { label: 'Neutrales', icon: Minus,        color: '#3b82f6', ring: 'ring-[#3b82f6]/50',  bgActive: 'bg-[#3b82f6]/15',  bgHover: 'hover:bg-[#3b82f6]/10',  text: 'text-[#3b82f6]' },
-  Volatile: { label: 'Volátiles', icon: Zap,          color: '#eab308', ring: 'ring-[#eab308]/50',  bgActive: 'bg-[#eab308]/15',  bgHover: 'hover:bg-[#eab308]/10',  text: 'text-[#eab308]' },
+  Bullish:  { labelKey: 'filterBullish',  icon: TrendingUp,   color: '#22c55e', ring: 'ring-[#22c55e]/50',  bgActive: 'bg-[#22c55e]/15',  bgHover: 'hover:bg-[#22c55e]/10',  text: 'text-[#22c55e]' },
+  Bearish:  { labelKey: 'filterBearish',  icon: TrendingDown, color: '#ef4444', ring: 'ring-[#ef4444]/50',  bgActive: 'bg-[#ef4444]/15',  bgHover: 'hover:bg-[#ef4444]/10',  text: 'text-[#ef4444]' },
+  Neutral:  { labelKey: 'filterNeutral',  icon: Minus,        color: '#3b82f6', ring: 'ring-[#3b82f6]/50',  bgActive: 'bg-[#3b82f6]/15',  bgHover: 'hover:bg-[#3b82f6]/10',  text: 'text-[#3b82f6]' },
+  Volatile: { labelKey: 'filterVolatile', icon: Zap,          color: '#eab308', ring: 'ring-[#eab308]/50',  bgActive: 'bg-[#eab308]/15',  bgHover: 'hover:bg-[#eab308]/10',  text: 'text-[#eab308]' },
 };
 
 const FilterPill = ({ active, onClick, Icon, label, count, text, bgActive, bgHover, ring, iconColor, testId }) => (
@@ -73,6 +74,7 @@ const FilterPill = ({ active, onClick, Icon, label, count, text, bgActive, bgHov
 );
 
 const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(null);
   const filtered = activeCategory ? strategies.filter(s => s.category === activeCategory) : strategies;
 
@@ -84,7 +86,7 @@ const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
           active={!activeCategory}
           onClick={() => setActiveCategory(null)}
           Icon={Layers}
-          label="Todas"
+          label={t('filterAll')}
           count={strategies.length}
           text="text-primary"
           bgActive="bg-primary/15"
@@ -103,7 +105,7 @@ const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
               active={activeCategory === cat}
               onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
               Icon={cfg.icon}
-              label={cfg.label}
+              label={t(cfg.labelKey)}
               count={count}
               text={cfg.text}
               bgActive={cfg.bgActive}
@@ -133,7 +135,7 @@ const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
             </div>
             <div className="text-left">
               <div className="text-xs font-semibold whitespace-nowrap text-foreground">{strategy.name}</div>
-              <div className="text-[9px] text-muted-foreground whitespace-nowrap">{strategy.risk} risk · {strategy.reward} reward</div>
+              <div className="text-[9px] text-muted-foreground whitespace-nowrap">{strategy.risk} {t('riskLabel')} · {strategy.reward} {t('rewardLabel')}</div>
             </div>
           </button>
         ))}
