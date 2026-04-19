@@ -2,11 +2,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Target, Percent, BarChart3, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 export function JournalStats() {
   const { token } = useAuthStore();
+  const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,42 +42,42 @@ export function JournalStats() {
 
   const statCards = [
     {
-      label: 'Win Rate',
+      label: t('winRate'),
       value: `${stats.winRate.toFixed(1)}%`,
       icon: Percent,
       color: stats.winRate >= 50 ? 'text-green-500' : 'text-red-500',
       bgColor: stats.winRate >= 50 ? 'bg-green-500/10' : 'bg-red-500/10'
     },
     {
-      label: 'P&L Total',
+      label: t('pnlTotal'),
       value: `$${stats.totalPnl.toLocaleString()}`,
       icon: stats.totalPnl >= 0 ? TrendingUp : TrendingDown,
       color: stats.totalPnl >= 0 ? 'text-green-500' : 'text-red-500',
       bgColor: stats.totalPnl >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'
     },
     {
-      label: 'Profit Factor',
+      label: t('profitFactor'),
       value: stats.profitFactor.toFixed(2),
       icon: BarChart3,
       color: stats.profitFactor >= 1.5 ? 'text-green-500' : stats.profitFactor >= 1 ? 'text-yellow-500' : 'text-red-500',
       bgColor: stats.profitFactor >= 1.5 ? 'bg-green-500/10' : stats.profitFactor >= 1 ? 'bg-yellow-500/10' : 'bg-red-500/10'
     },
     {
-      label: 'Expectancy',
+      label: t('expectancy'),
       value: `$${stats.expectancy.toFixed(2)}`,
       icon: Target,
       color: stats.expectancy > 0 ? 'text-green-500' : 'text-red-500',
       bgColor: stats.expectancy > 0 ? 'bg-green-500/10' : 'bg-red-500/10'
     },
     {
-      label: 'Max Drawdown',
+      label: t('maxDrawdown'),
       value: `$${stats.maxDrawdown.toFixed(0)}`,
       icon: AlertTriangle,
       color: 'text-orange-500',
       bgColor: 'bg-orange-500/10'
     },
     {
-      label: 'Total Trades',
+      label: t('totalTrades'),
       value: stats.totalTrades,
       sublabel: `${stats.wins}W / ${stats.losses}L`,
       icon: BarChart3,

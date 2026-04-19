@@ -56,6 +56,13 @@
 - **Strings hardcoded del chart traducidos**: "Cargando gráfico…", "No se pudo cargar el gráfico", "Reintentar", "Limpiar configuración" → ahora vía `t()`.
 - Verificación manual: Chinese (zh_CN), Japanese (ja), Arabic (ar_AE) screenshots confirman widget + UI traducidos + RTL funcionando.
 
+### Feb 2026 — Fragmentos Trading Journal + Monte Carlo "Limpiar Datos" ✅
+- **TradingJournal.jsx** completamente traducido: título ("Diario de Trading" → `tradingJournal`), botón "Nueva Operación" → `addTrade`, stats labels (Total Trades/Win Rate/P&L Total/Ratio W/L → `totalTrades`/`winRate`/`pnlTotal`/`ratioWL`), empty state "No hay operaciones registradas" → `noTrades`, form labels (Símbolo/Dirección/Precio Entrada/Tamaño/Apalancamiento/Estrategia/Notas), placeholders, toasts, prompt, status badges (Abierta/Cerrada → `tradeStatusOpen`/`tradeStatusClosed`), botón Cerrar → `closeTrade`.
+- **JournalStats.jsx**: 6 stat labels ahora traducidos (Win Rate, P&L Total, Profit Factor, Expectancy, Max Drawdown, Total Trades).
+- **4 calculadoras**: "Limpiar Datos" hardcoded → `t('clearData')` en MonteCarloSimulator, FibonacciCalculator, PatternTradingCalculator, LotSizeCalculator (con `useTranslation` import agregado a LotSize).
+- **21 keys nuevas añadidas** a los 8 locales vía LLM Claude 4.5: `clearData`, `pnlTotal`, `ratioWL`, `loginToUseJournal`, `registerTrade`, `tradeStatusOpen/Closed`, `entryLabel`, `exitLabel`, `closeTrade`, `tradeRegistered`, `tradeClosed`, `completeRequired`, `exitPricePrompt`, `symbolLabel`, `sizeUsd`, `strategyPlaceholder`, `notesPlaceholder`, `totalTrades` (era parcial, ahora completo).
+- Verificación: screenshot en alemán muestra todo traducido ("Daten löschen", "Trading-Journal", "Neuer Trade", "Gesamte Trades", "Gewinnrate", "Gesamt-P&L", "W/L-Verhältnis", "Keine Trades aufgezeichnet"). Cero strings españoles detectados en el HTML.
+
 ## Backlog
 
 ### P1 (próximo)

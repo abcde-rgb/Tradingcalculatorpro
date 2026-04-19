@@ -415,7 +415,7 @@ export const PatternTradingCalculator = () => {
 
         <Button onClick={clearPersistedData} variant="outline" className="w-full mt-4">
           <Trash2 className="w-4 h-4 mr-2" />
-          Limpiar Datos
+          {t('clearData')}
         </Button>
       </CardContent>
     </Card>

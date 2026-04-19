@@ -238,7 +238,7 @@ export function FibonacciCalculator() {
 
         <Button onClick={clearPersistedData} variant="outline" className="w-full">
           <Trash2 className="w-4 h-4 mr-2" />
-          Limpiar Datos
+          {t('clearData')}
         </Button>
 
         {/* Info */}

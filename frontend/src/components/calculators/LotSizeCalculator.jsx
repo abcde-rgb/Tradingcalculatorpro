@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Scale, Calculator, Info, Trash2 } from 'lucide-react';
 import { useCalculatorStore } from '@/lib/store';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useTranslation } from '@/lib/i18n';
 
 const FOREX_PAIRS = [
   { symbol: 'EURUSD', pipValue: 0.0001, name: 'EUR/USD' },
@@ -24,6 +25,7 @@ const FOREX_PAIRS = [
 
 export function LotSizeCalculator() {
   const { saveCalculation } = useCalculatorStore();
+  const { t } = useTranslation();
 
   const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('lot_size_calculator', {
     accountBalance: '10000',
@@ -198,7 +200,7 @@ export function LotSizeCalculator() {
 
         <Button onClick={clearPersistedData} variant="outline" className="w-full">
           <Trash2 className="w-4 h-4 mr-2" />
-          Limpiar Datos
+          {t('clearData')}
         </Button>
 
         <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">

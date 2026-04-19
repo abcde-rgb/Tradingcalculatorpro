@@ -9,10 +9,12 @@ import { useTradingJournalStore, useAuthStore } from '@/lib/store';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { CRYPTO_LIST } from '@/lib/constants';
+import { useTranslation } from '@/lib/i18n';
 
 export const TradingJournal = () => {
   const { isAuthenticated } = useAuthStore();
   const { trades, addTrade, updateTrade, deleteTrade, getStats } = useTradingJournalStore();
+  const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const [newTrade, setNewTrade] = useState({
     symbol: 'BTC',
@@ -31,7 +33,7 @@ export const TradingJournal = () => {
 
   const handleSubmit = () => {
     if (!newTrade.entryPrice || !newTrade.size) {
-      toast.error('Completa los campos requeridos');
+      toast.error(t('completeRequired'));
       return;
     }
 
@@ -64,11 +66,11 @@ export const TradingJournal = () => {
       pnl: 0
     });
     setShowForm(false);
-    toast.success('Operación registrada');
+    toast.success(t('tradeRegistered'));
   };
 
   const handleCloseTrade = (trade) => {
-    const exitPrice = prompt('Precio de salida:');
+    const exitPrice = prompt(t('exitPricePrompt'));
     if (exitPrice) {
       const entry = parseFloat(trade.entryPrice);
       const exit = parseFloat(exitPrice);
@@ -83,7 +85,7 @@ export const TradingJournal = () => {
       }
 
       updateTrade(trade.id, { exitPrice, status: 'closed', pnl });
-      toast.success('Operación cerrada');
+      toast.success(t('tradeClosed'));
     }
   };
 
@@ -92,7 +94,7 @@ export const TradingJournal = () => {
       <Card className="bg-card border-border">
         <CardContent className="p-8 text-center">
           <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Inicia sesión para usar el diario de trading</p>
+          <p className="text-muted-foreground">{t('loginToUseJournal')}</p>
         </CardContent>
       </Card>
     );
@@ -103,31 +105,31 @@ export const TradingJournal = () => {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-green-500" />
-          Diario de Trading
+          {t('tradingJournal')}
         </CardTitle>
         <Button onClick={() => setShowForm(!showForm)} size="sm" className="bg-green-500 text-black hover:bg-green-400">
-          <Plus className="w-4 h-4 mr-1" /> Nueva Operación
+          <Plus className="w-4 h-4 mr-1" /> {t('addTrade')}
         </Button>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Estadísticas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-            <p className="text-xs text-muted-foreground">Total Trades</p>
+            <p className="text-xs text-muted-foreground">{t('totalTrades')}</p>
             <p className="font-mono text-xl font-bold">{stats.totalTrades}</p>
           </div>
           <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-            <p className="text-xs text-muted-foreground">Win Rate</p>
+            <p className="text-xs text-muted-foreground">{t('winRate')}</p>
             <p className="font-mono text-xl font-bold text-primary">{formatNumber(stats.winRate)}%</p>
           </div>
           <div className={`p-3 rounded-xl ${stats.totalPnl >= 0 ? 'bg-primary/10' : 'bg-destructive/10'}`}>
-            <p className="text-xs text-muted-foreground">P&L Total</p>
+            <p className="text-xs text-muted-foreground">{t('pnlTotal')}</p>
             <p className={`font-mono text-xl font-bold ${stats.totalPnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
               {formatCurrency(stats.totalPnl)}
             </p>
           </div>
           <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-            <p className="text-xs text-muted-foreground">Ratio W/L</p>
+            <p className="text-xs text-muted-foreground">{t('ratioWL')}</p>
             <p className="font-mono text-xl font-bold">{stats.wins}/{stats.losses}</p>
           </div>
         </div>
@@ -137,7 +139,7 @@ export const TradingJournal = () => {
           <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs">Símbolo</Label>
+                <Label className="text-xs">{t('symbolLabel')}</Label>
                 <Select value={newTrade.symbol} onValueChange={(v) => setNewTrade({...newTrade, symbol: v})}>
                   <SelectTrigger className="bg-black/50 border-white/10">
                     <SelectValue />
@@ -150,7 +152,7 @@ export const TradingJournal = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">Dirección</Label>
+                <Label className="text-xs">{t('direction')}</Label>
                 <Select value={newTrade.direction} onValueChange={(v) => setNewTrade({...newTrade, direction: v})}>
                   <SelectTrigger className="bg-black/50 border-white/10">
                     <SelectValue />
@@ -162,7 +164,7 @@ export const TradingJournal = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">Precio Entrada</Label>
+                <Label className="text-xs">{t('entryPrice')}</Label>
                 <Input
                   type="number"
                   value={newTrade.entryPrice}
@@ -171,7 +173,7 @@ export const TradingJournal = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">Tamaño ($)</Label>
+                <Label className="text-xs">{t('sizeUsd')}</Label>
                 <Input
                   type="number"
                   value={newTrade.size}
@@ -182,7 +184,7 @@ export const TradingJournal = () => {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs">Apalancamiento</Label>
+                <Label className="text-xs">{t('leverageLabel')}</Label>
                 <Input
                   type="number"
                   value={newTrade.leverage}
@@ -191,26 +193,26 @@ export const TradingJournal = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">Estrategia</Label>
+                <Label className="text-xs">{t('strategy')}</Label>
                 <Input
                   value={newTrade.strategy}
                   onChange={(e) => setNewTrade({...newTrade, strategy: e.target.value})}
-                  placeholder="Ej: Doble suelo"
+                  placeholder={t('strategyPlaceholder')}
                   className="bg-black/50 border-white/10"
                 />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label className="text-xs">Notas</Label>
+                <Label className="text-xs">{t('notes')}</Label>
                 <Input
                   value={newTrade.notes}
                   onChange={(e) => setNewTrade({...newTrade, notes: e.target.value})}
-                  placeholder="Observaciones..."
+                  placeholder={t('notesPlaceholder')}
                   className="bg-black/50 border-white/10"
                 />
               </div>
             </div>
             <Button onClick={handleSubmit} className="w-full bg-green-500 text-black hover:bg-green-400">
-              Registrar Operación
+              {t('registerTrade')}
             </Button>
           </div>
         )}
@@ -218,7 +220,7 @@ export const TradingJournal = () => {
         {/* Lista de trades */}
         <div className="space-y-2 max-h-[400px] overflow-y-auto">
           {trades.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No hay operaciones registradas</p>
+            <p className="text-center text-muted-foreground py-8">{t('noTrades')}</p>
           ) : (
             trades.map(trade => (
               <div key={trade.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
@@ -237,15 +239,15 @@ export const TradingJournal = () => {
                       <span className={`text-xs px-2 py-0.5 rounded ${
                         trade.status === 'open' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-white/10 text-muted-foreground'
                       }`}>
-                        {trade.status === 'open' ? 'Abierta' : 'Cerrada'}
+                        {trade.status === 'open' ? t('tradeStatusOpen') : t('tradeStatusClosed')}
                       </span>
                       {trade.leverage > 1 && (
                         <span className="text-xs text-yellow-500">{trade.leverage}x</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Entrada: ${formatNumber(trade.entryPrice)}
-                      {trade.exitPrice && ` → Salida: $${formatNumber(trade.exitPrice)}`}
+                      {t('entryLabel')}: ${formatNumber(trade.entryPrice)}
+                      {trade.exitPrice && ` → ${t('exitLabel')}: $${formatNumber(trade.exitPrice)}`}
                     </p>
                   </div>
                 </div>
@@ -257,7 +259,7 @@ export const TradingJournal = () => {
                   )}
                   {trade.status === 'open' && (
                     <Button size="sm" variant="outline" onClick={() => handleCloseTrade(trade)}>
-                      Cerrar
+                      {t('closeTrade')}
                     </Button>
                   )}
                   <Button size="icon" variant="ghost" onClick={() => deleteTrade(trade.id)}>
