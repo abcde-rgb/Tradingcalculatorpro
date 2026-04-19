@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Layers, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
 
 const ShapeSVG = ({ shape, color }) => {
   const paths = {
@@ -41,39 +42,80 @@ const ShapeSVG = ({ shape, color }) => {
   );
 };
 
+// ============= CATEGORY CONFIG (module-level, no inline objects in render) =============
+const CATEGORIES = {
+  Bullish:  { label: 'Alcistas',  icon: TrendingUp,   color: '#22c55e', ring: 'ring-[#22c55e]/50',  bgActive: 'bg-[#22c55e]/15',  bgHover: 'hover:bg-[#22c55e]/10',  text: 'text-[#22c55e]' },
+  Bearish:  { label: 'Bajistas',  icon: TrendingDown, color: '#ef4444', ring: 'ring-[#ef4444]/50',  bgActive: 'bg-[#ef4444]/15',  bgHover: 'hover:bg-[#ef4444]/10',  text: 'text-[#ef4444]' },
+  Neutral:  { label: 'Neutrales', icon: Minus,        color: '#3b82f6', ring: 'ring-[#3b82f6]/50',  bgActive: 'bg-[#3b82f6]/15',  bgHover: 'hover:bg-[#3b82f6]/10',  text: 'text-[#3b82f6]' },
+  Volatile: { label: 'Volátiles', icon: Zap,          color: '#eab308', ring: 'ring-[#eab308]/50',  bgActive: 'bg-[#eab308]/15',  bgHover: 'hover:bg-[#eab308]/10',  text: 'text-[#eab308]' },
+};
+
+const FilterPill = ({ active, onClick, Icon, label, count, text, bgActive, bgHover, ring, iconColor, testId }) => (
+  <button
+    onClick={onClick}
+    data-testid={testId}
+    className={`group relative flex items-center gap-2 px-3 h-8 rounded-full border transition-all ${
+      active
+        ? `${bgActive} ${text} border-transparent ring-1 ${ring} shadow-sm`
+        : `bg-muted/30 border-border text-muted-foreground ${bgHover} hover:text-foreground hover:border-border/80`
+    }`}
+  >
+    <Icon className="w-3.5 h-3.5 flex-shrink-0" style={active ? undefined : { color: iconColor, opacity: 0.75 }} />
+    <span className="text-[11px] font-semibold tracking-wide">{label}</span>
+    <span
+      className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full transition-colors ${
+        active ? 'bg-background/40' : 'bg-muted/60 group-hover:bg-muted'
+      }`}
+    >
+      {count}
+    </span>
+  </button>
+);
+
 const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
   const [activeCategory, setActiveCategory] = useState(null);
   const filtered = activeCategory ? strategies.filter(s => s.category === activeCategory) : strategies;
 
   return (
     <div className="bg-card border-b border-border px-5 py-2.5">
-      {/* Category Tabs */}
-      <div className="flex items-center gap-1 mb-2">
-        <button
+      {/* Category Filter Pills */}
+      <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
+        <FilterPill
+          active={!activeCategory}
           onClick={() => setActiveCategory(null)}
-          className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
-            !activeCategory ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-muted-foreground'
-          }`}
-        >Todas ({strategies.length})</button>
+          Icon={Layers}
+          label="Todas"
+          count={strategies.length}
+          text="text-primary"
+          bgActive="bg-primary/15"
+          bgHover="hover:bg-primary/10"
+          ring="ring-primary/50"
+          iconColor="#9ca3af"
+          testId="filter-all"
+        />
         {categories.map(cat => {
+          const cfg = CATEGORIES[cat];
+          if (!cfg) return null;
           const count = strategies.filter(s => s.category === cat).length;
-          const catColors = {
-            Bullish: 'text-[#22c55e]', Bearish: 'text-[#ef4444]',
-            Neutral: 'text-primary', Volatile: 'text-[#eab308]',
-          };
           return (
-            <button
+            <FilterPill
               key={cat}
+              active={activeCategory === cat}
               onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-              className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                activeCategory === cat
-                  ? `bg-primary/15 ${catColors[cat] || 'text-primary'}`
-                  : 'text-muted-foreground hover:text-muted-foreground'
-              }`}
-            >{cat} ({count})</button>
+              Icon={cfg.icon}
+              label={cfg.label}
+              count={count}
+              text={cfg.text}
+              bgActive={cfg.bgActive}
+              bgHover={cfg.bgHover}
+              ring={cfg.ring}
+              iconColor={cfg.color}
+              testId={`filter-${cat.toLowerCase()}`}
+            />
           );
         })}
       </div>
+
       {/* Strategy Cards */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {filtered.map(strategy => (
@@ -90,7 +132,7 @@ const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
               <ShapeSVG shape={strategy.shape} color={selected.id === strategy.id ? '#22c55e' : strategy.color} />
             </div>
             <div className="text-left">
-              <div className={`text-xs font-semibold whitespace-nowrap ${selected.id === strategy.id ? 'text-foreground' : 'text-foreground'}`}>{strategy.name}</div>
+              <div className="text-xs font-semibold whitespace-nowrap text-foreground">{strategy.name}</div>
               <div className="text-[9px] text-muted-foreground whitespace-nowrap">{strategy.risk} risk · {strategy.reward} reward</div>
             </div>
           </button>
