@@ -116,13 +116,13 @@ const StrategyBar = ({ strategies, categories, selected, onSelect }) => {
         })}
       </div>
 
-      {/* Strategy Cards */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      {/* Strategy Cards — grid wrap (no horizontal scroll) */}
+      <div className="flex flex-wrap gap-2 pb-1">
         {filtered.map(strategy => (
           <button
             key={strategy.id}
             onClick={() => onSelect(strategy)}
-            className={`flex-shrink-0 flex items-center gap-2.5 pl-2 pr-3.5 py-2 rounded-lg border transition-all ${
+            className={`flex items-center gap-2.5 pl-2 pr-3.5 py-2 rounded-lg border transition-all ${
               selected.id === strategy.id
                 ? 'bg-muted border-primary/50 shadow-lg shadow-primary/10'
                 : 'bg-muted border-border hover:border-border hover:bg-[#1a2238]'

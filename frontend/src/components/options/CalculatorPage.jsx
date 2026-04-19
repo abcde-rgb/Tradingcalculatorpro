@@ -37,7 +37,6 @@ const CalculatorPage = () => {
   const [activeTab, setActiveTab] = useState('calculator');
   const [loading, setLoading] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  const [builderMode, setBuilderMode] = useState('custom'); // 'preset' | 'custom' — default 'custom' so Constructor Multi-Leg is always open
   const [customLegs, setCustomLegs] = useState([]);
   const [compareMode, setCompareMode] = useState(false);
   const [selectedStrategyB, setSelectedStrategyB] = useState(STRATEGIES.find((s) => s.id === 'short_put') || STRATEGIES[1]);
@@ -193,21 +192,18 @@ const CalculatorPage = () => {
     }));
   }, [customLegs, currentExp, chain, stock]);
 
-  // Active legs based on mode
-  const legs = builderMode === 'custom' ? customBuiltLegs : presetLegs;
+  // Active legs — always uses the Constructor (customBuiltLegs is the single source of truth)
+  const legs = customBuiltLegs;
 
-  // Auto-seed the custom builder with the preset strategy's legs when:
-  //   • Constructor Multi-Leg is active
+  // Auto-seed the Constructor with the selected preset strategy's legs when:
   //   • Custom builder is empty
   //   • Preset legs have been built (chain loaded, stock present)
-  // This ensures the Constructor is never shown with "0 patas" on first load or
-  // after ticker changes that temporarily wipe the chain.
+  // This ensures the Constructor is never shown with "0 patas" on first load,
+  // after ticker changes, or after selecting a different preset strategy.
   const seededRef = useRef(null);
   useEffect(() => {
-    if (builderMode !== 'custom') return;
     if (customLegs.length > 0) return;
     if (presetLegs.length === 0) return;
-    // Only seed once per (strategy, ticker, strikeIdx) combo to avoid wiping user edits
     const key = `${selectedStrategy.id}-${ticker}-${selectedStrikeIdx}`;
     if (seededRef.current === key) return;
     seededRef.current = key;
@@ -229,7 +225,7 @@ const CalculatorPage = () => {
           };
         })
     );
-  }, [builderMode, customLegs.length, presetLegs, selectedStrategy.id, ticker, selectedStrikeIdx, chain]);
+  }, [customLegs.length, presetLegs, selectedStrategy.id, ticker, selectedStrikeIdx, chain]);
 
   // Strategy B (for comparison mode) — uses same chain/strike/contracts/expiration
   const legsB = useMemo(() => {
@@ -394,7 +390,6 @@ const CalculatorPage = () => {
               daysToExpiry: result.daysToExpiry || 30,
             }));
             setCustomLegs(mappedLegs);
-            setBuilderMode('custom');
             setActiveTab('calculator');
           }}
         />
@@ -425,52 +420,43 @@ const CalculatorPage = () => {
               </div>
             );
           })()}
-          {/* Mode Toggle + Strategy Bar / Custom Builder */}
-          {builderMode === 'preset' ? (
-            <div className="relative">
-              <StrategyBar
-                strategies={STRATEGIES}
-                categories={STRATEGY_CATEGORIES}
-                selected={selectedStrategy}
-                onSelect={setSelectedStrategy}
-              />
-              <button
-                onClick={() => setBuilderMode('custom')}
-                className="absolute right-4 top-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/25 text-[#fbbf24] text-[10px] font-bold hover:bg-[#f59e0b]/20 transition-all z-10"
-              >
-                <Wrench className="w-3 h-3" /> CONSTRUCTOR
-              </button>
-              <button
-                onClick={() => setCompareMode((v) => !v)}
-                className={`absolute right-[155px] top-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all z-10 border ${
-                  compareMode
-                    ? 'bg-[#a855f7]/20 border-[#a855f7]/50 text-[#c084fc]'
-                    : 'bg-[#a855f7]/10 border-[#a855f7]/25 text-[#c084fc] hover:bg-[#a855f7]/20'
-                }`}
-                data-testid="compare-toggle"
-              >
-                <GitCompare className="w-3 h-3" /> {compareMode ? 'COMPARANDO' : 'COMPARAR A vs B'}
-              </button>
+          {/* Strategy Preset Bar — always visible */}
+          <div className="relative">
+            <StrategyBar
+              strategies={STRATEGIES}
+              categories={STRATEGY_CATEGORIES}
+              selected={selectedStrategy}
+              onSelect={(s) => {
+                setSelectedStrategy(s);
+                // Re-seed the Constructor so the chosen preset becomes the active legs
+                seededRef.current = null; // invalidate cache to force re-seed
+                setCustomLegs([]);        // trigger auto-seed effect with new strategy
+              }}
+            />
+            <button
+              onClick={() => setCompareMode((v) => !v)}
+              className={`absolute right-4 top-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all z-10 border ${
+                compareMode
+                  ? 'bg-[#a855f7]/20 border-[#a855f7]/50 text-[#c084fc]'
+                  : 'bg-[#a855f7]/10 border-[#a855f7]/25 text-[#c084fc] hover:bg-[#a855f7]/20'
+              }`}
+              data-testid="compare-toggle"
+            >
+              <GitCompare className="w-3 h-3" /> {compareMode ? 'COMPARANDO' : 'COMPARAR A vs B'}
+            </button>
+          </div>
+
+          {/* Constructor Multi-Leg Header — always visible below strategy bar */}
+          <div className="bg-card border-b border-border px-5 py-2 flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-[#f59e0b]" />
+              <h3 className="text-sm font-bold text-foreground">Constructor Multi-Leg</h3>
             </div>
-          ) : (
-            <div className="bg-card border-b border-border px-5 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Wrench className="w-4 h-4 text-[#f59e0b]" />
-                  <h3 className="text-sm font-bold text-foreground">Constructor Multi-Leg</h3>
-                </div>
-                <span className="text-[10px] text-muted-foreground bg-[#f59e0b]/10 px-2 py-0.5 rounded-full text-[#fbbf24] font-semibold">
-                  {customLegs.filter(l => l.enabled).length} patas
-                </span>
-              </div>
-              <button
-                onClick={() => setBuilderMode('preset')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/25 text-primary text-[10px] font-bold hover:bg-primary/20 transition-all"
-              >
-                <Layers className="w-3 h-3" /> ESTRATEGIAS PRESET
-              </button>
-            </div>
-          )}
+            <span className="text-[10px] bg-[#f59e0b]/10 px-2 py-0.5 rounded-full text-[#fbbf24] font-semibold">
+              {customLegs.filter(l => l.enabled).length} patas
+            </span>
+            <span className="text-[10px] text-muted-foreground ml-2">· Edita legs a la derecha o selecciona una estrategia arriba</span>
+          </div>
 
           {/* Main Content */}
           <div className="flex">
@@ -544,7 +530,7 @@ const CalculatorPage = () => {
               </div>
 
               {/* Strategy B picker + Comparison Table (compare mode) */}
-              {compareMode && builderMode === 'preset' && (
+              {compareMode && (
                 <div className="bg-gradient-to-r from-[#a855f7]/5 to-transparent border border-[#a855f7]/30 rounded-xl p-3" data-testid="compare-panel">
                   <div className="flex items-center gap-3 mb-2">
                     <GitCompare className="w-4 h-4 text-[#c084fc]" />
@@ -599,7 +585,7 @@ const CalculatorPage = () => {
                   labelB={selectedStrategyB.name}
                   title={compareMode
                     ? `${selectedStrategy.name} vs ${selectedStrategyB.name} — ${ticker}`
-                    : (builderMode === 'custom' ? `Custom — ${ticker}` : `${selectedStrategy.name} — ${ticker}`)}
+                    : `${selectedStrategy.name} — ${ticker}`}
                 />
               </div>
 
@@ -652,211 +638,15 @@ const CalculatorPage = () => {
                 </div>
               </div>
 
-              {builderMode === 'custom' ? (
-                /* Custom Leg Builder */
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <LegEditor
-                    legs={customLegs}
-                    chain={chain}
-                    stockPrice={stock?.price || 0}
-                    onLegsChange={setCustomLegs}
-                  />
-                </div>
-              ) : (
-                /* Preset Controls */
-                <>
-                  {/* Strike Price — Configurable */}
-                  <div className="p-4 border-b border-border">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Precio Strike</label>
-                      {selectedStrike && stock?.price && (
-                        <span className={`text-[9px] font-mono font-semibold ${
-                          selectedStrike.strike < stock.price ? 'text-[#4ade80]' : selectedStrike.strike > stock.price ? 'text-[#f87171]' : 'text-primary'
-                        }`}>
-                          {selectedStrike.strike === stock.price ? 'ATM' : `${((selectedStrike.strike - stock.price) / stock.price * 100).toFixed(1)}%`}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Editable strike input + steppers */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setSelectedStrikeIdx(Math.max(0, selectedStrikeIdx - 1))}
-                        className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all"
-                        title="Strike anterior"
-                        data-testid="strike-decrement"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <div className="flex-1 relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-mono text-muted-foreground pointer-events-none">$</span>
-                        <input
-                          type="number"
-                          step="any"
-                          value={selectedStrike?.strike ?? ''}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            if (Number.isNaN(val) || chain.length === 0) return;
-                            // Snap to closest strike in the chain
-                            let bestIdx = 0;
-                            let bestDiff = Infinity;
-                            chain.forEach((s, idx) => {
-                              const diff = Math.abs(s.strike - val);
-                              if (diff < bestDiff) { bestDiff = diff; bestIdx = idx; }
-                            });
-                            setSelectedStrikeIdx(bestIdx);
-                          }}
-                          className="w-full bg-muted border border-border rounded-lg pl-7 pr-3 py-2 text-center text-lg font-bold text-foreground font-mono focus:outline-none focus:border-primary transition-colors"
-                          data-testid="strike-input"
-                        />
-                      </div>
-                      <button
-                        onClick={() => setSelectedStrikeIdx(Math.min(chain.length - 1, selectedStrikeIdx + 1))}
-                        className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all"
-                        title="Strike siguiente"
-                        data-testid="strike-increment"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Quick moneyness shortcuts */}
-                    <div className="grid grid-cols-5 gap-1 mt-2.5">
-                      {[
-                        { label: '-10%', mult: 0.9 },
-                        { label: '-5%', mult: 0.95 },
-                        { label: 'ATM', mult: 1.0 },
-                        { label: '+5%', mult: 1.05 },
-                        { label: '+10%', mult: 1.10 },
-                      ].map(({ label, mult }) => (
-                        <button
-                          key={label}
-                          onClick={() => {
-                            if (!stock?.price || chain.length === 0) return;
-                            const target = stock.price * mult;
-                            let bestIdx = 0;
-                            let bestDiff = Infinity;
-                            chain.forEach((s, idx) => {
-                              const diff = Math.abs(s.strike - target);
-                              if (diff < bestDiff) { bestDiff = diff; bestIdx = idx; }
-                            });
-                            setSelectedStrikeIdx(bestIdx);
-                          }}
-                          className={`px-1 py-1 rounded-md text-[10px] font-bold transition-all border ${
-                            label === 'ATM'
-                              ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
-                              : 'bg-muted text-muted-foreground border-border hover:border-primary/40 hover:text-foreground'
-                          }`}
-                          data-testid={`strike-quick-${label}`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Scrollable strike chain list */}
-                    <div className="mt-2.5 max-h-[140px] overflow-y-auto custom-scrollbar space-y-0.5 rounded-lg border border-border/50 p-1 bg-background/50">
-                      {chain.map((s, idx) => {
-                        const isITMCall = s.strike <= (stock?.price || 0);
-                        return (
-                          <button
-                            key={s.strike}
-                            onClick={() => setSelectedStrikeIdx(idx)}
-                            className={`w-full flex items-center justify-between px-2.5 py-1 rounded text-[11px] font-mono transition-all ${
-                              selectedStrikeIdx === idx
-                                ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
-                                : isITMCall
-                                  ? 'text-[#4ade80]/80 hover:bg-muted'
-                                  : 'text-[#f87171]/80 hover:bg-muted'
-                            }`}
-                            data-testid={`strike-option-${s.strike}`}
-                          >
-                            <span className="font-semibold">${s.strike}</span>
-                            <div className="flex gap-3 text-muted-foreground">
-                              <span>C ${s.call?.mid ?? '—'}</span>
-                              <span>P ${s.put?.mid ?? '—'}</span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Contracts — Whole numbers only (1 contract = 100 shares underlying) */}
-                  <div className="p-4 border-b border-border">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Contratos</label>
-                      <span className="text-[9px] font-mono text-muted-foreground">
-                        = {(contracts * 100).toLocaleString()} acciones
-                      </span>
-                    </div>
-
-                    {/* Editable integer input + steppers */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setContracts(Math.max(1, contracts - 1))}
-                        className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all"
-                        title="Restar 1 contrato"
-                        data-testid="contracts-decrement"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        step={1}
-                        min={1}
-                        value={contracts}
-                        onChange={(e) => {
-                          // Whole contracts only — no fractional (options markets don't allow it)
-                          const raw = e.target.value.replace(/[^\d]/g, '');
-                          const parsed = parseInt(raw, 10);
-                          if (!raw) { setContracts(1); return; }
-                          if (Number.isNaN(parsed) || parsed < 1) { setContracts(1); return; }
-                          setContracts(Math.min(10000, parsed));
-                        }}
-                        onKeyDown={(e) => {
-                          // Block fractional input (. , e +/-)
-                          if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                        }}
-                        className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-center text-lg text-foreground font-bold font-mono focus:outline-none focus:border-primary transition-colors"
-                        data-testid="contracts-input"
-                      />
-                      <button
-                        onClick={() => setContracts(Math.min(10000, contracts + 1))}
-                        className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all"
-                        title="Sumar 1 contrato"
-                        data-testid="contracts-increment"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Quick size shortcuts */}
-                    <div className="grid grid-cols-5 gap-1 mt-2.5">
-                      {[1, 5, 10, 25, 100].map((n) => (
-                        <button
-                          key={n}
-                          onClick={() => setContracts(n)}
-                          className={`px-1 py-1 rounded-md text-[10px] font-bold transition-all border ${
-                            contracts === n
-                              ? 'bg-primary/15 text-primary border-primary/40'
-                              : 'bg-muted text-muted-foreground border-border hover:border-primary/40 hover:text-foreground'
-                          }`}
-                          data-testid={`contracts-quick-${n}`}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Info: contracts are integer-only per listed options rules */}
-                    <p className="text-[9px] text-muted-foreground/70 mt-2 leading-snug">
-                      Solo enteros — cada contrato controla 100 acciones. El mercado de opciones listadas no admite fracciones.
-                    </p>
-                  </div>
-                </>
-              )}
+              {/* Leg Editor — always visible, single source of truth for legs */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <LegEditor
+                  legs={customLegs}
+                  chain={chain}
+                  stockPrice={stock?.price || 0}
+                  onLegsChange={setCustomLegs}
+                />
+              </div>
             </aside>
           </div>
 
@@ -919,7 +709,6 @@ const CalculatorPage = () => {
                       daysToExpiry: l.daysToExpiry || 30,
                     }));
                     setCustomLegs(mapped);
-                    setBuilderMode('custom');
                     if (pos.symbol && pos.symbol !== ticker) setTicker(pos.symbol);
                   }}
                 />
