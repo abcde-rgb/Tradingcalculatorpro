@@ -131,6 +131,8 @@ function PatternDetailModal({ pattern, onClose }) {
   const getPatternTypeLabel = (type) => {
     if (type === 'bullish') return t('bullishPattern');
     if (type === 'bearish') return t('bearishPattern');
+    if (type === 'continuation') return t('continuationPattern');
+    if (type === 'reversal') return t('reversalPattern');
     return t('neutralPattern');
   };
   

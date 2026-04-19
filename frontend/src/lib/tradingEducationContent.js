@@ -117,11 +117,11 @@ export const getChartPatterns = (t) => ({
       type: 'bearish',
       description: t('headShouldersDesc'),
       howToTrade: [
-        'Identificar la tendencia alcista previa',
-        'Esperar formación completa del patrón',
-        'Entrada en ruptura de la línea del cuello (neckline)',
-        'Stop loss por encima del hombro derecho',
-        'Objetivo: distancia de la cabeza a la neckline proyectada hacia abajo'
+        t('htt_identificarLaTendenciaAlcist_af7998c2'),
+        t('htt_esperarFormacionCompletaDelP_133fd32f'),
+        t('htt_entradaEnRupturaDeLa_b6ec351f'),
+        t('htt_stopLossPorEncimaDel_ff332cba'),
+        t('htt_objetivoDistanciaDeLaCabeza_cbfcc87b')
       ],
       reliability: t('highReliability'),
       timeframes: ['4H', 'D', 'W']
@@ -132,11 +132,11 @@ export const getChartPatterns = (t) => ({
       type: 'bullish',
       description: t('invHeadShouldersDesc'),
       howToTrade: [
-        'Identificar la tendencia bajista previa',
-        'Esperar formación completa del patrón',
-        'Entrada en ruptura alcista de la neckline',
-        'Stop loss por debajo del hombro derecho',
-        'Objetivo: distancia proyectada hacia arriba'
+        t('htt_identificarLaTendenciaBajist_4fb6db68'),
+        t('htt_esperarFormacionCompletaDelP_133fd32f'),
+        t('htt_entradaEnRupturaAlcistaDe_6b085224'),
+        t('htt_stopLossPorDebajoDel_2dbe09a2'),
+        t('htt_objetivoDistanciaProyectadaH_f01194e7')
       ],
       reliability: t('highReliability'),
       timeframes: ['4H', 'D', 'W']
@@ -147,11 +147,11 @@ export const getChartPatterns = (t) => ({
       type: 'bearish',
       description: t('doubleTopDesc'),
       howToTrade: [
-        'Identificar dos máximos similares',
-        'Confirmar con volumen decreciente en el segundo pico',
-        'Entrada en ruptura del soporte intermedio',
-        'Stop loss por encima del segundo máximo',
-        'Objetivo: altura del patrón'
+        t('htt_identificarDosMaximosSimilar_8da8788c'),
+        t('htt_confirmarConVolumenDecrecien_e341216e'),
+        t('htt_entradaEnRupturaDelSoporte_6a7b1a5b'),
+        t('htt_stopLossPorEncimaDel_4b218f42'),
+        t('htt_objetivoAlturaDelPatron_dc9c40b9')
       ],
       reliability: t('mediumReliability') + '-' + t('highReliability'),
       timeframes: ['1H', '4H', 'D']
@@ -162,11 +162,11 @@ export const getChartPatterns = (t) => ({
       type: 'bullish',
       description: t('doubleBottomDesc'),
       howToTrade: [
-        'Identificar dos mínimos similares',
-        'Confirmar con volumen creciente en el rebote',
-        'Entrada en ruptura de la resistencia intermedia',
-        'Stop loss por debajo del segundo mínimo',
-        'Objetivo: altura del patrón'
+        t('htt_identificarDosMinimosSimilar_aacf8393'),
+        t('htt_confirmarConVolumenCreciente_8bf6da85'),
+        t('htt_entradaEnRupturaDeLa_589f80e8'),
+        t('htt_stopLossPorDebajoDel_452c7a62'),
+        t('htt_objetivoAlturaDelPatron_dc9c40b9')
       ],
       reliability: t('mediumReliability') + '-' + t('highReliability'),
       timeframes: ['1H', '4H', 'D']
@@ -177,11 +177,11 @@ export const getChartPatterns = (t) => ({
       type: 'bearish',
       description: t('tripleTopDesc'),
       howToTrade: [
-        'Identificar tres máximos en el mismo nivel',
-        'Volumen debe disminuir en cada intento',
-        'Entrada en ruptura del soporte',
-        'Stop loss por encima del último máximo',
-        'Objetivo: altura del patrón'
+        t('htt_identificarTresMaximosEnEl_00258ad0'),
+        t('htt_volumenDebeDisminuirEnCada_54194fb5'),
+        t('htt_entradaEnRupturaDelSoporte_ee4a1c71'),
+        t('htt_stopLossPorEncimaDel_76146771'),
+        t('htt_objetivoAlturaDelPatron_dc9c40b9')
       ],
       reliability: t('highReliability'),
       timeframes: ['4H', 'D', 'W']
@@ -192,11 +192,11 @@ export const getChartPatterns = (t) => ({
       type: 'bullish',
       description: t('tripleBottomDesc'),
       howToTrade: [
-        'Identificar tres mínimos en el mismo nivel',
-        'Volumen creciente en rebotes',
-        'Entrada en ruptura de resistencia',
-        'Stop loss por debajo del soporte',
-        'Objetivo: altura del patrón'
+        t('htt_identificarTresMinimosEnEl_e48405f1'),
+        t('htt_volumenCrecienteEnRebotes_d9968d81'),
+        t('htt_entradaEnRupturaDeResistenci_1e4d15d8'),
+        t('htt_stopLossPorDebajoDel_12538615'),
+        t('htt_objetivoAlturaDelPatron_dc9c40b9')
       ],
       reliability: t('highReliability'),
       timeframes: ['4H', 'D', 'W']
@@ -210,12 +210,12 @@ export const getChartPatterns = (t) => ({
       description: t('ascTriangleDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/9hxylq5z_TRIANGULO%20DE%20CONTINUACCION%20ALCISTA.png',
       howToTrade: [
-        'Identificar resistencia plana con mínimos ascendentes',
-        'Esperar ruptura de la resistencia con volumen',
-        'Entry 1 en la ruptura de resistencia',
-        'Entry 2 en el retroceso tras ruptura',
-        'Stop Loss por debajo del último mínimo',
-        'Take Profit 1 y 2: proyectar altura del triángulo'
+        t('htt_identificarResistenciaPlanaC_c844339b'),
+        t('htt_esperarRupturaDeLaResistenci_350ac0e7'),
+        t('htt_entry1EnLaRuptura_9701d6f9'),
+        t('htt_entry2EnElRetroceso_91b8b422'),
+        t('htt_stopLossPorDebajoDel_714cbb59'),
+        t('htt_takeProfit1Y2_d37da2f4')
       ],
       reliability: t('mediumReliability') + '-' + t('highReliability'),
       timeframes: ['1H', '4H', 'D']
@@ -227,12 +227,12 @@ export const getChartPatterns = (t) => ({
       description: t('descTriangleDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/ggcbypeq_TRIANGULO%20DE%20CONTINUACCION%20BAJISTA.png',
       howToTrade: [
-        'Identificar soporte plano con máximos descendentes',
-        'Esperar ruptura del soporte con volumen',
-        'Entry 1: entrada en la ruptura del soporte',
-        'Entry 2: entrada en retroceso tras ruptura',
-        'Stop Loss 1 y 2 por encima del triángulo',
-        'Take Profit 1 y 2: proyectar altura del triángulo'
+        t('htt_identificarSoportePlanoConMa_3d058880'),
+        t('htt_esperarRupturaDelSoporteCon_09579d67'),
+        t('htt_entry1EntradaEnLa_b0f1ca34'),
+        t('htt_entry2EntradaEnRetroceso_d5f5519a'),
+        t('htt_stopLoss1Y2_6cdb3f20'),
+        t('htt_takeProfit1Y2_d37da2f4')
       ],
       reliability: t('mediumReliability') + '-' + t('highReliability'),
       timeframes: ['1H', '4H', 'D']
@@ -243,11 +243,11 @@ export const getChartPatterns = (t) => ({
       type: 'neutral',
       description: t('symTriangleDesc'),
       howToTrade: [
-        'Identificar convergencia de líneas de tendencia',
-        'Esperar ruptura clara en cualquier dirección',
-        'Entry en dirección de la ruptura',
-        'Stop loss al otro lado del triángulo',
-        'Objetivo: altura del triángulo proyectada'
+        t('htt_identificarConvergenciaDeLin_b44ab6c2'),
+        t('htt_esperarRupturaClaraEnCualqui_e7063a51'),
+        t('htt_entryEnDireccionDeLa_c707f212'),
+        t('htt_stopLossAlOtroLado_c17f817c'),
+        t('htt_objetivoAlturaDelTrianguloPr_fde74f7d')
       ],
       reliability: t('mediumReliability'),
       timeframes: ['1H', '4H', 'D']
@@ -259,11 +259,11 @@ export const getChartPatterns = (t) => ({
       description: t('symTriangleBullDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/xzk3o1rm_TRIANGULO%20SIMETRICO%20DE%20CONTINUACCION%20ALCISTA.png',
       howToTrade: [
-        'Identificar convergencia de líneas de tendencia',
-        'Entry 1: ruptura alcista de la resistencia superior',
-        'Entry 2: retroceso tras ruptura',
-        'Stop Loss 1 y 2 por debajo del triángulo',
-        'Take Profit 1 y 2: altura del triángulo proyectada hacia arriba'
+        t('htt_identificarConvergenciaDeLin_b44ab6c2'),
+        t('htt_entry1RupturaAlcistaDe_2d66fc23'),
+        t('htt_entry2RetrocesoTrasRuptura_e12ca812'),
+        t('htt_stopLoss1Y2_bcefdc4a'),
+        t('htt_takeProfit1Y2_4240ed83')
       ],
       reliability: t('mediumReliability'),
       timeframes: ['1H', '4H', 'D']
@@ -275,11 +275,11 @@ export const getChartPatterns = (t) => ({
       description: t('symTriangleBearDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/ui5ydasb_TRIANGULO%20SIMETRICO%20DE%20CONTINUACCION%20BAJISTA.png',
       howToTrade: [
-        'Identificar convergencia de líneas de tendencia',
-        'Entry 1: ruptura bajista del soporte inferior',
-        'Entry 2: retroceso tras ruptura',
-        'Stop Loss 1 y 2 por encima del triángulo',
-        'Take Profit 1 y 2: altura del triángulo proyectada hacia abajo'
+        t('htt_identificarConvergenciaDeLin_b44ab6c2'),
+        t('htt_entry1RupturaBajistaDel_3b93e3f8'),
+        t('htt_entry2RetrocesoTrasRuptura_e12ca812'),
+        t('htt_stopLoss1Y2_6cdb3f20'),
+        t('htt_takeProfit1Y2_ba05ebc9')
       ],
       reliability: t('mediumReliability'),
       timeframes: ['1H', '4H', 'D']
@@ -291,11 +291,11 @@ export const getChartPatterns = (t) => ({
       description: t('bullFlagDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/tyu0tbqa_BANDERA%20DE%20CONTINUACCION%20ALCISTA.png',
       howToTrade: [
-        'Identificar movimiento alcista fuerte (asta)',
-        'Consolidación en canal bajista (bandera)',
-        'Entrada en ruptura alcista de la bandera (Entry 1 o Entry 2)',
-        'Stop loss por debajo de la bandera',
-        'Take Profit 1 y 2: longitud del asta proyectada'
+        t('htt_identificarMovimientoAlcista_a29dfcc7'),
+        t('htt_consolidacionEnCanalBajistaB_c250b95e'),
+        t('htt_entradaEnRupturaAlcistaDe_e7b25835'),
+        t('htt_stopLossPorDebajoDe_76054fe2'),
+        t('htt_takeProfit1Y2_9ff0c403')
       ],
       reliability: t('highReliability'),
       timeframes: ['15m', '1H', '4H']
@@ -307,11 +307,11 @@ export const getChartPatterns = (t) => ({
       description: t('bearFlagDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/yxqoe3xy_BANDERA%20DE%20CONTINUACCION%20BAJISTA.png',
       howToTrade: [
-        'Identificar movimiento bajista fuerte (asta)',
-        'Consolidación en canal alcista (bandera)',
-        'Entrada en ruptura bajista de la bandera (Entry 1 o Entry 2)',
-        'Stop loss por encima de la bandera',
-        'Take Profit 1 y 2: longitud del asta proyectada'
+        t('htt_identificarMovimientoBajista_dc5090ef'),
+        t('htt_consolidacionEnCanalAlcistaB_a0a69e0b'),
+        t('htt_entradaEnRupturaBajistaDe_7011912c'),
+        t('htt_stopLossPorEncimaDe_c954ac0a'),
+        t('htt_takeProfit1Y2_9ff0c403')
       ],
       reliability: t('highReliability'),
       timeframes: ['15m', '1H', '4H']
@@ -322,11 +322,11 @@ export const getChartPatterns = (t) => ({
       type: 'neutral',
       description: t('pennantDesc'),
       howToTrade: [
-        'Identificar asta (movimiento fuerte)',
-        'Pequeño triángulo simétrico (banderín)',
-        'Entrada en ruptura en dirección del asta',
-        'Stop loss al otro lado del banderín',
-        'Objetivo: longitud del asta'
+        t('htt_identificarAstaMovimientoFue_82ce3e7f'),
+        t('htt_pequenoTrianguloSimetricoBan_4141f840'),
+        t('htt_entradaEnRupturaEnDireccion_e70cf7f2'),
+        t('htt_stopLossAlOtroLado_1a6c0de4'),
+        t('htt_objetivoLongitudDelAsta_03e9a53f')
       ],
       reliability: t('highReliability'),
       timeframes: ['5m', '15m', '1H']
@@ -338,10 +338,10 @@ export const getChartPatterns = (t) => ({
       description: t('bullPennantDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/4ikd2cr5_BANDERIN%20DE%20CONTINUACCION%20ALCISTA.png',
       howToTrade: [
-        'Identificar asta alcista fuerte',
-        'Pequeño triángulo simétrico (banderín)',
-        'Entrada en ruptura alcista (Entry 1 o Entry 2)',
-        'Stop loss por debajo del banderín',
+        t('htt_identificarAstaAlcistaFuerte_1a64b4ba'),
+        t('htt_pequenoTrianguloSimetricoBan_4141f840'),
+        t('htt_entradaEnRupturaAlcistaEntry_99b45711'),
+        t('htt_stopLossPorDebajoDel_609ed513'),
         'Take Profit 1 y 2: longitud del asta'
       ],
       reliability: t('highReliability'),
@@ -354,10 +354,10 @@ export const getChartPatterns = (t) => ({
       description: t('bearPennantDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/urowelfz_BANDERIN%20DE%20CONTINUACCION%20BAJISTA.png',
       howToTrade: [
-        'Identificar asta bajista fuerte',
-        'Pequeño triángulo simétrico (banderín)',
-        'Entrada en ruptura bajista (Entry 1 o Entry 2)',
-        'Stop loss por encima del banderín',
+        t('htt_identificarAstaBajistaFuerte_2ebc185e'),
+        t('htt_pequenoTrianguloSimetricoBan_4141f840'),
+        t('htt_entradaEnRupturaBajistaEntry_6496258f'),
+        t('htt_stopLossPorEncimaDel_4b403a59'),
         'Take Profit 1 y 2: longitud del asta'
       ],
       reliability: t('highReliability'),
@@ -370,11 +370,11 @@ export const getChartPatterns = (t) => ({
       description: t('ascChannelDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/xwieicd1_CANAL%20ALCISTA.png',
       howToTrade: [
-        'Dibujar líneas paralelas conectando mínimos y máximos',
-        'Entry 1: comprar en el soporte del canal',
+        t('htt_dibujarLineasParalelasConect_a52d6314'),
+        t('htt_entry1ComprarEnEl_2fefd3e7'),
         'Entry 2: comprar tras retroceso dentro del canal',
-        'Stop Loss por debajo del canal',
-        'Take Profit en la resistencia del canal o en ruptura'
+        t('htt_stopLossPorDebajoDel_09f9a153'),
+        t('htt_takeProfitEnLaResistencia_3bdadd68')
       ],
       reliability: t('mediumReliability') + '-' + t('highReliability'),
       timeframes: ['1H', '4H', 'D']
@@ -386,11 +386,11 @@ export const getChartPatterns = (t) => ({
       description: t('descChannelDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/17ftg4ps_CANAL%20BAJISTA.png',
       howToTrade: [
-        'Dibujar líneas paralelas conectando máximos y mínimos',
-        'Entry 1: vender en la resistencia del canal',
-        'Entry 2: vender tras rebote dentro del canal',
-        'Stop Loss por encima del canal',
-        'Take Profit en el soporte del canal o en ruptura'
+        t('htt_dibujarLineasParalelasConect_95298983'),
+        t('htt_entry1VenderEnLa_0de2bbcf'),
+        t('htt_entry2VenderTrasRebote_596fb9fc'),
+        t('htt_stopLossPorEncimaDel_4e863757'),
+        t('htt_takeProfitEnElSoporte_e0a715d8')
       ],
       reliability: t('mediumReliability') + '-' + t('highReliability'),
       timeframes: ['1H', '4H', 'D']
@@ -402,10 +402,10 @@ export const getChartPatterns = (t) => ({
       description: t('horzChannelDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/wrbamc2m_CANAL%20HORIZONTAL.png',
       howToTrade: [
-        'Identificar soporte y resistencia horizontales claros',
-        'Entry 1: comprar en el soporte, vender en resistencia',
-        'Entry 2: operar el rebote dentro del rango',
-        'Stop Loss fuera del canal (según dirección)',
+        t('htt_identificarSoporteYResistenc_44379c8a'),
+        t('htt_entry1ComprarEnEl_205a48a2'),
+        t('htt_entry2OperarElRebote_38c4a2db'),
+        t('htt_stopLossFueraDelCanal_6d124093'),
         'Take Profit en el extremo opuesto del canal'
       ],
       reliability: t('mediumReliability'),
@@ -418,10 +418,10 @@ export const getChartPatterns = (t) => ({
       description: t('horzChannelBullDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/m4fqb9l4_CANAL%20HORIZONTAL%20ALCISTA.png',
       howToTrade: [
-        'Identificar rango horizontal con acumulación',
-        'Entry 1: comprar en soporte antes de ruptura',
-        'Entry 2: comprar en ruptura de resistencia',
-        'Stop Loss por debajo del soporte',
+        t('htt_identificarRangoHorizontalCo_9413adc0'),
+        t('htt_entry1ComprarEnSoporte_a2b22c0e'),
+        t('htt_entry2ComprarEnRuptura_f2af04a2'),
+        t('htt_stopLossPorDebajoDel_a8880ddb'),
         'Take Profit 1 y 2: proyectar altura del canal hacia arriba'
       ],
       reliability: t('mediumReliability') + '-' + t('highReliability'),
@@ -434,10 +434,10 @@ export const getChartPatterns = (t) => ({
       description: t('horzChannelBearDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/grq5z4q9_CANAL%20HORIZONTAL%20BAJISTA.png',
       howToTrade: [
-        'Identificar rango horizontal con distribución',
-        'Entry 1: vender en resistencia antes de ruptura',
-        'Entry 2: vender en ruptura del soporte',
-        'Stop Loss por encima de la resistencia',
+        t('htt_identificarRangoHorizontalCo_28a4b59b'),
+        t('htt_entry1VenderEnResistencia_128c1a2d'),
+        t('htt_entry2VenderEnRuptura_494ec4d6'),
+        t('htt_stopLossPorEncimaDe_aa19282c'),
         'Take Profit 1 y 2: proyectar altura del canal hacia abajo'
       ],
       reliability: t('mediumReliability') + '-' + t('highReliability'),
@@ -450,11 +450,11 @@ export const getChartPatterns = (t) => ({
       description: t('cupHandleDesc'),
       image: 'https://customer-assets.emergentagent.com/job_transaction-hub-113/artifacts/xxyrw8nn_TAZA%20CON%20ASA.png',
       howToTrade: [
-        'Identificar formación de taza (U) con asa (consolidación)',
-        'Entry 1: comprar en ruptura de la resistencia del asa',
-        'Entry 2: comprar en retroceso tras ruptura',
-        'Stop Loss por debajo del mínimo del asa',
-        'Take Profit: altura de la taza proyectada desde ruptura'
+        t('htt_identificarFormacionDeTazaU_efa479b6'),
+        t('htt_entry1ComprarEnRuptura_f5a96723'),
+        t('htt_entry2ComprarEnRetroceso_88ee4c83'),
+        t('htt_stopLossPorDebajoDel_edb858e4'),
+        t('htt_takeProfitAlturaDeLa_7f1b2ca3')
       ],
       reliability: t('highReliability'),
       timeframes: ['4H', 'D', 'W']

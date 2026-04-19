@@ -69,6 +69,14 @@
 ### Feb 2026 — Fragmentos restantes Flow/IV/Calculator ✅
 
 ### Feb 2026 — Revisión final i18n Options en los 8 idiomas ✅
+
+### Feb 2026 — Patrones de trading i18n ✅ (chart + candlestick patterns)
+- **`tradingEducationContent.js`**: 94 strings únicos hardcoded en español de los `howToTrade` steps (chart patterns + candlestick patterns) traducidos a 8 idiomas vía Claude 4.5 (**752 traducciones**).
+- **Reemplazo automático**: 106 ocurrencias reemplazadas con `t(key)` calls en el file (manteniendo los t() existentes intactos).
+- **Missing keys fix**: `bullishPattern`, `bearishPattern`, `neutralPattern`, `continuationPattern`, `reversalPattern` — 5 × 8 locales inyectados (antes renderizaban como raw key literal).
+- **EducationPage.jsx**: `getPatternTypeLabel` ahora maneja también `continuation` y `reversal` types (antes solo bullish/bearish/neutral).
+- **`lib/tradingEducation.js`** identificado como **dead code** (no importado en ningún lugar del codebase) — marcado para limpieza futura.
+- Verificación visual: modal Kopf-Schulter-Formation en alemán renderiza Beschreibung + los 5 Wie-Handeln steps nativos ("Vorherigen Aufwärtstrend identifizieren", "Vollständige Musterbildung abwarten", "Einstieg beim Bruch der Neckline", "Stop Loss oberhalb der rechten Schulter", "Ziel: Abstand Kopf zur Neckline nach unten projiziert") + pattern cards grid (Doppelboden, Aufsteigendes/Absteigendes/Symmetrisches Dreieck, Bullische Flagge). HTML assertion sobre 10 fragmentos españoles → 0 leaks.
 - **EDU_MODULES completado en ru/zh/ja/ar**: 57 strings (previously fallback ES) ahora traducidos nativamente via Claude 4.5. `edu_fixup.py` reemplazó valores en i18n.js con traducciones reales.
 - **Normalización de indentación**: 1 key (`edu_fundamentosComprarVsVende_6227e3cc`) tenía indent de 6 spaces por artefacto del primer inject; normalizado a 4.
 - **IV Rank Badge backend → frontend i18n**: antes `server.py` devolvía labels españoles hardcoded (`VENDE PRIMA`, `COMPRA PRIMA`, `NEUTRAL`) con razones. Ahora el frontend (`IVRankBadge.jsx`) mapea el `recommendation` key (`sell_premium/buy_premium/neutral`) a 6 translation keys (label + reason) y ya no lee los campos `recommendationLabel/Reason` del backend. **48 traducciones nuevas** (6 × 8 locales).
