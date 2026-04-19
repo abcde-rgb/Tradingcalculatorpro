@@ -1,14 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Gauge, Save, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthStore, useCalculatorStore } from '@/lib/store';
 import { formatNumber, formatCurrency, formatPercentage } from '@/lib/utils';
-import { CRYPTO_LIST } from '@/lib/constants';
 import { useTranslation } from '@/lib/i18n';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
@@ -17,39 +15,40 @@ export const LeverageCalculator = () => {
   const { saveCalculation } = useCalculatorStore();
   const { t } = useTranslation();
   
-  const [state, setState, clearState, isLoading] = usePersistedState('leverage_calculator', {
+  const [state, setState, clearState] = usePersistedState('leverage_calculator', {
     capital: 1000,
     entryPrice: 95000,
     exitPrice: 96000,
     leverage: 10,
     isLong: true
   });
-  
+
+  const { capital, entryPrice, exitPrice, leverage, isLong } = state;
   const [result, setResult] = useState(null);
 
-  const updateState = (updates) => {
-    setState(prev => ({ ...prev, ...updates }));
-  };
+  const setCapital = (v) => setState(prev => ({ ...prev, capital: v }));
+  const setEntryPrice = (v) => setState(prev => ({ ...prev, entryPrice: v }));
+  const setExitPrice = (v) => setState(prev => ({ ...prev, exitPrice: v }));
+  const setLeverage = (v) => setState(prev => ({ ...prev, leverage: Array.isArray(v) ? v[0] : v }));
+  const setIsLong = (v) => setState(prev => ({ ...prev, isLong: v }));
 
   const calculate = () => {
     const cap = parseFloat(capital);
     const entry = parseFloat(entryPrice);
     const exit = parseFloat(exitPrice);
-    const lev = leverage[0];
-    
+    const lev = leverage;
+    if (!cap || !entry || !exit || !lev) return;
+
     // Calcular movimiento del precio
     const priceMovement = ((exit - entry) / entry) * 100;
-    
+
     // Calcular P&L
     // En LONG: ganas si precio sube (exit > entry)
     // En SHORT: ganas si precio baja (exit < entry)
     let pnl;
     if (isLong) {
-      // LONG: PnL = Capital * (movimiento%) * apalancamiento
       pnl = cap * (priceMovement / 100) * lev;
     } else {
-      // SHORT: PnL = Capital * (-movimiento%) * apalancamiento
-      // Si el precio baja, el movimiento es negativo, pero en short eso es ganancia
       pnl = cap * (-priceMovement / 100) * lev;
     }
     
@@ -82,7 +81,7 @@ export const LeverageCalculator = () => {
 
   const handleSave = async () => {
     if (result && isAuthenticated) {
-      await saveCalculation('leverage', { capital, entryPrice, exitPrice, leverage: leverage[0], isLong }, result);
+      await saveCalculation('leverage', { capital, entryPrice, exitPrice, leverage, isLong }, result);
     }
   };
 
@@ -134,10 +133,10 @@ export const LeverageCalculator = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('leverage')}</Label>
-                <span className="font-mono text-lg font-bold text-yellow-500">{leverage[0]}x</span>
+                <span className="font-mono text-lg font-bold text-yellow-500">{leverage}x</span>
               </div>
               <Slider
-                value={leverage}
+                value={[leverage]}
                 onValueChange={setLeverage}
                 min={1}
                 max={125}
@@ -229,14 +228,14 @@ export const LeverageCalculator = () => {
                   <p className="text-accent font-semibold">Explicación:</p>
                   <p className="text-muted-foreground mt-1">
                     {isLong 
-                      ? `En LONG con ${leverage[0]}x: si el precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, tu ${result.isProfit ? 'ganancia' : 'pérdida'} es ${formatNumber(Math.abs(result.roi))}% (${leverage[0]}x el movimiento).`
-                      : `En SHORT con ${leverage[0]}x: si el precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, tu ${result.isProfit ? 'ganancia' : 'pérdida'} es ${formatNumber(Math.abs(result.roi))}% (inverso al movimiento x${leverage[0]}).`
+                      ? `En LONG con ${leverage}x: si el precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, tu ${result.isProfit ? 'ganancia' : 'pérdida'} es ${formatNumber(Math.abs(result.roi))}% (${leverage}x el movimiento).`
+                      : `En SHORT con ${leverage}x: si el precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, tu ${result.isProfit ? 'ganancia' : 'pérdida'} es ${formatNumber(Math.abs(result.roi))}% (inverso al movimiento x${leverage}).`
                     }
                   </p>
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button onClick={clearPersistedData} variant="outline" className="flex-1">
+                  <Button onClick={clearState} variant="outline" className="flex-1">
                     <Trash2 className="w-4 h-4 mr-2" />
                     Limpiar
                   </Button>
