@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { TrendingUp, Sun, Moon, Globe, Linkedin, Mail } from 'lucide-react';
+import { TrendingUp, Sun, Moon, Globe, Linkedin, Mail, CandlestickChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 import { useThemeStore } from '@/lib/theme';
@@ -29,16 +29,7 @@ const YoutubeLogo = (props) => (
 );
 
 // TradingView logo mark (stylized candlestick chart)
-const TradingViewLogo = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    {...props}
-  >
-    <path d="M1.5 9h4.75v1.5H4v10.5H2.5V10.5H1.5V9zM8 9h6a3 3 0 1 1-3 3h-3V9zm3 1.5v3a1.5 1.5 0 1 0 0-3zm6.5 4 3.5 6H19l-1.5-2.7L16 20.5h-2l3.5-6zm0-5.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5z" />
-  </svg>
-);
+const TradingViewLogo = (props) => <CandlestickChart {...props} />;
 
 /**
  * Global footer used across all authenticated/public pages.
