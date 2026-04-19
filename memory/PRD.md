@@ -65,6 +65,13 @@
 ### Feb 2026 — ExplainTrade + AITradeCoach + chart labels ✅
 
 ### Feb 2026 — Subtabs Options (Optimizar/Flow/IV Surface/Academia) ✅
+
+### Feb 2026 — Fragmentos restantes Flow/IV/Calculator ✅
+- **MarketFlow.jsx**: intro "Pulsa Escanear para detectar unusual activity en SPY, QQQ, TSLA... y 18 tickers más" → `flowIntroDesc_mf001` con placeholder `{scan}` + `escanear_mf002` inline bold. "Escaneando 24 tickers..." → `scanning24_mf003`. "Sin actividad inusual detectada con ratio ≥ {ratio}x" → `noUnusualActivity_mf004` con placeholder.
+- **IVSurfaceView.jsx**: footer "Interpretation: La volatilidad implícita (IV) refleja... IV alta (rojo) indica mayor incertidumbre... skew (asimetría) muestra diferencias entre strikes ITM/ATM/OTM" — párrafo completo extraído a `ivInterpretationDesc_sf001`.
+- **LegEditor.jsx**: label "Prima" del leg editor → `t('prima_ua002')` (reutilizando key existente).
+- **5 nuevas keys añadidas en los 8 locales vía LLM** (30 traducciones).
+- Verificación: screenshots Flow + IV-Fläche en alemán muestran narrativa completa traducida: "Scannt die 5 nächsten Verfallstermine", "Die implied volatility (IV) spiegelt die Markterwartungen...". HTML assertion negativa sobre 9 strings españoles clave.
 - **Optimizar (OptimizeView.jsx)**: SENTIMIENTO, PRESUPUESTO, Muy Bajista/Bajista/Neutral/Alcista/Muy Alcista, Max Retorno/Max Probabilidad, OPTIMIZAR AHORA, Top {n} estrategias, Profit máx, Capital, Abrir en Calculator, mensaje vacío — todos con `t()`.
 - **Flow (UnusualActivity.jsx)**: Refrescar, descripción "Strikes con volumen...", filtros Todos/Calls/Puts, tabla headers (Tipo, Prima, Vencimiento) — todos con `t()`.
 - **IV Surface (IVSurfaceView.jsx + IVRankBadge.jsx)**: `vencimientos`, `Promedio` tab, `Volatilidad:` label, tooltip del badge (`IV actual/Rango 52w/Percentil`) — todos con `t()`.

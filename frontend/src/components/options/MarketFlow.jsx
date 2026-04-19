@@ -60,21 +60,26 @@ const MarketFlow = ({ onSelectSymbol }) => {
         </div>
       </div>
 
-      {!data && !loading && (
-        <p className="text-xs text-muted-foreground">
-          Pulsa <span className="text-[#c084fc] font-semibold">Escanear</span> para detectar unusual activity en SPY, QQQ, TSLA, NVDA, AAPL, META y 18 tickers más. Ordenado por notional ($).
-        </p>
-      )}
+      {!data && !loading && (() => {
+        const parts = t('flowIntroDesc_mf001').split('{scan}');
+        return (
+          <p className="text-xs text-muted-foreground">
+            {parts[0]}
+            <span className="text-[#c084fc] font-semibold">{t('escanear_mf002')}</span>
+            {parts[1]}
+          </p>
+        );
+      })()}
 
       {loading && !data && (
         <div className="flex items-center justify-center py-8 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin mr-2" /> Escaneando 24 tickers...
+          <Loader2 className="w-4 h-4 animate-spin mr-2" /> {t('scanning24_mf003')}
         </div>
       )}
 
       {data && data.results && data.results.length === 0 && (
         <p className="text-xs text-muted-foreground text-center py-4">
-          Sin actividad inusual detectada con ratio ≥ {minRatio}x actualmente.
+          {t('noUnusualActivity_mf004').replace('{ratio}', minRatio)}
         </p>
       )}
 

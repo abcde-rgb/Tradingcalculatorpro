@@ -1359,6 +1359,11 @@ export const translations = {
     gd_ratioDeMaxProfit_3ca6ffc1: 'Ratio de Max Profit / Max Loss. Un R/R de 2x con PoP 40% puede ser más rentable que un R/R 0.5x con PoP 70%.',
       entendido_c32b2b: 'ENTENDIDO',
       deCeroAProfesional_c32b2c: 'De cero a profesional. Domina los derivados financieros con la profundidad que los brokers no te enseñan.',
+      flowIntroDesc_mf001: 'Pulsa {scan} para detectar unusual activity en SPY, QQQ, TSLA, NVDA, AAPL, META y 18 tickers más. Ordenado por notional ($).',
+    escanear_mf002: 'Escanear',
+    scanning24_mf003: 'Escaneando 24 tickers...',
+    noUnusualActivity_mf004: 'Sin actividad inusual detectada con ratio ≥ {ratio}x actualmente.',
+    ivInterpretationDesc_sf001: 'La volatilidad implícita (IV) refleja las expectativas del mercado sobre la futura volatilidad del activo. IV alta (rojo) indica mayor incertidumbre y primas más caras. IV baja (azul) sugiere mercados tranquilos y opciones más baratas. El "skew" (asimetría) muestra diferencias entre strikes ITM/ATM/OTM.',
   },
   
   en: {
@@ -2607,6 +2612,11 @@ export const translations = {
     gd_ratioDeMaxProfit_3ca6ffc1: 'Ratio of Max Profit / Max Loss. An R/R of 2x with PoP 40% can be more profitable than an R/R 0.5x with PoP 70%.',
       entendido_c32b2b: 'GOT IT',
       deCeroAProfesional_c32b2c: 'From zero to pro. Master financial derivatives with the depth that brokers don\'t teach you.',
+      flowIntroDesc_mf001: 'Tap {scan} to detect unusual activity in SPY, QQQ, TSLA, NVDA, AAPL, META, and 18 more tickers. Sorted by notional ($).',
+    escanear_mf002: 'Scan',
+    scanning24_mf003: 'Scanning 24 tickers...',
+    noUnusualActivity_mf004: 'No unusual activity detected with ratio ≥ {ratio}x currently.',
+    ivInterpretationDesc_sf001: 'Implied volatility (IV) reflects market expectations of future asset volatility. High IV (red) indicates greater uncertainty and more expensive premia. Low IV (blue) suggests calm markets and cheaper options. Skew shows differences between ITM/ATM/OTM strikes.',
   },
   
   de: {
@@ -3885,6 +3895,11 @@ export const translations = {
     gd_ratioDeMaxProfit_3ca6ffc1: 'Verhältnis von Max Profit / Max Loss. Ein R/R von 2x mit PoP 40% kann profitabler sein als ein R/R 0,5x mit PoP 70%.',
       entendido_c32b2b: 'VERSTANDEN',
       deCeroAProfesional_c32b2c: 'Von null zum Profi. Beherrsche Finanzderivate mit der Tiefe, die Broker dir nicht beibringen.',
+      flowIntroDesc_mf001: 'Drücke {scan}, um unusual activity in SPY, QQQ, TSLA, NVDA, AAPL, META und 18 weiteren Tickers zu erkennen. Sortiert nach notional ($).',
+    escanear_mf002: 'Scannen',
+    scanning24_mf003: 'Scanne 24 Tickers...',
+    noUnusualActivity_mf004: 'Keine unusual activity mit ratio ≥ {ratio}x derzeit erkannt.',
+    ivInterpretationDesc_sf001: 'Die implied volatility (IV) spiegelt die Markterwartungen über die zukünftige Volatilität des Assets wider. Hohe IV (rot) deutet auf größere Unsicherheit und teurere Prämien hin. Niedrige IV (blau) deutet auf ruhige Märkte und günstigere Optionen hin. Der skew (Asymmetrie) zeigt Unterschiede zwischen ITM/ATM/OTM-Strikes.',
   },
   
   fr: {
@@ -5163,6 +5178,11 @@ export const translations = {
     gd_ratioDeMaxProfit_3ca6ffc1: 'Ratio de Max Profit / Max Loss. Un R/R de 2x avec PoP 40% peut être plus rentable qu\'un R/R 0.5x avec PoP 70%.',
       entendido_c32b2b: 'COMPRIS',
       deCeroAProfesional_c32b2c: 'De zéro à pro. Maîtrise les dérivés financiers avec la profondeur que les brokers ne t\'apprennent pas.',
+      flowIntroDesc_mf001: 'Appuyez sur {scan} pour détecter une unusual activity sur SPY, QQQ, TSLA, NVDA, AAPL, META et 18 autres tickers. Classé par notional ($).',
+    escanear_mf002: 'Scanner',
+    scanning24_mf003: 'Analyse de 24 tickers en cours...',
+    noUnusualActivity_mf004: 'Aucune activité inhabituelle détectée avec un ratio ≥ {ratio}x actuellement.',
+    ivInterpretationDesc_sf001: 'La volatilité implicite (IV) reflète les anticipations du marché concernant la future volatilité de l\'actif. Une IV élevée (rouge) indique une incertitude accrue et des primas plus coûteuses. Une IV faible (bleue) suggère des marchés calmes et des options moins chères. Le skew (asymétrie) montre les différences entre les strikes ITM/ATM/OTM.',
   },
   
   ru: {
@@ -6383,6 +6403,11 @@ export const translations = {
     gd_ratioDeMaxProfit_3ca6ffc1: 'Ratio de Max Profit / Max Loss. Un R/R de 2x con PoP 40% puede ser más rentable que un R/R 0.5x con PoP 70%.',
       entendido_c32b2b: 'ПОНЯЛ',
       deCeroAProfesional_c32b2c: 'С нуля до профи. Освой финансовые деривативы с глубиной, которой брокеры не учат.',
+      flowIntroDesc_mf001: 'Нажмите {scan}, чтобы обнаружить unusual activity в SPY, QQQ, TSLA, NVDA, AAPL, META и ещё 18 тикерах. Сортировка по notional ($).',
+    escanear_mf002: 'Сканировать',
+    scanning24_mf003: 'Сканирование 24 тикеров...',
+    noUnusualActivity_mf004: 'Unusual activity с ratio ≥ {ratio}x в данный момент не обнаружена.',
+    ivInterpretationDesc_sf001: 'IV (волатильность implícita) отражает ожидания рынка относительно будущей волатильности актива. Высокая IV (красный) указывает на большую неопределённость и более дорогие прimas. Низкая IV (синий) предполагает спокойные рынки и более дешёвые опционы. Skew (асимметрия) показывает разницу между страйками ITM/ATM/OTM.',
   },
   
   zh: {
@@ -7603,6 +7628,11 @@ export const translations = {
     gd_ratioDeMaxProfit_3ca6ffc1: 'Ratio de Max Profit / Max Loss. Un R/R de 2x con PoP 40% puede ser más rentable que un R/R 0.5x con PoP 70%.',
       entendido_c32b2b: '明白了',
       deCeroAProfesional_c32b2c: '从零到专业。以经纪商不会教你的深度，掌握金融衍生品。',
+      flowIntroDesc_mf001: '点击{scan}检测SPY、QQQ、TSLA、NVDA、AAPL、META等24只股票的异常活动。按notional（$）排序。',
+    escanear_mf002: '扫描',
+    scanning24_mf003: '正在扫描24只股票...',
+    noUnusualActivity_mf004: '当前未检测到ratio ≥ {ratio}x的异常活动。',
+    ivInterpretationDesc_sf001: 'IV（隐含波动率）反映市场对资产未来波动性的预期。高IV（红色）表示不确定性较高，prima更贵。低IV（蓝色）表明市场平静,期权更便宜。Skew（偏斜）显示ITM/ATM/OTM行权价之间的差异。',
   },
   
   ja: {
@@ -8823,6 +8853,11 @@ export const translations = {
     gd_ratioDeMaxProfit_3ca6ffc1: 'Ratio de Max Profit / Max Loss. Un R/R de 2x con PoP 40% puede ser más rentable que un R/R 0.5x con PoP 70%.',
       entendido_c32b2b: '了解',
       deCeroAProfesional_c32b2c: 'ゼロからプロまで。ブローカーが教えてくれない深さで金融デリバティブをマスター。',
+      flowIntroDesc_mf001: '{scan}を押すと、SPY、QQQ、TSLA、NVDA、AAPL、METAおよび他18銘柄のunusual activityを検出します。notional（$）順で表示されます。',
+    escanear_mf002: 'スキャン',
+    scanning24_mf003: '24銘柄をスキャン中...',
+    noUnusualActivity_mf004: '現在、ratio ≥ {ratio}xのunusual activityは検出されませんでした。',
+    ivInterpretationDesc_sf001: 'IV（インプライド・ボラティリティ）は、資産の将来のボラティリティに対する市場の期待を反映します。IVが高い（赤）場合は、不確実性が高くprimaが高額であることを示します。IVが低い（青）場合は、市場が落ち着いており、オプションが安価であることを示唆します。skew（歪度）は、ITM/ATM/OTMストライク間の差異を示します。',
   },
   
   ar: {
@@ -10041,6 +10076,11 @@ export const translations = {
     gd_ratioDeMaxProfit_3ca6ffc1: 'Ratio de Max Profit / Max Loss. Un R/R de 2x con PoP 40% puede ser más rentable que un R/R 0.5x con PoP 70%.',
       entendido_c32b2b: 'فهمت',
       deCeroAProfesional_c32b2c: 'من الصفر إلى الاحتراف. أتقن المشتقات المالية بالعمق الذي لا يعلمك إياه الوسطاء.',
+      flowIntroDesc_mf001: 'اضغط {scan} للكشف عن النشاط غير المعتاد في SPY، QQQ، TSLA، NVDA، AAPL، META و18 رمزًا إضافيًا. مرتبة حسب القيمة الاسمية ($).',
+    escanear_mf002: 'مسح',
+    scanning24_mf003: 'جارٍ مسح 24 رمزًا...',
+    noUnusualActivity_mf004: 'لم يتم اكتشاف نشاط غير معتاد بنسبة ≥ {ratio}x حاليًا.',
+    ivInterpretationDesc_sf001: 'تعكس التقلبات الضمنية (IV) توقعات السوق حول التقلبات المستقبلية للأصل. IV المرتفعة (أحمر) تشير إلى عدم يقين أكبر وأقساط أغلى. IV المنخفضة (أزرق) تشير إلى أسواق هادئة وخيارات أرخص. يُظهر "skew" (الانحراف) الفروقات بين نقاط التنفيذ ITM/ATM/OTM.',
   }
 };
 

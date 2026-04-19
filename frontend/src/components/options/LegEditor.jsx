@@ -217,7 +217,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
 
               {/* Premium */}
               <div>
-                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">Prima</label>
+                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">{t('prima_ua002')}</label>
                 <div className="bg-background border border-border rounded-lg px-2 py-1.5 text-xs font-mono text-muted-foreground text-center">
                   ${leg.premium?.toFixed(2)}
                 </div>

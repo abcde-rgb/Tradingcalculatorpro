@@ -260,10 +260,7 @@ const IVSurfaceView = ({ stock, chain }) => {
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
           <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <p className="leading-relaxed">
-            <span className="font-bold text-foreground">{t('interpretacion_1cc069')}</span> La volatilidad implícita (IV) refleja las expectativas del mercado 
-            sobre la futura volatilidad del activo. IV alta (rojo) indica mayor incertidumbre y primas más caras. 
-            IV baja (azul) sugiere mercados tranquilos y opciones más baratas. El "skew" (asimetría) muestra diferencias 
-            entre strikes ITM/ATM/OTM.
+            <span className="font-bold text-foreground">{t('interpretacion_1cc069')}</span> {t('ivInterpretationDesc_sf001')}
           </p>
         </div>
       </div>
