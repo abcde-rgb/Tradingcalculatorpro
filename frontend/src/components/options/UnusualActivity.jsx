@@ -129,14 +129,14 @@ const UnusualActivity = ({ symbol }) => {
           <table className="w-full text-xs">
             <thead className="bg-muted/50 border-b border-border">
               <tr className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                <th className="px-3 py-2 text-left">Tipo</th>
+                <th className="px-3 py-2 text-left">{t('tipo_ua001')}</th>
                 <th className="px-3 py-2 text-right">Strike</th>
-                <th className="px-3 py-2 text-left">Vencimiento</th>
+                <th className="px-3 py-2 text-left">{t('vencimiento_91e0e1')}</th>
                 <th className="px-3 py-2 text-right">{t('volumen_186110')}</th>
                 <th className="px-3 py-2 text-right">OI</th>
                 <th className="px-3 py-2 text-right">Vol/OI</th>
                 <th className="px-3 py-2 text-right">IV</th>
-                <th className="px-3 py-2 text-right">Prima</th>
+                <th className="px-3 py-2 text-right">{t('prima_ua002')}</th>
                 <th className="px-3 py-2 text-right">Notional</th>
                 <th className="px-3 py-2 text-right">Moneyness</th>
               </tr>

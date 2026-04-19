@@ -61,6 +61,16 @@
 ### Feb 2026 — Barrido automático completo i18n ✅
 
 ### Feb 2026 — Options strategy data i18n ✅ (mockData.js)
+
+### Feb 2026 — ExplainTrade + AITradeCoach + chart labels ✅
+- **25 template strings** (con placeholders `{symbol}`, `{be}`, `{amount}`, `{strike}`, `{iv}`, `{n}`, `{analyzeBold}`, `{berange}`) traducidos a 8 idiomas vía Claude 4.5.
+- **`ExplainTrade.jsx`**: 12 narrative bullets ahora usan `t(key)` con `fmt()` helper para interpolar placeholders. Ejemplos visibles en alemán: "BULLISCHE Ausrichtung: Du gewinnst, wenn AAPL steigt", "NEGATIVES Theta: Du zahlst Prämie, die täglich verfällt", "MAXIMALER Verlust definiert: $716", etc.
+- **`AITradeCoach.jsx`**: intro con bold inline usando split de `{analyzeBold}`, botón "Analizar/Analizando.../Re-analizar", disclaimer "Análisis generado por IA..." — todo i18n.
+- **`CalculatorPage.jsx`**: "Vencimiento" (slider label), "Greeks Detalladas", "Mi Portfolio", "Kelly Criterion Sizing" toggles (`mostrar/ocultar`).
+- **`LegEditor.jsx`**: "Cantidad" label del leg editor.
+- **`GreeksTimeChart.jsx`**: ReferenceLine "Vencimiento" label.
+- **`UnusualActivity.jsx`**: table headers "Tipo/Vencimiento/Prima" traducidos.
+- Verificado con screenshot DE logged-in: todos los bullets del Explain Trade, AI Coach intro, toggles, vencimiento slider, leg editor — 100% alemán.
 - **136 strings únicos** de STRATEGIES (name/description/risk/reward/maxProfit/maxLoss/whenToUse) traducidos a 8 idiomas vía Claude 4.5 (~1088 traducciones).
 - **Transformación de datos**: mockData.js ahora almacena **translation keys** en lugar de strings españoles. Ejemplo: `name: 'mock_longCallBuy_780ea6ab'` en vez de `name: 'Long Call · BUY'`. **231 field values** reemplazados en el bloque STRATEGIES.
 - **Render sites wrapped con `t()`**: `StrategyBar.jsx`, `EducationTab.jsx`, `CalculatorPage.jsx` (chart title, compare labels, select options), `SimulatorPro.jsx` (strategy select).

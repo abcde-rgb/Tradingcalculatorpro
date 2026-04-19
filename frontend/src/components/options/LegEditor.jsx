@@ -177,7 +177,7 @@ const LegEditor = ({ legs, chain, stockPrice, onLegsChange }) => {
 
               {/* Quantity */}
               <div>
-                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">Cantidad</label>
+                <label className="text-[8px] text-[#3a4f6e] font-semibold uppercase mb-0.5 block">{t('cantidad_91e0e6')}</label>
                 <div className="flex items-center bg-background border border-border rounded-lg overflow-hidden">
                   <button
                     onClick={() => updateLeg(idx, { quantity: Math.max(1, leg.quantity - 1) })}

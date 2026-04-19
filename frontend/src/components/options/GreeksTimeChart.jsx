@@ -150,7 +150,7 @@ const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
               iconType="line"
             />
             <ReferenceLine y={0} stroke="#444" strokeWidth={1} />
-            <ReferenceLine x={today} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1} label={{ value: 'Vencimiento', position: 'top', fill: '#f59e0b', fontSize: 9 }} />
+            <ReferenceLine x={today} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1} label={{ value: t('vencimiento_91e0e1'), position: 'top', fill: '#f59e0b', fontSize: 9 }} />
             {GREEKS_CONFIG.map(({ key, label, color }) =>
               visible[key] ? (
                 <Line

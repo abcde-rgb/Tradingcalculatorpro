@@ -10,6 +10,10 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
   const { t } = useTranslation();
   if (!legs || legs.length === 0 || !stock) return null;
 
+  const fmt = (tpl, params) => Object.entries(params).reduce(
+    (s, [k, v]) => s.replaceAll(`{${k}}`, v), tpl
+  );
+
   const bullets = [];
   const optionLegs = legs.filter((l) => l.type !== 'stock');
   const calls = optionLegs.filter((l) => l.type === 'call');
@@ -23,22 +27,26 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
     const dirDelta = l.type === 'call' ? 0.5 : -0.5; // rough proxy
     return s + mult * dirDelta * (l.quantity || 1);
   }, 0);
+  const be = breakEvens?.[0] ?? stock.price.toFixed(2);
   if (netDelta > 0.3) {
     bullets.push({
       icon: '↑',
-      text: `Sesgo ALCISTA: ganas si ${stock.symbol} sube. Break-even al vencimiento ~$${breakEvens?.[0] ?? stock.price.toFixed(2)}.`,
+      text: fmt(t('bullishBias_91e0ec'), { symbol: stock.symbol, be }),
       color: 'text-[#4ade80]',
     });
   } else if (netDelta < -0.3) {
     bullets.push({
       icon: '↓',
-      text: `Sesgo BAJISTA: ganas si ${stock.symbol} cae por debajo de $${breakEvens?.[0] ?? stock.price.toFixed(2)}.`,
+      text: fmt(t('bearishBias_91e0ed'), { symbol: stock.symbol, be }),
       color: 'text-[#f87171]',
     });
   } else {
+    const berange = breakEvens?.length > 1
+      ? fmt(t('neutralBreakEvens_91e0ef'), { be1: breakEvens[0], be2: breakEvens[breakEvens.length - 1] })
+      : '';
     bullets.push({
       icon: '→',
-      text: `Sesgo NEUTRAL: ganas si ${stock.symbol} se mantiene en un rango. ${breakEvens?.length > 1 ? `Break-evens $${breakEvens[0]} y $${breakEvens[breakEvens.length - 1]}.` : ''}`,
+      text: fmt(t('neutralBias_91e0ee'), { symbol: stock.symbol, berange }),
       color: 'text-[#eab308]',
     });
   }
@@ -46,37 +54,26 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
   // 2) Theta / time decay narrative
   const longsVsShorts = longs.length - shorts.length;
   if (longsVsShorts > 0) {
-    bullets.push({
-      icon: '⏰',
-      text: `Theta NEGATIVO: pagas prima que decae cada día. Necesitas que el movimiento ocurra PRONTO antes de que el tiempo erosione el valor.`,
-      color: 'text-[#f87171]',
-    });
+    bullets.push({ icon: '⏰', text: t('thetaNegative_91e0f0'), color: 'text-[#f87171]' });
   } else if (longsVsShorts < 0) {
-    bullets.push({
-      icon: '⏰',
-      text: `Theta POSITIVO: cobras prima. El TIEMPO JUEGA A TU FAVOR — si el precio no se mueve, ganas decay diario.`,
-      color: 'text-[#4ade80]',
-    });
+    bullets.push({ icon: '⏰', text: t('thetaPositive_91e0f1'), color: 'text-[#4ade80]' });
   } else {
-    bullets.push({
-      icon: '⏰',
-      text: `Theta NEUTRAL: largos y cortos compensan. El movimiento del precio importa más que el tiempo.`,
-      color: 'text-[#eab308]',
-    });
+    bullets.push({ icon: '⏰', text: t('thetaNeutral_91e0f2'), color: 'text-[#eab308]' });
   }
 
   // 3) Max Loss / Risk narrative
   if (stats?.isMaxLossUnlimited) {
+    const up = calls.some((c) => c.action === 'sell' && !calls.some((cc) => cc.action === 'buy' && cc.strike > c.strike));
     bullets.push({
       icon: '⚠',
-      text: `RIESGO ILIMITADO al ${calls.some((c) => c.action === 'sell' && !calls.some((cc) => cc.action === 'buy' && cc.strike > c.strike)) ? 'alza' : 'baja'}. Requiere margen alto y stop-loss disciplinado.`,
+      text: up ? t('unlimitedRiskUp_91e0f3') : t('unlimitedRiskDown_91e0f4'),
       color: 'text-[#ef4444]',
     });
   } else if (stats?.maxLoss) {
     const ml = parseFloat(stats.maxLoss);
     bullets.push({
       icon: '🛡',
-      text: `Pérdida MÁXIMA definida: $${Math.abs(ml).toFixed(0)}. No puedes perder más de esa cantidad pase lo que pase.`,
+      text: fmt(t('maxLossDefined_91e0f5'), { amount: Math.abs(ml).toFixed(0) }),
       color: 'text-[#a78bfa]',
     });
   }
@@ -88,13 +85,13 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
     if (shortPut) {
       bullets.push({
         icon: '📋',
-        text: `Si ${stock.symbol} cae por debajo de $${shortPut.strike} y mantienes, te asignarán 100 acciones/contrato al precio del strike.`,
+        text: fmt(t('assignPut_91e0f6'), { symbol: stock.symbol, strike: shortPut.strike }),
         color: 'text-muted-foreground',
       });
     } else if (shortCall) {
       bullets.push({
         icon: '📋',
-        text: `Si ${stock.symbol} sube por encima de $${shortCall.strike} y mantienes, entregarás 100 acciones/contrato (si short call cubierta) o cubrirás con pérdida (si naked).`,
+        text: fmt(t('assignCall_91e0f7'), { symbol: stock.symbol, strike: shortCall.strike }),
         color: 'text-muted-foreground',
       });
     }
@@ -102,16 +99,17 @@ const ExplainTrade = ({ legs, stock, breakEvens, stats }) => {
 
   // 5) IV context
   const avgIV = optionLegs.length ? optionLegs.reduce((s, l) => s + (l.iv || 0.3), 0) / optionLegs.length : 0;
+  const ivPct = (avgIV * 100).toFixed(0);
   if (longsVsShorts > 0 && avgIV > 0.5) {
     bullets.push({
       icon: '⌬',
-      text: `IV ELEVADA (${(avgIV * 100).toFixed(0)}%): pagas primas caras. Un crush post-earnings puede generar pérdida aunque aciertes la dirección.`,
+      text: fmt(t('ivHighLong_91e0f8'), { iv: ivPct }),
       color: 'text-[#f87171]',
     });
   } else if (longsVsShorts < 0 && avgIV > 0.5) {
     bullets.push({
       icon: '⌬',
-      text: `IV ELEVADA (${(avgIV * 100).toFixed(0)}%): cobras primas gordas. Setup favorable para vendedores de volatilidad.`,
+      text: fmt(t('ivHighShort_91e0f9'), { iv: ivPct }),
       color: 'text-[#4ade80]',
     });
   }

@@ -594,7 +594,7 @@ const CalculatorPage = () => {
               {/* Time Slider — slim */}
               <div className="flex items-center gap-3 bg-card/60 rounded-lg border border-border/60 px-3 py-2">
                 <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[11px] text-muted-foreground whitespace-nowrap">Vencimiento</span>
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t('vencimiento_91e0e1')}</span>
                 <div className="flex-1 relative">
                   <input type="range" min={0} max={100} value={timeSlider} onChange={(e) => setTimeSlider(parseInt(e.target.value))} className="w-full" />
                 </div>
@@ -666,7 +666,7 @@ const CalculatorPage = () => {
               >
                 <Calculator className="w-3.5 h-3.5" />
                 Kelly Criterion Sizing
-                <span className="text-[10px] opacity-60">{showKelly ? '▲ ocultar' : '▼ mostrar'}</span>
+                <span className="text-[10px] opacity-60">{showKelly ? `▲ ${t('ocultar_91e0e3')}` : `▼ ${t('mostrar_91e0e2')}`}</span>
               </button>
               <button
                 onClick={() => setShowGreeks((v) => !v)}
@@ -678,8 +678,8 @@ const CalculatorPage = () => {
                 data-testid="toggle-greeks"
               >
                 <span className="font-serif italic font-bold text-sm">Δ</span>
-                Greeks Detalladas
-                <span className="text-[10px] opacity-60">{showGreeks ? '▲ ocultar' : '▼ mostrar'}</span>
+                {t('greeksDetalladas_91e0e4')}
+                <span className="text-[10px] opacity-60">{showGreeks ? `▲ ${t('ocultar_91e0e3')}` : `▼ ${t('mostrar_91e0e2')}`}</span>
               </button>
               <button
                 onClick={() => setShowPortfolio((v) => !v)}
@@ -691,8 +691,8 @@ const CalculatorPage = () => {
                 data-testid="toggle-portfolio"
               >
                 <Layers className="w-3.5 h-3.5" />
-                Mi Portfolio
-                <span className="text-[10px] opacity-60">{showPortfolio ? '▲ ocultar' : '▼ mostrar'}</span>
+                {t('miPortfolio_91e0e5')}
+                <span className="text-[10px] opacity-60">{showPortfolio ? `▲ ${t('ocultar_91e0e3')}` : `▼ ${t('mostrar_91e0e2')}`}</span>
               </button>
             </div>
 

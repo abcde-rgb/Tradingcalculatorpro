@@ -68,7 +68,7 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#c084fc] text-xs font-bold hover:bg-[#a855f7]/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           data-testid="ai-analyze-btn"
         >
-          {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analizando...</> : analysis ? <><RefreshCw className="w-3.5 h-3.5" /> Re-analizar</> : <><Sparkles className="w-3.5 h-3.5" /> {t('analizarEstaOperacion_804981')}</>}
+          {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('aiCoachAnalyzing_91e0e9')}</> : analysis ? <><RefreshCw className="w-3.5 h-3.5" /> {t('aiCoachReanalyze_91e0ea')}</> : <><Sparkles className="w-3.5 h-3.5" /> {t('analizarEstaOperacion_804981')}</>}
         </button>
       </div>
 
@@ -78,11 +78,16 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
         </div>
       )}
 
-      {!analysis && !loading && !error && (
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Pulsa <span className="text-[#c084fc] font-semibold">Analizar</span> y Claude Sonnet 4.5 revisará tu estrategia actual: puntos fuertes, riesgos, mejoras accionables y veredicto final. Pensado como un coach senior de volatility trading.
-        </p>
-      )}
+      {!analysis && !loading && !error && (() => {
+        const parts = t('aiCoachIntro_91e0e7').split('{analyzeBold}');
+        return (
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {parts[0]}
+            <span className="text-[#c084fc] font-semibold">{t('aiCoachAnalyze_91e0e8')}</span>
+            {parts[1]}
+          </p>
+        );
+      })()}
 
       {analysis && (
         <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed text-foreground/90">
@@ -100,7 +105,7 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
             {analysis}
           </ReactMarkdown>
           <p className="text-[9px] text-muted-foreground/60 mt-3 italic">
-            Análisis generado por IA — no constituye asesoramiento financiero. Revisa siempre con criterio propio.
+            {t('aiCoachDisclaimer_91e0eb')}
           </p>
         </div>
       )}
