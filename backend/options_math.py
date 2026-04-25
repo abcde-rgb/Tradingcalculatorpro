@@ -2,43 +2,81 @@
 
 Supports continuous dividend yield q (BSM extension to handle dividend-paying stocks).
 When q=0, this reduces to standard Black-Scholes. Default q=0 preserves backwards compat.
+
+Refactored for clarity: complex functions split into helpers; full type hints.
 """
+from __future__ import annotations
 import math
+import secrets
+from dataclasses import dataclass
+from typing import Optional
 from scipy.stats import norm
 
+# ---------------------------------------------------------------------------
+# Constants & dataclasses
+# ---------------------------------------------------------------------------
 
-def _d1_d2(S, K, T, r, sigma, q=0.0):
+DEFAULT_RISK_FREE: float = 0.0525
+DEFAULT_IV: float = 0.30
+SHARES_PER_CONTRACT: int = 100
+SECONDS_PER_YEAR: int = 365  # market days approximation
+
+
+@dataclass
+class AttributionParams:
+    """Bundle of params for P&L attribution decomposition."""
+    S0: float          # initial spot
+    S1: float          # final spot
+    T0: float          # initial time to expiry (years)
+    T1: float          # final time to expiry (years)
+    iv_change: float = 0.0
+    r: float = DEFAULT_RISK_FREE
+    q: float = 0.0
+
+
+# ---------------------------------------------------------------------------
+# Black-Scholes-Merton primitives
+# ---------------------------------------------------------------------------
+
+
+def _d1_d2(S: float, K: float, T: float, r: float, sigma: float,
+           q: float = 0.0) -> tuple[Optional[float], Optional[float]]:
     """Compute d1 and d2 with continuous dividend yield q."""
     if T <= 0 or sigma <= 0 or S <= 0 or K <= 0:
         return None, None
-    d1 = (math.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+    d1 = (math.log(S / K) + (r - q + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
     d2 = d1 - sigma * math.sqrt(T)
     return d1, d2
 
 
-def call_price(S, K, T, r, sigma, q=0.0):
-    """Black-Scholes-Merton call price with continuous dividend yield q."""
+def call_price(S: float, K: float, T: float, r: float, sigma: float,
+               q: float = 0.0) -> float:
+    """BSM call price."""
     if T <= 0:
-        return max(0, S - K)
+        return max(0.0, S - K)
     d1, d2 = _d1_d2(S, K, T, r, sigma, q)
     return S * math.exp(-q * T) * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
 
 
-def put_price(S, K, T, r, sigma, q=0.0):
-    """Black-Scholes-Merton put price with continuous dividend yield q."""
+def put_price(S: float, K: float, T: float, r: float, sigma: float,
+              q: float = 0.0) -> float:
+    """BSM put price."""
     if T <= 0:
-        return max(0, K - S)
+        return max(0.0, K - S)
     d1, d2 = _d1_d2(S, K, T, r, sigma, q)
     return K * math.exp(-r * T) * norm.cdf(-d2) - S * math.exp(-q * T) * norm.cdf(-d1)
 
 
-def option_price(S, K, T, r, sigma, option_type, q=0.0):
+def option_price(S: float, K: float, T: float, r: float, sigma: float,
+                 option_type: str, q: float = 0.0) -> float:
+    """Dispatch to call/put pricing."""
     if option_type == "call":
         return call_price(S, K, T, r, sigma, q)
     return put_price(S, K, T, r, sigma, q)
 
 
-def delta(S, K, T, r, sigma, option_type, q=0.0):
+def delta(S: float, K: float, T: float, r: float, sigma: float,
+          option_type: str, q: float = 0.0) -> float:
     if T <= 0:
         if option_type == "call":
             return 1.0 if S > K else 0.0
@@ -49,31 +87,37 @@ def delta(S, K, T, r, sigma, option_type, q=0.0):
     return math.exp(-q * T) * (norm.cdf(d1) - 1)
 
 
-def gamma_val(S, K, T, r, sigma, q=0.0):
+def gamma_val(S: float, K: float, T: float, r: float, sigma: float,
+              q: float = 0.0) -> float:
     if T <= 0:
         return 0.0
     d1, _ = _d1_d2(S, K, T, r, sigma, q)
     return math.exp(-q * T) * norm.pdf(d1) / (S * sigma * math.sqrt(T))
 
 
-def theta_val(S, K, T, r, sigma, option_type, q=0.0):
+def theta_val(S: float, K: float, T: float, r: float, sigma: float,
+              option_type: str, q: float = 0.0) -> float:
     if T <= 0:
         return 0.0
     d1, d2 = _d1_d2(S, K, T, r, sigma, q)
     term1 = -(S * math.exp(-q * T) * norm.pdf(d1) * sigma) / (2 * math.sqrt(T))
     if option_type == "call":
-        return (term1 - r * K * math.exp(-r * T) * norm.cdf(d2) + q * S * math.exp(-q * T) * norm.cdf(d1)) / 365
-    return (term1 + r * K * math.exp(-r * T) * norm.cdf(-d2) - q * S * math.exp(-q * T) * norm.cdf(-d1)) / 365
+        rest = -r * K * math.exp(-r * T) * norm.cdf(d2) + q * S * math.exp(-q * T) * norm.cdf(d1)
+    else:
+        rest = r * K * math.exp(-r * T) * norm.cdf(-d2) - q * S * math.exp(-q * T) * norm.cdf(-d1)
+    return (term1 + rest) / SECONDS_PER_YEAR
 
 
-def vega_val(S, K, T, r, sigma, q=0.0):
+def vega_val(S: float, K: float, T: float, r: float, sigma: float,
+             q: float = 0.0) -> float:
     if T <= 0:
         return 0.0
     d1, _ = _d1_d2(S, K, T, r, sigma, q)
     return (S * math.exp(-q * T) * math.sqrt(T) * norm.pdf(d1)) / 100
 
 
-def rho_val(S, K, T, r, sigma, option_type, q=0.0):
+def rho_val(S: float, K: float, T: float, r: float, sigma: float,
+            option_type: str, q: float = 0.0) -> float:
     if T <= 0:
         return 0.0
     _, d2 = _d1_d2(S, K, T, r, sigma, q)
@@ -82,84 +126,110 @@ def rho_val(S, K, T, r, sigma, option_type, q=0.0):
     return -(K * T * math.exp(-r * T) * norm.cdf(-d2)) / 100
 
 
-def generate_options_chain(current_price: float, days_to_expiry: int, q: float = 0.0):
-    """Generate a synthetic options chain when real data is unavailable.
-    Now supports dividend yield q to keep parity with real-data path.
-    """
-    if current_price < 20:
-        step = 0.5
-    elif current_price < 50:
-        step = 1
-    elif current_price < 200:
-        step = 2.5
-    elif current_price < 500:
-        step = 5
-    else:
-        step = 10
+# ---------------------------------------------------------------------------
+# Synthetic chain generator (split into clear helpers)
+# ---------------------------------------------------------------------------
 
+
+def _strike_step(price: float) -> float:
+    """Determine canonical strike step based on current price level."""
+    if price < 20:
+        return 0.5
+    if price < 50:
+        return 1.0
+    if price < 200:
+        return 2.5
+    if price < 500:
+        return 5.0
+    return 10.0
+
+
+def _smile_iv(spot: float, strike: float, base_iv: float = DEFAULT_IV) -> float:
+    """Compute IV at a given strike using a simple parabolic smile."""
+    moneyness = math.log(spot / strike) if strike > 0 else 0.0
+    iv = base_iv + 0.05 * (moneyness ** 2) * 10
+    return max(0.05, min(1.5, iv))
+
+
+def _build_strike_quote(spot: float, strike: float, T: float, r: float,
+                       q: float, opt_type: str, rng: secrets.SystemRandom) -> dict:
+    """Build a single side (call or put) quote dict for a strike."""
+    iv = _smile_iv(spot, strike)
+    price = option_price(spot, strike, T, r, iv, opt_type, q)
+    d = delta(spot, strike, T, r, iv, opt_type, q)
+    g = gamma_val(spot, strike, T, r, iv, q)
+    th = theta_val(spot, strike, T, r, iv, opt_type, q)
+    v = vega_val(spot, strike, T, r, iv, q)
+    spread = max(0.01, price * 0.025)
+    return {
+        "bid": round(max(0.01, price - spread), 2),
+        "ask": round(price + spread, 2),
+        "mid": round(price, 2),
+        "last": round(price, 2),
+        "volume": rng.randint(50, 8000),
+        "openInterest": rng.randint(200, 30000),
+        "iv": round(iv, 4),
+        "delta": round(d, 4),
+        "gamma": round(g, 6),
+        "theta": round(th, 4),
+        "vega": round(v, 4),
+    }
+
+
+def generate_options_chain(current_price: float, days_to_expiry: int,
+                           q: float = 0.0) -> list[dict]:
+    """Generate a synthetic options chain when real data is unavailable."""
+    step = _strike_step(current_price)
     base_strike = round(current_price / step) * step
-    T = max(days_to_expiry / 365, 0.001)
-    r = 0.0525
-    base_iv = 0.30
+    T = max(days_to_expiry / SECONDS_PER_YEAR, 0.001)
+    r = DEFAULT_RISK_FREE
+    rng = secrets.SystemRandom()
 
-    strikes = []
+    chain: list[dict] = []
     for i in range(-15, 16):
         strike = round(base_strike + i * step, 2)
         if strike <= 0:
             continue
-
-        moneyness = math.log(current_price / strike) if strike > 0 else 0
-        iv = base_iv + 0.05 * (moneyness**2) * 10
-        iv = max(0.05, min(1.5, iv))
-
-        c_price = call_price(current_price, strike, T, r, iv, q)
-        p_price = put_price(current_price, strike, T, r, iv, q)
-        c_delta = delta(current_price, strike, T, r, iv, "call", q)
-        p_delta = delta(current_price, strike, T, r, iv, "put", q)
-        g = gamma_val(current_price, strike, T, r, iv, q)
-        c_theta = theta_val(current_price, strike, T, r, iv, "call", q)
-        p_theta = theta_val(current_price, strike, T, r, iv, "put", q)
-        v = vega_val(current_price, strike, T, r, iv, q)
-
-        spread = max(0.01, c_price * 0.025)
-
-        import secrets
-        rng = secrets.SystemRandom()
-        strikes.append({
+        chain.append({
             "strike": strike,
-            "call": {
-                "bid": round(max(0.01, c_price - spread), 2),
-                "ask": round(c_price + spread, 2),
-                "mid": round(c_price, 2),
-                "last": round(c_price, 2),
-                "volume": rng.randint(50, 8000),
-                "openInterest": rng.randint(200, 30000),
-                "iv": round(iv, 4),
-                "delta": round(c_delta, 4),
-                "gamma": round(g, 6),
-                "theta": round(c_theta, 4),
-                "vega": round(v, 4),
-            },
-            "put": {
-                "bid": round(max(0.01, p_price - spread), 2),
-                "ask": round(p_price + spread, 2),
-                "mid": round(p_price, 2),
-                "last": round(p_price, 2),
-                "volume": rng.randint(50, 8000),
-                "openInterest": rng.randint(200, 30000),
-                "iv": round(iv, 4),
-                "delta": round(p_delta, 4),
-                "gamma": round(g, 6),
-                "theta": round(p_theta, 4),
-                "vega": round(v, 4),
-            },
+            "call": _build_strike_quote(current_price, strike, T, r, q, "call", rng),
+            "put": _build_strike_quote(current_price, strike, T, r, q, "put", rng),
         })
+    return chain
 
-    return strikes
+
+# ---------------------------------------------------------------------------
+# Payoff calculation
+# ---------------------------------------------------------------------------
 
 
-def calculate_payoff(legs, stock_price, price_range=0.35, days_to_chart=30, r=0.0525,
-                    fee_per_contract=0.0, q=0.0):
+def _leg_qty(leg: dict) -> int:
+    """Return contract quantity, supporting legacy 'qty' key."""
+    return leg.get("quantity", leg.get("qty", 1))
+
+
+def _leg_pnl_at_price(leg: dict, price: float, T: float, r: float, q: float) -> tuple[float, float]:
+    """Return (current_pnl, expiry_pnl) for one leg at a given underlying price."""
+    multiplier = 1 if leg["action"] == "buy" else -1
+    qty = _leg_qty(leg)
+
+    if leg["type"] == "stock":
+        delta_p = (price - leg.get("entry_price", leg.get("strike", price))) * multiplier * qty
+        return delta_p, delta_p
+
+    premium = leg.get("premium", 0)
+    iv = leg.get("iv", DEFAULT_IV)
+    strike = leg["strike"]
+    current = option_price(price, strike, T, r, iv, leg["type"], q)
+    expiry = option_price(price, strike, 0, r, iv, leg["type"], q)
+    cur_pnl = (current - premium) * multiplier * qty * SHARES_PER_CONTRACT
+    exp_pnl = (expiry - premium) * multiplier * qty * SHARES_PER_CONTRACT
+    return cur_pnl, exp_pnl
+
+
+def calculate_payoff(legs: list[dict], stock_price: float, price_range: float = 0.35,
+                     days_to_chart: int = 30, r: float = DEFAULT_RISK_FREE,
+                     fee_per_contract: float = 0.0, q: float = 0.0) -> list[dict]:
     """Calculate strategy P&L across a price range.
 
     fee_per_contract: brokerage commission per option contract per side
@@ -171,154 +241,142 @@ def calculate_payoff(legs, stock_price, price_range=0.35, days_to_chart=30, r=0.
     n_points = 200
     step = (max_price - min_price) / n_points
 
-    # Total fees on opening the position (sum of contract counts × fee)
     total_open_fees = sum(
-        leg.get("quantity", leg.get("qty", 1)) * fee_per_contract
-        for leg in legs
-        if leg.get("type") != "stock"
+        _leg_qty(leg) * fee_per_contract for leg in legs if leg.get("type") != "stock"
     )
 
-    points = []
+    T_current = max(days_to_chart / SECONDS_PER_YEAR, 0.0)
+    points: list[dict] = []
     for i in range(n_points + 1):
         price = min_price + i * step
-        total_pnl = 0
-        total_pnl_expiry = 0
-
+        cur = exp = 0.0
         for leg in legs:
-            multiplier = 1 if leg["action"] == "buy" else -1
-            qty = leg.get("quantity", leg.get("qty", 1))
-
-            if leg["type"] == "stock":
-                pnl = (price - stock_price) * multiplier * qty
-                total_pnl += pnl
-                total_pnl_expiry += pnl
-            else:
-                T_current = max(0, days_to_chart / 365)
-                premium = leg.get("premium", 0)
-                iv = leg.get("iv", 0.3)
-                strike = leg["strike"]
-
-                current_val = option_price(price, strike, T_current, r, iv, leg["type"], q)
-                expiry_val = option_price(price, strike, 0, r, iv, leg["type"], q)
-
-                total_pnl += (current_val - premium) * multiplier * qty * 100
-                total_pnl_expiry += (expiry_val - premium) * multiplier * qty * 100
-
-        # Subtract fees from both current and at-expiry P&L (paid on entry, not recoverable)
-        total_pnl -= total_open_fees
-        total_pnl_expiry -= total_open_fees
-
+            cur_pnl, exp_pnl = _leg_pnl_at_price(leg, price, T_current, r, q)
+            cur += cur_pnl
+            exp += exp_pnl
         points.append({
             "price": round(price, 2),
-            "pnl": round(total_pnl, 2),
-            "pnlAtExpiry": round(total_pnl_expiry, 2),
+            "pnl": round(cur - total_open_fees, 2),
+            "pnlAtExpiry": round(exp - total_open_fees, 2),
         })
-
     return points
 
 
-def find_break_evens(payoff_data):
+def find_break_evens(payoff_data: list[dict]) -> list[float]:
     """Find break-even points where P&L crosses zero."""
-    break_evens = []
+    break_evens: list[float] = []
     for i in range(1, len(payoff_data)):
         prev = payoff_data[i - 1]["pnlAtExpiry"]
         curr = payoff_data[i]["pnlAtExpiry"]
         if (prev <= 0 and curr >= 0) or (prev >= 0 and curr <= 0):
-            ratio = abs(prev) / (abs(prev) + abs(curr)) if (abs(prev) + abs(curr)) > 0 else 0.5
-            be_price = payoff_data[i - 1]["price"] + ratio * (payoff_data[i]["price"] - payoff_data[i - 1]["price"])
-            break_evens.append(round(be_price, 2))
+            denom = abs(prev) + abs(curr)
+            ratio = abs(prev) / denom if denom > 0 else 0.5
+            be = (payoff_data[i - 1]["price"]
+                  + ratio * (payoff_data[i]["price"] - payoff_data[i - 1]["price"]))
+            break_evens.append(round(be, 2))
     return break_evens
 
 
-def calculate_greeks(legs, stock_price, r=0.0525, q=0.0):
-    """Calculate aggregate Greeks for a strategy. Now supports dividend yield."""
-    total = {"delta": 0, "gamma": 0, "theta": 0, "vega": 0, "rho": 0}
+# ---------------------------------------------------------------------------
+# Aggregate Greeks
+# ---------------------------------------------------------------------------
 
+
+def calculate_greeks(legs: list[dict], stock_price: float,
+                     r: float = DEFAULT_RISK_FREE, q: float = 0.0) -> dict[str, float]:
+    """Calculate aggregate Greeks for a strategy."""
+    total = {"delta": 0.0, "gamma": 0.0, "theta": 0.0, "vega": 0.0, "rho": 0.0}
     for leg in legs:
         multiplier = 1 if leg["action"] == "buy" else -1
-        qty = leg.get("quantity", leg.get("qty", 1))
-
+        qty = _leg_qty(leg)
         if leg["type"] == "stock":
-            total["delta"] += multiplier * qty / 100
+            total["delta"] += multiplier * qty / SHARES_PER_CONTRACT
             continue
-
-        T = max(leg.get("daysToExpiry", 30), 1) / 365
-        iv = leg.get("iv", 0.3)
-        strike = leg["strike"]
-
-        total["delta"] += delta(stock_price, strike, T, r, iv, leg["type"], q) * multiplier * qty
-        total["gamma"] += gamma_val(stock_price, strike, T, r, iv, q) * multiplier * qty
-        total["theta"] += theta_val(stock_price, strike, T, r, iv, leg["type"], q) * multiplier * qty
-        total["vega"] += vega_val(stock_price, strike, T, r, iv, q) * multiplier * qty
-        total["rho"] += rho_val(stock_price, strike, T, r, iv, leg["type"], q) * multiplier * qty
-
+        T = max(leg.get("daysToExpiry", 30), 1) / SECONDS_PER_YEAR
+        iv = leg.get("iv", DEFAULT_IV)
+        K = leg["strike"]
+        otype = leg["type"]
+        total["delta"] += delta(stock_price, K, T, r, iv, otype, q) * multiplier * qty
+        total["gamma"] += gamma_val(stock_price, K, T, r, iv, q) * multiplier * qty
+        total["theta"] += theta_val(stock_price, K, T, r, iv, otype, q) * multiplier * qty
+        total["vega"] += vega_val(stock_price, K, T, r, iv, q) * multiplier * qty
+        total["rho"] += rho_val(stock_price, K, T, r, iv, otype, q) * multiplier * qty
     return {k: round(v, 4) for k, v in total.items()}
 
 
-def calculate_pnl_attribution(legs, S0, S1, T0, T1, IV_change=0.0, r=0.0525, q=0.0):
-    """P&L attribution: decompose total P&L into Greek contributions.
+# ---------------------------------------------------------------------------
+# P&L Attribution (refactored: small helpers + dataclass)
+# ---------------------------------------------------------------------------
 
-    Args:
-      legs: list of strategy legs (entry premiums embedded)
-      S0, S1: initial and final spot prices
-      T0, T1: initial and final time to expiry (years)
-      IV_change: absolute change in IV (e.g., 0.05 = +5 IV points)
-      r: risk-free rate
-      q: dividend yield
 
-    Returns dict with:
-      delta_pnl: P&L from price move (Δ contribution)
-      gamma_pnl: P&L from convexity (½Γ·dS²)
-      theta_pnl: P&L from time decay (Θ·dT)
-      vega_pnl: P&L from IV change (ν·dIV)
-      total_explained: sum of above
-      total_actual: actual total P&L by full revaluation
-      residual: total_actual - total_explained (model error)
+def _stock_attribution(leg: dict, dS: float) -> tuple[float, float]:
+    """Stock leg contributes only to delta_pnl. Returns (delta_pnl, total_actual)."""
+    qty = _leg_qty(leg)
+    sign = 1 if leg["action"] == "buy" else -1
+    p = sign * qty * dS
+    return p, p
+
+
+def _option_leg_attribution(leg: dict, p: AttributionParams,
+                            dT_days: float) -> dict[str, float]:
+    """Compute per-leg P&L attribution contributions. Returns 5 figures."""
+    K = leg["strike"]
+    sigma0 = leg.get("iv", DEFAULT_IV)
+    sigma1 = max(0.01, sigma0 + p.iv_change)
+    otype = leg["type"]
+    sign = 1 if leg["action"] == "buy" else -1
+    qty = _leg_qty(leg) * SHARES_PER_CONTRACT
+
+    d_ = delta(p.S0, K, p.T0, p.r, sigma0, otype, p.q)
+    g_ = gamma_val(p.S0, K, p.T0, p.r, sigma0, p.q)
+    th_ = theta_val(p.S0, K, p.T0, p.r, sigma0, otype, p.q)  # daily already
+    v_ = vega_val(p.S0, K, p.T0, p.r, sigma0, p.q)            # per +1% IV
+
+    dS = p.S1 - p.S0
+    delta_pnl = sign * qty * d_ * dS
+    gamma_pnl = sign * qty * 0.5 * g_ * dS * dS
+    theta_pnl = sign * qty * th_ * dT_days
+    vega_pnl = sign * qty * v_ * (p.iv_change * 100)
+
+    v0 = option_price(p.S0, K, p.T0, p.r, sigma0, otype, p.q) * qty * sign
+    v1 = option_price(p.S1, K, p.T1, p.r, sigma1, otype, p.q) * qty * sign
+
+    return {
+        "delta": delta_pnl,
+        "gamma": gamma_pnl,
+        "theta": theta_pnl,
+        "vega": vega_pnl,
+        "actual": v1 - v0,
+    }
+
+
+def calculate_pnl_attribution(legs: list[dict], S0: float, S1: float, T0: float, T1: float,
+                              IV_change: float = 0.0, r: float = DEFAULT_RISK_FREE,
+                              q: float = 0.0) -> dict[str, float]:
+    """Decompose total P&L into Greek contributions (Δ/Γ/Θ/ν).
+
+    Returns dict with delta_pnl, gamma_pnl, theta_pnl, vega_pnl, total_explained,
+    total_actual (full revaluation), residual, dS, dT_days, dIV_pct.
     """
+    p = AttributionParams(S0=S0, S1=S1, T0=T0, T1=T1, iv_change=IV_change, r=r, q=q)
+    dT_days = (T0 - T1) * SECONDS_PER_YEAR
     dS = S1 - S0
-    dT_days = (T0 - T1) * 365  # positive = time passed
-    dIV = IV_change  # in absolute terms (0.05 = +5 IV points)
 
-    delta_pnl = 0.0
-    gamma_pnl = 0.0
-    theta_pnl = 0.0
-    vega_pnl = 0.0
+    delta_pnl = gamma_pnl = theta_pnl = vega_pnl = 0.0
     total_actual = 0.0
 
     for leg in legs:
         if leg.get("type") == "stock":
-            qty = leg.get("quantity", leg.get("qty", 1))
-            sign = 1 if leg["action"] == "buy" else -1
-            delta_pnl += sign * qty * dS
-            total_actual += sign * qty * dS
+            d_, t_ = _stock_attribution(leg, dS)
+            delta_pnl += d_
+            total_actual += t_
             continue
-
-        K = leg["strike"]
-        sigma0 = leg.get("iv", 0.3)
-        sigma1 = max(0.01, sigma0 + dIV)
-        opt_type = leg["type"]
-        sign = 1 if leg["action"] == "buy" else -1
-        qty = leg.get("quantity", leg.get("qty", 1)) * 100  # 100 shares per contract
-
-        # Greeks at initial state
-        d_ = delta(S0, K, T0, r, sigma0, opt_type, q)
-        g_ = gamma_val(S0, K, T0, r, sigma0, q)
-        # theta_val returns daily theta already (/365 baked in)
-        th_ = theta_val(S0, K, T0, r, sigma0, opt_type, q)
-        # vega_val returns per +1% IV
-        v_ = vega_val(S0, K, T0, r, sigma0, q)
-
-        # Per-leg attributions (× sign × qty)
-        delta_pnl += sign * qty * d_ * dS
-        gamma_pnl += sign * qty * 0.5 * g_ * dS * dS
-        theta_pnl += sign * qty * th_ * dT_days
-        vega_pnl += sign * qty * v_ * (dIV * 100)
-
-        # Actual: full revaluation
-        v0 = option_price(S0, K, T0, r, sigma0, opt_type, q) * qty * sign
-        v1 = option_price(S1, K, T1, r, sigma1, opt_type, q) * qty * sign
-        total_actual += (v1 - v0)
-        # premium paid/received ALREADY adjusted into v0 entry; but here we only compare v1 vs v0 of the leg’s mark value
+        contrib = _option_leg_attribution(leg, p, dT_days)
+        delta_pnl += contrib["delta"]
+        gamma_pnl += contrib["gamma"]
+        theta_pnl += contrib["theta"]
+        vega_pnl += contrib["vega"]
+        total_actual += contrib["actual"]
 
     total_explained = delta_pnl + gamma_pnl + theta_pnl + vega_pnl
     residual = total_actual - total_explained
@@ -333,95 +391,68 @@ def calculate_pnl_attribution(legs, S0, S1, T0, T1, IV_change=0.0, r=0.0525, q=0
         "residual": round(residual, 2),
         "dS": round(dS, 2),
         "dT_days": round(dT_days, 2),
-        "dIV_pct": round(dIV * 100, 2),
+        "dIV_pct": round(IV_change * 100, 2),
     }
 
 
-def simulate_assignment(legs, stock_price_at_expiry):
-    """Simulate what happens at expiry if any leg is ITM.
+# ---------------------------------------------------------------------------
+# Assignment / Exercise simulation (refactored into small handlers)
+# ---------------------------------------------------------------------------
 
-    For each option leg, determines:
-    - is_itm: in the money?
-    - is_short: are we short (will be assigned)?
-    - shares_delivered: 100 × qty if assigned (positive = received, negative = delivered)
-    - cash_flow: cash impact from exercise/assignment
-    - net_position: resulting share position after assignment
-    """
-    assignments = []
+
+def _is_itm(option_type: str, strike: float, spot: float) -> bool:
+    return spot > strike if option_type == "call" else spot < strike
+
+
+def _option_assignment(leg: dict, spot_at_expiry: float) -> dict:
+    """Compute assignment outcome for a single option leg."""
+    K = leg["strike"]
+    otype = leg["type"]
+    action = leg["action"]
+    qty = _leg_qty(leg)
+    shares = qty * SHARES_PER_CONTRACT
+
+    is_long = action == "buy"
+    is_call = otype == "call"
+    is_itm = _is_itm(otype, K, spot_at_expiry)
+
+    base = {"leg": f"{action.upper()} {qty} {otype.upper()} ${K}", "is_itm": is_itm}
+    if not is_itm:
+        return {**base, "outcome": "expires_worthless", "shares_delivered": 0, "cash_flow": 0}
+
+    # Decide outcome based on (long/short) × (call/put)
+    if is_long and is_call:
+        cash, share_change, outcome = -K * shares, shares, "exercised_buy_shares"
+    elif is_long and not is_call:
+        cash, share_change, outcome = K * shares, -shares, "exercised_sell_shares"
+    elif (not is_long) and is_call:
+        cash, share_change, outcome = K * shares, -shares, "assigned_deliver_shares"
+    else:
+        cash, share_change, outcome = -K * shares, shares, "assigned_receive_shares"
+
+    return {**base, "outcome": outcome, "shares_delivered": share_change,
+            "cash_flow": round(cash, 2), "strike": K, "contracts": qty}
+
+
+def _stock_position(leg: dict) -> int:
+    qty = _leg_qty(leg)
+    return qty if leg["action"] == "buy" else -qty
+
+
+def simulate_assignment(legs: list[dict], stock_price_at_expiry: float) -> dict:
+    """Simulate exercise/assignment at expiry given a final stock price."""
+    assignments: list[dict] = []
     total_shares = 0
     total_cash = 0.0
 
     for leg in legs:
         if leg.get("type") == "stock":
-            qty = leg.get("quantity", leg.get("qty", 1))
-            sign = 1 if leg["action"] == "buy" else -1
-            total_shares += sign * qty
+            total_shares += _stock_position(leg)
             continue
-
-        K = leg["strike"]
-        opt_type = leg["type"]
-        action = leg["action"]
-        qty = leg.get("quantity", leg.get("qty", 1))
-        contracts = qty
-        shares = qty * 100
-
-        is_call = opt_type == "call"
-        is_long = action == "buy"
-
-        # ITM check
-        if is_call:
-            is_itm = stock_price_at_expiry > K
-        else:
-            is_itm = stock_price_at_expiry < K
-
-        if not is_itm:
-            assignments.append({
-                "leg": f"{action.upper()} {qty} {opt_type.upper()} ${K}",
-                "is_itm": False,
-                "outcome": "expires_worthless",
-                "shares_delivered": 0,
-                "cash_flow": 0,
-            })
-            continue
-
-        # ITM case
-        if is_long:
-            # We exercise: buy/sell shares at strike
-            if is_call:
-                # Long call ITM: exercise → buy 100 shares per contract at K
-                cash = -K * shares
-                share_change = +shares
-                outcome = "exercised_buy_shares"
-            else:
-                # Long put ITM: exercise → sell 100 shares per contract at K
-                cash = +K * shares
-                share_change = -shares
-                outcome = "exercised_sell_shares"
-        else:
-            # Short option ITM: assigned
-            if is_call:
-                # Short call assigned: deliver 100 shares per contract at K (sold at K)
-                cash = +K * shares
-                share_change = -shares
-                outcome = "assigned_deliver_shares"
-            else:
-                # Short put assigned: receive 100 shares per contract at K (bought at K)
-                cash = -K * shares
-                share_change = +shares
-                outcome = "assigned_receive_shares"
-
-        total_shares += share_change
-        total_cash += cash
-
-        assignments.append({
-            "leg": f"{action.upper()} {qty} {opt_type.upper()} ${K}",
-            "is_itm": True,
-            "outcome": outcome,
-            "shares_delivered": share_change,
-            "cash_flow": round(cash, 2),
-            "strike": K,
-            "contracts": contracts,
-        })
+        outcome = _option_assignment(leg, stock_price_at_expiry)
+        assignments.append(outcome)
+        total_shares += outcome.get("shares_delivered", 0)
+        total_cash += outcome.get("cash_flow", 0)
 
     return {
         "stock_price_at_expiry": round(stock_price_at_expiry, 2),
