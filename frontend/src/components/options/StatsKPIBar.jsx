@@ -1,0 +1,147 @@
+import React from 'react';
+import {
+  ArrowUpRight, DollarSign, Percent, Scale, Target,
+  TrendingDown, TrendingUp, Wallet,
+} from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
+
+const StatCard = ({ icon: Icon, label, value, color, title }) => (
+  <div
+    className="bg-card rounded-xl border border-border px-4 py-3 hover:border-primary/30 transition-colors"
+    title={title}
+  >
+    <div className="flex items-center gap-1.5 mb-1">
+      <Icon className={`w-3.5 h-3.5 ${color}`} />
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold truncate">
+        {label}
+      </span>
+    </div>
+    <span className={`text-lg font-bold font-mono ${color} block truncate`}>{value}</span>
+  </div>
+);
+
+const LegPill = ({ leg, ticker }) => (
+  <div
+    className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${
+      leg.action === 'buy'
+        ? 'bg-[#22c55e]/8 border-[#22c55e]/25 text-[#4ade80]'
+        : 'bg-[#ef4444]/8 border-[#ef4444]/25 text-[#f87171]'
+    }`}
+  >
+    <span className="font-bold uppercase">{leg.action === 'buy' ? 'BUY' : 'SELL'}</span>
+    <span>{leg.quantity}x</span>
+    {leg.type === 'stock' ? (
+      <span>{ticker}</span>
+    ) : (
+      <>
+        <span className="font-mono">${leg.strike}</span>
+        <span className="uppercase">{leg.type}</span>
+        <span className="text-muted-foreground">@${leg.premium?.toFixed(2)}</span>
+      </>
+    )}
+  </div>
+);
+
+const StatsKPIBar = ({
+  stats,
+  breakEvens,
+  legs,
+  ticker,
+  currentExp,
+  commission,
+  onCommissionChange,
+}) => {
+  const { t } = useTranslation();
+  const premium = parseFloat(stats.premium);
+
+  return (
+    <>
+      {/* 5 primary KPIs */}
+      <div className="grid grid-cols-5 gap-2">
+        <StatCard
+          icon={TrendingUp}
+          label={t('optMaxProfit')}
+          value={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`}
+          color="text-[#22c55e]"
+        />
+        <StatCard
+          icon={TrendingDown}
+          label={t('optMaxLoss')}
+          value={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`}
+          color="text-[#ef4444]"
+        />
+        <StatCard
+          icon={Wallet}
+          label={t('optCapitalReq')}
+          value={stats.isMaxLossUnlimited ? `~$${stats.capitalRequired}` : `$${stats.capitalRequired}`}
+          color="text-[#f59e0b]"
+          title="Reg-T estimation of required capital/margin"
+        />
+        <StatCard
+          icon={Percent}
+          label={t('optProbProfit')}
+          value={`${stats.pop || 0}%`}
+          color="text-primary"
+        />
+        <StatCard
+          icon={ArrowUpRight}
+          label="ROI"
+          value={`${stats.roi}%`}
+          color="text-primary"
+        />
+      </div>
+
+      {/* Secondary info row + legs pills */}
+      <div className="flex items-center gap-3 flex-wrap bg-card/50 border border-border/60 rounded-lg px-3 py-2 text-[11px]">
+        <div className="flex items-center gap-1.5">
+          <Scale className="w-3 h-3 text-[#eab308]" />
+          <span className="text-muted-foreground">{t('optRiskReward')}</span>
+          <span className="font-mono font-bold text-[#eab308]">{stats.rr || '—'}</span>
+        </div>
+        <span className="text-muted-foreground/40">·</span>
+        <div className="flex items-center gap-1.5">
+          <Target className="w-3 h-3 text-[#a78bfa]" />
+          <span className="text-muted-foreground">{t('optBreakEven')}</span>
+          <span className="font-mono font-bold text-[#a78bfa]">
+            {breakEvens.length > 0 ? `$${breakEvens[0]}` : '—'}
+          </span>
+        </div>
+        <span className="text-muted-foreground/40">·</span>
+        <div className="flex items-center gap-1.5">
+          <DollarSign className="w-3 h-3 text-muted-foreground" />
+          <span className="text-muted-foreground">{t('optPremium')}</span>
+          <span className={`font-mono font-bold ${premium >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+            ${stats.premium}
+          </span>
+        </div>
+        <span className="text-muted-foreground/40">·</span>
+        <div className="flex items-center gap-1.5" title="Commission per contract (Reg-T standard ~$0.65)">
+          <span className="text-muted-foreground text-[10px]">{t('optCommPerCtr')}</span>
+          <input
+            type="number" step="0.05" min={0} max={10}
+            value={commission}
+            onChange={(e) => onCommissionChange(Math.max(0, Math.min(10, parseFloat(e.target.value) || 0)))}
+            className="w-14 bg-muted border border-border rounded px-1.5 py-0.5 text-[11px] font-mono text-foreground focus:outline-none focus:border-primary"
+            data-testid="commission-input"
+          />
+          <span className="text-muted-foreground">(−${stats.commissions || '0.00'})</span>
+        </div>
+        <span className="text-muted-foreground/40 hidden md:inline">·</span>
+        <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+          {legs.map((leg, i) => (
+            <LegPill
+              key={`leg-${leg.type}-${leg.action}-${leg.strike}-${i}`}
+              leg={leg}
+              ticker={ticker}
+            />
+          ))}
+        </div>
+        <span className="text-muted-foreground/60 ml-auto text-[10px] whitespace-nowrap">
+          {currentExp?.fullLabel} · {currentExp?.daysToExpiry}d
+        </span>
+      </div>
+    </>
+  );
+};
+
+export default StatsKPIBar;

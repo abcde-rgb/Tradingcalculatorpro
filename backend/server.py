@@ -7,7 +7,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
 import bcrypt
@@ -341,76 +341,80 @@ async def get_indices_prices():
         "HSI": {"price": 19876.30, "change": -0.25}
     }
 
+_COINGECKO_COIN_MAP: Dict[str, str] = {
+    "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "binancecoin",
+    "XRP": "ripple", "ADA": "cardano", "DOGE": "dogecoin", "AVAX": "avalanche-2",
+    "DOT": "polkadot", "LINK": "chainlink", "LTC": "litecoin",
+}
+
+
+def _pick_ohlc_interval_ms(days: int) -> int:
+    """Pick aggregation bucket size (ms) based on the requested time range."""
+    if days <= 7:
+        return 3600 * 1000               # 1 hour
+    if days <= 30:
+        return 4 * 3600 * 1000           # 4 hours
+    return 24 * 3600 * 1000              # 1 day
+
+
+def _candle_from_bucket(bucket_start_ms: int, prices: List[float]) -> Dict[str, Any]:
+    """Build an OHLC candle from the prices that fell into one time bucket."""
+    return {
+        "time": bucket_start_ms // 1000,
+        "open": prices[0],
+        "high": max(prices),
+        "low": min(prices),
+        "close": prices[-1],
+    }
+
+
+def _group_prices_into_ohlc(
+    prices: List[List[float]], interval_ms: int
+) -> List[Dict[str, Any]]:
+    """Group raw [timestamp_ms, price] tuples into OHLC candles."""
+    ohlc: List[Dict[str, Any]] = []
+    bucket_start: Optional[int] = None
+    bucket_prices: List[float] = []
+
+    for timestamp, price in prices:
+        interval_start = (int(timestamp) // interval_ms) * interval_ms
+        if bucket_start is None or interval_start != bucket_start:
+            if bucket_prices and bucket_start is not None:
+                ohlc.append(_candle_from_bucket(bucket_start, bucket_prices))
+            bucket_start = interval_start
+            bucket_prices = [price]
+        else:
+            bucket_prices.append(price)
+
+    if bucket_prices and bucket_start is not None:
+        ohlc.append(_candle_from_bucket(bucket_start, bucket_prices))
+    return ohlc
+
+
 @api_router.get("/ohlc/{symbol}")
-async def get_ohlc_data(symbol: str, days: int = 30):
-    """Get OHLC data for candlestick charts"""
+async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
+    """Get OHLC data for candlestick charts."""
+    empty: Dict[str, Any] = {"ohlc": [], "symbol": symbol.upper()}
+    coin_id = _COINGECKO_COIN_MAP.get(symbol.upper(), "bitcoin")
     try:
-        coin_map = {
-            "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "binancecoin",
-            "XRP": "ripple", "ADA": "cardano", "DOGE": "dogecoin", "AVAX": "avalanche-2",
-            "DOT": "polkadot", "LINK": "chainlink", "LTC": "litecoin"
-        }
-        coin_id = coin_map.get(symbol.upper(), "bitcoin")
-        
         async with httpx.AsyncClient() as http_client:
             response = await http_client.get(
                 f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart",
                 params={"vs_currency": "usd", "days": days},
-                timeout=15.0
+                timeout=15.0,
             )
-            if response.status_code == 200:
-                data = response.json()
-                prices = data.get("prices", [])
-                
-                if not prices:
-                    return {"ohlc": [], "symbol": symbol.upper()}
-                
-                # Group prices into intervals
-                if days <= 7:
-                    interval_ms = 3600 * 1000  # 1 hour
-                elif days <= 30:
-                    interval_ms = 4 * 3600 * 1000  # 4 hours
-                else:
-                    interval_ms = 24 * 3600 * 1000  # 1 day
-                
-                ohlc = []
-                current_interval = None
-                interval_prices = []
-                
-                for timestamp, price in prices:
-                    interval_start = (timestamp // interval_ms) * interval_ms
-                    
-                    if current_interval is None:
-                        current_interval = interval_start
-                        interval_prices = [price]
-                    elif interval_start == current_interval:
-                        interval_prices.append(price)
-                    else:
-                        if interval_prices:
-                            ohlc.append({
-                                "time": current_interval // 1000,
-                                "open": interval_prices[0],
-                                "high": max(interval_prices),
-                                "low": min(interval_prices),
-                                "close": interval_prices[-1]
-                            })
-                        current_interval = interval_start
-                        interval_prices = [price]
-                
-                if interval_prices:
-                    ohlc.append({
-                        "time": current_interval // 1000,
-                        "open": interval_prices[0],
-                        "high": max(interval_prices),
-                        "low": min(interval_prices),
-                        "close": interval_prices[-1]
-                    })
-                
-                return {"ohlc": ohlc, "symbol": symbol.upper()}
+        if response.status_code != 200:
+            return empty
+
+        prices = response.json().get("prices", [])
+        if not prices:
+            return empty
+
+        ohlc = _group_prices_into_ohlc(prices, _pick_ohlc_interval_ms(days))
+        return {"ohlc": ohlc, "symbol": symbol.upper()}
     except Exception as e:
         logging.error(f"Error fetching OHLC data: {e}")
-    
-    return {"ohlc": [], "symbol": symbol.upper()}
+        return empty
 
 # ============= TRADING JOURNAL =============
 

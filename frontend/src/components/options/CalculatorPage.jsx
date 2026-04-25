@@ -1,30 +1,52 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { Clock, GitCompare, Wrench } from 'lucide-react';
 import { STRATEGIES, STRATEGY_CATEGORIES } from '../../data/mockData';
-import { calculateStrategyPayoff, findBreakEvenPoints, calculateStrategyGreeks, probabilityOfProfit } from '../../utils/blackScholes';
+import {
+  calculateStrategyPayoff,
+  findBreakEvenPoints,
+  calculateStrategyGreeks,
+  probabilityOfProfit,
+} from '../../utils/blackScholes';
 import { computeStrategyStats } from '../../utils/strategyStats';
 import { useTranslation } from '@/lib/i18n';
 import { fetchStock, fetchOptionsChain, fetchExpirations } from '../../services/optionsApi';
+
 import PayoffChart from './PayoffChart';
 import StrategyBar from './StrategyBar';
-import GreeksDisplay from './GreeksDisplay';
 import OptionsChainView from './OptionsChainView';
 import IVSurfaceView from './IVSurfaceView';
 import EducationTab from './EducationTab';
 import GuideModal from './GuideModal';
-import SearchBar from './SearchBar';
 import LegEditor from './LegEditor';
-import KellyPanel from './KellyPanel';
-import GreeksTimeChart from './GreeksTimeChart';
 import OptimizeView from './OptimizeView';
 import ExplainTrade from './ExplainTrade';
-import SavedPositionsPanel from './SavedPositionsPanel';
-import PortfolioGreeks from './PortfolioGreeks';
-import IVRankBadge from './IVRankBadge';
 import UnusualActivity from './UnusualActivity';
 import AITradeCoach from './AITradeCoach';
 import MarketFlow from './MarketFlow';
 import TradeAdvancedPanel from './TradeAdvancedPanel';
-import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy, Calculator } from 'lucide-react';
+
+import OptionsSubHeader from './OptionsSubHeader';
+import StatsKPIBar from './StatsKPIBar';
+import CompareBar from './CompareBar';
+import EarningsBanner from './EarningsBanner';
+import AdvancedToggles from './AdvancedToggles';
+
+const readPersistedNumber = (key, fallback) => {
+  try {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
+    return saved !== null ? parseFloat(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const writePersistedNumber = (key, value) => {
+  try {
+    if (typeof window !== 'undefined') window.localStorage.setItem(key, String(value));
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') console.warn(`[Options] persist ${key} failed:`, err);
+  }
+};
 
 const CalculatorPage = () => {
   const { t } = useTranslation();
@@ -35,57 +57,33 @@ const CalculatorPage = () => {
   const [selectedStrategy, setSelectedStrategy] = useState(STRATEGIES[0]);
   const [selectedExpIdx, setSelectedExpIdx] = useState(3);
   const [selectedStrikeIdx, setSelectedStrikeIdx] = useState(15);
-  const [contracts, setContracts] = useState(1);
+  const [contracts] = useState(1);
   const [timeSlider, setTimeSlider] = useState(100);
   const [activeTab, setActiveTab] = useState('calculator');
   const [loading, setLoading] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [customLegs, setCustomLegs] = useState([]);
   const [compareMode, setCompareMode] = useState(false);
-  const [selectedStrategyB, setSelectedStrategyB] = useState(STRATEGIES.find((s) => s.id === 'short_put') || STRATEGIES[1]);
+  const [selectedStrategyB, setSelectedStrategyB] = useState(
+    STRATEGIES.find((s) => s.id === 'short_put') || STRATEGIES[1]
+  );
   const [showKelly, setShowKelly] = useState(false);
   const [showGreeks, setShowGreeks] = useState(false);
   const [showPortfolio, setShowPortfolio] = useState(false);
   const [nextEarnings, setNextEarnings] = useState(null);
-  const [commission, setCommission] = useState(() => {
-    try {
-      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('options_commission') : null;
-      return saved !== null ? parseFloat(saved) : 0.65;
-    } catch { return 0.65; }
-  });
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') window.localStorage.setItem('options_commission', String(commission));
-    } catch (err) {
-      if (process.env.NODE_ENV !== 'production') console.warn('commission save failed:', err);
-    }
-  }, [commission]);
-  // Dividend yield (decimal, e.g. 0.005 = 0.5%) — auto from stock data when available
+
+  const [commission, setCommission] = useState(() => readPersistedNumber('options_commission', 0.65));
+  useEffect(() => writePersistedNumber('options_commission', commission), [commission]);
+
+  // Dividend yield (decimal, e.g. 0.005 = 0.5%) — auto from stock data when available.
   const [dividendYield, setDividendYield] = useState(0);
-  const [accountBalance, setAccountBalance] = useState(() => {
-    try {
-      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('options_account_balance') : null;
-      return saved ? parseFloat(saved) : 10000;
-    } catch (err) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('[Options] localStorage read failed:', err);
-      }
-      return 10000;
-    }
-  });
 
-  // Persist account balance
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') window.localStorage.setItem('options_account_balance', String(accountBalance));
-    } catch (err) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('[Options] localStorage write failed:', err);
-      }
-    }
-  }, [accountBalance]);
+  const [accountBalance, setAccountBalance] = useState(() =>
+    readPersistedNumber('options_account_balance', 10000)
+  );
+  useEffect(() => writePersistedNumber('options_account_balance', accountBalance), [accountBalance]);
 
-  // Load stock data
+  // Load stock data + expirations + earnings + start live-price polling
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -96,7 +94,6 @@ const CalculatorPage = () => {
         ]);
         if (stockData) {
           setStock(stockData);
-          // Auto-set dividend yield from real Yahoo data
           if (typeof stockData.dividendYield === 'number') {
             setDividendYield(stockData.dividendYield);
           }
@@ -110,7 +107,7 @@ const CalculatorPage = () => {
       setLoading(false);
     };
     loadData();
-    // Fetch next earnings date for this ticker (warns about IV crush)
+
     (async () => {
       try {
         const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/options/earnings/${ticker}`);
@@ -122,7 +119,7 @@ const CalculatorPage = () => {
         if (process.env.NODE_ENV !== 'production') console.warn('earnings lookup failed:', err);
       }
     })();
-    // Live price refresh every 15s — poll spot only, don't reload chain
+
     const interval = setInterval(async () => {
       try {
         const freshStock = await fetchStock(ticker);
@@ -144,8 +141,14 @@ const CalculatorPage = () => {
         if (data?.chain) {
           setChain(data.chain);
           if (data.chain.length > 0 && data.stock) {
-            const closestIdx = data.chain.reduce((best, s, idx) =>
-              Math.abs(s.strike - data.stock.price) < Math.abs(data.chain[best].strike - data.stock.price) ? idx : best, 0);
+            const closestIdx = data.chain.reduce(
+              (best, s, idx) =>
+                Math.abs(s.strike - data.stock.price) <
+                Math.abs(data.chain[best].strike - data.stock.price)
+                  ? idx
+                  : best,
+              0
+            );
             setSelectedStrikeIdx(closestIdx);
           }
         }
@@ -159,12 +162,14 @@ const CalculatorPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticker, selectedExpIdx]);
 
-  // Search tickers - handled by SearchBar component now
   const handleTickerSelect = useCallback((symbol) => {
     setTicker(typeof symbol === 'string' ? symbol.toUpperCase() : symbol);
-  }, [setTicker]);
+  }, []);
 
-  const currentExp = useMemo(() => expirations[selectedExpIdx] || expirations[3] || { daysToExpiry: 30 }, [expirations, selectedExpIdx]);
+  const currentExp = useMemo(
+    () => expirations[selectedExpIdx] || expirations[3] || { daysToExpiry: 30 },
+    [expirations, selectedExpIdx]
+  );
   const selectedStrike = chain[selectedStrikeIdx];
 
   // Build legs from strategy + selected strike (PRESET mode)
@@ -192,25 +197,24 @@ const CalculatorPage = () => {
   // Custom legs (CUSTOM mode)
   const customBuiltLegs = useMemo(() => {
     if (!currentExp || chain.length === 0 || !stock) return [];
-    return customLegs.filter(l => l.enabled).map(l => ({
-      type: l.type,
-      action: l.action,
-      quantity: l.quantity,
-      strike: l.strike,
-      premium: l.premium,
-      iv: l.iv,
-      daysToExpiry: currentExp.daysToExpiry,
-    }));
+    return customLegs
+      .filter((l) => l.enabled)
+      .map((l) => ({
+        type: l.type,
+        action: l.action,
+        quantity: l.quantity,
+        strike: l.strike,
+        premium: l.premium,
+        iv: l.iv,
+        daysToExpiry: currentExp.daysToExpiry,
+      }));
   }, [customLegs, currentExp, chain, stock]);
 
-  // Active legs — always uses the Constructor (customBuiltLegs is the single source of truth)
+  // Active legs — always uses the Constructor.
   const legs = customBuiltLegs;
 
-  // Auto-seed the Constructor with the selected preset strategy's legs when:
-  //   • Custom builder is empty
-  //   • Preset legs have been built (chain loaded, stock present)
-  // This ensures the Constructor is never shown with "0 patas" on first load,
-  // after ticker changes, or after selecting a different preset strategy.
+  // Auto-seed Constructor with the selected preset strategy's legs
+  // (when empty + preset is built + ticker/strike/strategy changed).
   const seededRef = useRef(null);
   useEffect(() => {
     if (customLegs.length > 0) return;
@@ -238,7 +242,7 @@ const CalculatorPage = () => {
     );
   }, [customLegs.length, presetLegs, selectedStrategy.id, ticker, selectedStrikeIdx, chain]);
 
-  // Strategy B (for comparison mode) — uses same chain/strike/contracts/expiration
+  // Strategy B (compare mode)
   const legsB = useMemo(() => {
     if (!compareMode || !selectedStrike || !currentExp || chain.length === 0 || !stock) return [];
     return selectedStrategyB.legs.map((legDef) => {
@@ -260,9 +264,10 @@ const CalculatorPage = () => {
     });
   }, [compareMode, selectedStrategyB, selectedStrikeIdx, chain, currentExp, stock, contracts, selectedStrike]);
 
-  const daysForChart = useMemo(() => {
-    return Math.max(0, Math.round((currentExp?.daysToExpiry || 30) * (timeSlider / 100)));
-  }, [currentExp, timeSlider]);
+  const daysForChart = useMemo(
+    () => Math.max(0, Math.round((currentExp?.daysToExpiry || 30) * (timeSlider / 100))),
+    [currentExp, timeSlider]
+  );
 
   const payoffData = useMemo(() => {
     if (!stock || legs.length === 0) return [];
@@ -280,7 +285,6 @@ const CalculatorPage = () => {
     return calculateStrategyGreeks(legs, stock.price, 0.05, dividendYield);
   }, [legs, stock, dividendYield]);
 
-  // Probability of Profit & Risk/Reward
   const pop = useMemo(() => {
     if (!stock || legs.length === 0) return 0;
     return probabilityOfProfit(legs, stock.price);
@@ -291,7 +295,6 @@ const CalculatorPage = () => {
     [payoffData, legs, stock, pop, breakEvens, commission]
   );
 
-  // Stats for Strategy B (comparison mode — no commissions applied in comparison)
   const breakEvensB = useMemo(() => findBreakEvenPoints(payoffDataB), [payoffDataB]);
   const popB = useMemo(() => {
     if (!compareMode || !stock || legsB.length === 0) return 0;
@@ -302,107 +305,76 @@ const CalculatorPage = () => {
     return computeStrategyStats(payoffDataB, legsB, stock, popB, breakEvensB, 0);
   }, [compareMode, payoffDataB, legsB, stock, popB, breakEvensB]);
 
+  const handleLoadPosition = useCallback((pos) => {
+    const mapped = (pos.legs || []).map((l) => ({
+      id: `leg-${Math.random().toString(36).slice(2, 8)}`,
+      type: l.type, action: l.action,
+      quantity: l.quantity || 1, strike: l.strike,
+      premium: l.premium || 0, iv: l.iv || 0.3,
+      daysToExpiry: l.daysToExpiry || 30,
+    }));
+    setCustomLegs(mapped);
+    if (pos.symbol && pos.symbol !== ticker) setTicker(pos.symbol);
+  }, [ticker]);
+
+  const handleOpenInCalculator = useCallback((result) => {
+    const mappedLegs = (result.legs || []).map((leg) => ({
+      id: `leg-${Math.random().toString(36).slice(2, 8)}`,
+      type: leg.type,
+      action: leg.action,
+      quantity: leg.quantity || 1,
+      strike: leg.strike,
+      premium: leg.premium || 0,
+      iv: 0.3,
+      daysToExpiry: result.daysToExpiry || 30,
+    }));
+    setCustomLegs(mappedLegs);
+    setActiveTab('calculator');
+  }, []);
+
+  const handleSelectStrategy = useCallback((s) => {
+    setSelectedStrategy(s);
+    seededRef.current = null; // invalidate cache to force re-seed
+    setCustomLegs([]);        // trigger auto-seed effect with new strategy
+  }, []);
+
   return (
     <div className="flex flex-col bg-background text-foreground" data-testid="options-calculator-root">
-      {/* Top Sub-Header (under TCP main header) */}
-      <header className="sticky top-16 h-14 min-h-[56px] bg-card border-b border-border flex items-center px-5 gap-4 z-30">
-        {/* Ticker Search - Predictive Autocomplete */}
-        <SearchBar currentTicker={ticker} stockData={stock} onSelect={handleTickerSelect} />
+      <OptionsSubHeader
+        ticker={ticker}
+        stock={stock}
+        loading={loading}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onTickerSelect={handleTickerSelect}
+        onOpenGuide={() => setShowGuide(true)}
+      />
 
-        {/* Stock Price */}
-        {stock && (
-          <div className="flex items-center gap-3 ml-2">
-            {loading && <Loader2 className="w-4 h-4 text-primary animate-spin" />}
-            <span className="text-xl font-bold text-foreground font-mono" data-testid="live-price">${stock.price.toFixed(2)}</span>
-            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
-              stock.change >= 0 ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-[#ef4444]/10 text-[#ef4444]'
-            }`}>
-              {stock.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-              {stock.change >= 0 ? '+' : ''}{stock.change} ({stock.changePercent}%)
-            </div>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{stock.sector}</span>
-            <span className="relative flex h-2 w-2" title={t('precioEnVivoRefrescoCada_73be80')}>
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            <IVRankBadge symbol={ticker} />
-          </div>
-        )}
-
-        <div className="ml-auto flex items-center gap-2">
-          <div className="flex bg-muted rounded-lg border border-border overflow-hidden">
-            <button onClick={() => setActiveTab('calculator')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'calculator' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              <BarChart2 className="w-3.5 h-3.5 inline mr-1" />{t('optTabCalculator')}
-            </button>
-            <button onClick={() => setActiveTab('optimize')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'optimize' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`} data-testid="tab-optimize">
-              <Target className="w-3.5 h-3.5 inline mr-1" />{t('optTabOptimize')}
-            </button>
-            <button onClick={() => setActiveTab('flow')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'flow' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`} data-testid="tab-flow">
-              <Activity className="w-3.5 h-3.5 inline mr-1" />{t('optTabFlow')}
-            </button>
-            <button onClick={() => setActiveTab('chain')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'chain' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              <LayoutGrid className="w-3.5 h-3.5 inline mr-1" />{t('optTabChain')}
-            </button>
-            <button onClick={() => setActiveTab('iv-surface')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'iv-surface' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              <Activity className="w-3.5 h-3.5 inline mr-1" />{t('optTabIVSurface')}
-            </button>
-            <button onClick={() => setActiveTab('education')} className={`px-3.5 py-1.5 text-xs font-medium transition-colors ${activeTab === 'education' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              <BookOpen className="w-3.5 h-3.5 inline mr-1" />{t('optTabAcademy')}
-            </button>
-          </div>
-          <button onClick={() => setShowGuide(true)} className="p-1.5 rounded-lg hover:bg-muted transition-colors" title={t('optQuickGuide')}>
-            <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-[#eab308]" />
-          </button>
-          <div className="flex items-center gap-1.5 text-xs ml-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse"></span>
-            <span className="text-[#22c55e]">LIVE</span>
-          </div>
-        </div>
-      </header>
-
-      {/* Guide Modal */}
       <GuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
 
-      {/* Tab Content */}
       {activeTab === 'education' && (
         <EducationTab onSwitchToCalc={() => setActiveTab('calculator')} />
       )}
-      
+
       {activeTab === 'chain' && (
-        <OptionsChainView 
-          chain={chain} 
-          stockPrice={stock?.price} 
-          expiration={currentExp} 
-          expirations={expirations} 
-          selectedExpIdx={selectedExpIdx} 
-          onExpChange={setSelectedExpIdx} 
+        <OptionsChainView
+          chain={chain}
+          stockPrice={stock?.price}
+          expiration={currentExp}
+          expirations={expirations}
+          selectedExpIdx={selectedExpIdx}
+          onExpChange={setSelectedExpIdx}
         />
       )}
-      
-      {activeTab === 'iv-surface' && (
-        <IVSurfaceView stock={stock} chain={chain} />
-      )}
+
+      {activeTab === 'iv-surface' && <IVSurfaceView stock={stock} chain={chain} />}
 
       {activeTab === 'optimize' && (
         <OptimizeView
           symbol={ticker}
           stock={stock}
           expirations={expirations}
-          onOpenInCalculator={(result) => {
-            // Load the result legs into custom builder mode
-            const mappedLegs = (result.legs || []).map((leg) => ({
-              id: `leg-${Math.random().toString(36).slice(2, 8)}`,
-              type: leg.type,
-              action: leg.action,
-              quantity: leg.quantity || 1,
-              strike: leg.strike,
-              premium: leg.premium || 0,
-              iv: 0.3,
-              daysToExpiry: result.daysToExpiry || 30,
-            }));
-            setCustomLegs(mappedLegs);
-            setActiveTab('calculator');
-          }}
+          onOpenInCalculator={handleOpenInCalculator}
         />
       )}
 
@@ -410,39 +382,30 @@ const CalculatorPage = () => {
         <div className="space-y-0">
           <UnusualActivity symbol={ticker} />
           <div className="px-4 pb-4">
-            <MarketFlow onSelectSymbol={(sym) => { setTicker(sym); setActiveTab('calculator'); }} />
+            <MarketFlow
+              onSelectSymbol={(sym) => {
+                setTicker(sym);
+                setActiveTab('calculator');
+              }}
+            />
           </div>
         </div>
       )}
-      
+
       {activeTab === 'calculator' && (
         <>
-          {/* Earnings warning — shows only if earnings fall within selected expiration */}
-          {nextEarnings && currentExp?.daysToExpiry && (() => {
-            const daysToEarnings = Math.ceil((new Date(nextEarnings).getTime() - Date.now()) / 86400000);
-            if (daysToEarnings < 0 || daysToEarnings > currentExp.daysToExpiry) return null;
-            return (
-              <div className="mx-3 mt-2 bg-[#f59e0b]/10 border border-[#f59e0b]/40 rounded-lg px-3 py-1.5 flex items-center gap-2 text-[11px]" data-testid="earnings-warning">
-                <span className="text-base leading-none">📊</span>
-                <span className="text-[#fbbf24] font-semibold">Earnings {nextEarnings}</span>
-                <span className="text-muted-foreground">
-                  ({daysToEarnings === 0 ? t('earningsToday_1f0e11') : t('earningsInDays_1f0e12').replace('{n}', daysToEarnings)}) — {t('earningsWithinExpiry_1f0e13').replace('{n}', currentExp.daysToExpiry)}
-                </span>
-              </div>
-            );
-          })()}
-          {/* Strategy Preset Bar — always visible */}
+          <EarningsBanner
+            nextEarnings={nextEarnings}
+            daysToExpiry={currentExp?.daysToExpiry}
+          />
+
+          {/* Strategy preset bar with compare-mode toggle */}
           <div className="relative">
             <StrategyBar
               strategies={STRATEGIES}
               categories={STRATEGY_CATEGORIES}
               selected={selectedStrategy}
-              onSelect={(s) => {
-                setSelectedStrategy(s);
-                // Re-seed the Constructor so the chosen preset becomes the active legs
-                seededRef.current = null; // invalidate cache to force re-seed
-                setCustomLegs([]);        // trigger auto-seed effect with new strategy
-              }}
+              onSelect={handleSelectStrategy}
             />
             <button
               onClick={() => setCompareMode((v) => !v)}
@@ -457,131 +420,40 @@ const CalculatorPage = () => {
             </button>
           </div>
 
-          {/* Constructor Multi-Leg Header — always visible below strategy bar */}
+          {/* Constructor multi-leg header */}
           <div className="bg-card border-b border-border px-5 py-2 flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Wrench className="w-4 h-4 text-[#f59e0b]" />
               <h3 className="text-sm font-bold text-foreground">{t('optConstructorTitle')}</h3>
             </div>
             <span className="text-[10px] bg-[#f59e0b]/10 px-2 py-0.5 rounded-full text-[#fbbf24] font-semibold">
-              {customLegs.filter(l => l.enabled).length} {t('optLegs')}
+              {customLegs.filter((l) => l.enabled).length} {t('optLegs')}
             </span>
             <span className="text-[10px] text-muted-foreground ml-2">· {t('optConstructorHint')}</span>
           </div>
 
-          {/* Main Content */}
           <div className="flex">
-            {/* Chart + Controls */}
             <div className="flex-1 flex flex-col p-3 gap-2.5 min-w-0">
-              {/* Metrics Row - 5 primary KPIs (larger, breathable) */}
-              <div className="grid grid-cols-5 gap-2">
-                <StatCard icon={TrendingUp} label={t('optMaxProfit')} value={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`} color="text-[#22c55e]" />
-                <StatCard icon={TrendingDown} label={t('optMaxLoss')} value={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`} color="text-[#ef4444]" />
-                <StatCard icon={Wallet} label={t('optCapitalReq')} value={stats.isMaxLossUnlimited ? `~$${stats.capitalRequired}` : `$${stats.capitalRequired}`} color="text-[#f59e0b]" title="Reg-T estimation of required capital/margin" />
-                <StatCard icon={Percent} label={t('optProbProfit')} value={`${stats.pop || 0}%`} color="text-primary" />
-                <StatCard icon={ArrowUpRight} label="ROI" value={`${stats.roi}%`} color="text-primary" />
-              </div>
+              <StatsKPIBar
+                stats={stats}
+                breakEvens={breakEvens}
+                legs={legs}
+                ticker={ticker}
+                currentExp={currentExp}
+                commission={commission}
+                onCommissionChange={setCommission}
+              />
 
-              {/* Secondary info + Legs — condensed single line */}
-              <div className="flex items-center gap-3 flex-wrap bg-card/50 border border-border/60 rounded-lg px-3 py-2 text-[11px]">
-                <div className="flex items-center gap-1.5">
-                  <Scale className="w-3 h-3 text-[#eab308]" />
-                  <span className="text-muted-foreground">{t('optRiskReward')}</span>
-                  <span className="font-mono font-bold text-[#eab308]">{stats.rr || '—'}</span>
-                </div>
-                <span className="text-muted-foreground/40">·</span>
-                <div className="flex items-center gap-1.5">
-                  <Target className="w-3 h-3 text-[#a78bfa]" />
-                  <span className="text-muted-foreground">{t('optBreakEven')}</span>
-                  <span className="font-mono font-bold text-[#a78bfa]">{breakEvens.length > 0 ? `$${breakEvens[0]}` : '—'}</span>
-                </div>
-                <span className="text-muted-foreground/40">·</span>
-                <div className="flex items-center gap-1.5">
-                  <DollarSign className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">{t('optPremium')}</span>
-                  <span className={`font-mono font-bold ${parseFloat(stats.premium) >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>${stats.premium}</span>
-                </div>
-                <span className="text-muted-foreground/40">·</span>
-                <div className="flex items-center gap-1.5" title="Commission per contract (Reg-T standard ~$0.65)">
-                  <span className="text-muted-foreground text-[10px]">{t('optCommPerCtr')}</span>
-                  <input
-                    type="number" step="0.05" min={0} max={10}
-                    value={commission}
-                    onChange={(e) => setCommission(Math.max(0, Math.min(10, parseFloat(e.target.value) || 0)))}
-                    className="w-14 bg-muted border border-border rounded px-1.5 py-0.5 text-[11px] font-mono text-foreground focus:outline-none focus:border-primary"
-                    data-testid="commission-input"
-                  />
-                  <span className="text-muted-foreground">(−${stats.commissions || '0.00'})</span>
-                </div>
-                <span className="text-muted-foreground/40 hidden md:inline">·</span>
-                <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
-                  {legs.map((leg, i) => (
-                    <div key={`leg-${leg.type}-${leg.action}-${leg.strike}-${i}`} className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${
-                      leg.action === 'buy'
-                        ? 'bg-[#22c55e]/8 border-[#22c55e]/25 text-[#4ade80]'
-                        : 'bg-[#ef4444]/8 border-[#ef4444]/25 text-[#f87171]'
-                    }`}>
-                      <span className="font-bold uppercase">{leg.action === 'buy' ? 'BUY' : 'SELL'}</span>
-                      <span>{leg.quantity}x</span>
-                      {leg.type === 'stock' ? (
-                        <span>{ticker}</span>
-                      ) : (
-                        <>
-                          <span className="font-mono">${leg.strike}</span>
-                          <span className="uppercase">{leg.type}</span>
-                          <span className="text-muted-foreground">@${leg.premium?.toFixed(2)}</span>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <span className="text-muted-foreground/60 ml-auto text-[10px] whitespace-nowrap">
-                  {currentExp?.fullLabel} · {currentExp?.daysToExpiry}d
-                </span>
-              </div>
-
-              {/* Strategy B picker + Comparison Table (compare mode) */}
               {compareMode && (
-                <div className="bg-gradient-to-r from-[#a855f7]/5 to-transparent border border-[#a855f7]/30 rounded-xl p-3" data-testid="compare-panel">
-                  <div className="flex items-center gap-3 mb-2">
-                    <GitCompare className="w-4 h-4 text-[#c084fc]" />
-                    <span className="text-xs font-bold text-[#c084fc] uppercase tracking-wider">{t('comparing_1f0e14')}</span>
-                    <span className="text-[11px] text-muted-foreground">
-                      <span className="text-[#4ade80] font-bold">A:</span> {t(selectedStrategy.name)}
-                      <span className="mx-2 text-muted-foreground/50">vs</span>
-                      <span className="text-[#c084fc] font-bold">B:</span>
-                    </span>
-                    <select
-                      value={selectedStrategyB.id}
-                      onChange={(e) => {
-                        const s = STRATEGIES.find((x) => x.id === e.target.value);
-                        if (s) setSelectedStrategyB(s);
-                      }}
-                      className="bg-muted border border-[#a855f7]/40 rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:border-[#a855f7]"
-                      data-testid="strategy-b-select"
-                    >
-                      {STRATEGY_CATEGORIES.map((cat) => (
-                        <optgroup key={cat} label={cat}>
-                          {STRATEGIES.filter((s) => s.category === cat).map((s) => (
-                            <option key={s.id} value={s.id} disabled={s.id === selectedStrategy.id}>
-                              {t(s.name)}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
-                  </div>
-                  {/* Comparison metrics table */}
-                  <div className="grid grid-cols-7 gap-1.5 mt-2 text-[11px] font-mono">
-                    <CompareCell label={t('metric_c8a9b1')} headers />
-                    <CompareCell label={t('maxBeneficio_c8a9b2')} a={stats.isMaxProfitUnlimited ? '∞' : `$${stats.maxProfit}`} b={statsB.isMaxProfitUnlimited ? '∞' : `$${statsB.maxProfit}`} winner={compareNumeric(stats.maxProfit, statsB.maxProfit, 'higher', stats.isMaxProfitUnlimited, statsB.isMaxProfitUnlimited)} />
-                    <CompareCell label={t('maxPerdida_c8a9b3')} a={stats.isMaxLossUnlimited ? '−∞' : `$${stats.maxLoss}`} b={statsB.isMaxLossUnlimited ? '−∞' : `$${statsB.maxLoss}`} winner={compareNumeric(stats.maxLoss, statsB.maxLoss, 'higher', stats.isMaxLossUnlimited, statsB.isMaxLossUnlimited)} />
-                    <CompareCell label={t('capitalReq_c8a9b4')} a={`$${stats.capitalRequired}`} b={`$${statsB.capitalRequired}`} winner={compareNumeric(stats.capitalRequired, statsB.capitalRequired, 'lower')} />
-                    <CompareCell label="POP %" a={`${stats.pop}%`} b={`${statsB.pop}%`} winner={compareNumeric(stats.pop, statsB.pop, 'higher')} />
-                    <CompareCell label="R/R" a={stats.rr} b={statsB.rr} winner={compareNumeric(stats.rr, statsB.rr, 'higher')} />
-                    <CompareCell label="ROI %" a={`${stats.roi}%`} b={`${statsB.roi}%`} winner={compareNumeric(stats.roi, statsB.roi, 'higher')} />
-                  </div>
-                </div>
+                <CompareBar
+                  strategies={STRATEGIES}
+                  categories={STRATEGY_CATEGORIES}
+                  selectedStrategy={selectedStrategy}
+                  selectedStrategyB={selectedStrategyB}
+                  onSelectStrategyB={setSelectedStrategyB}
+                  stats={stats}
+                  statsB={statsB}
+                />
               )}
 
               {/* Chart — fixed tall height for prominence */}
@@ -594,27 +466,33 @@ const CalculatorPage = () => {
                   dataB={compareMode ? payoffDataB : null}
                   labelA={t(selectedStrategy.name)}
                   labelB={t(selectedStrategyB.name)}
-                  title={compareMode
-                    ? `${t(selectedStrategy.name)} vs ${t(selectedStrategyB.name)} — ${ticker}`
-                    : `${t(selectedStrategy.name)} — ${ticker}`}
+                  title={
+                    compareMode
+                      ? `${t(selectedStrategy.name)} vs ${t(selectedStrategyB.name)} — ${ticker}`
+                      : `${t(selectedStrategy.name)} — ${ticker}`
+                  }
                 />
               </div>
 
-              {/* Time Slider — slim */}
+              {/* Time slider */}
               <div className="flex items-center gap-3 bg-card/60 rounded-lg border border-border/60 px-3 py-2">
                 <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t('vencimiento_91e0e1')}</span>
                 <div className="flex-1 relative">
-                  <input type="range" min={0} max={100} value={timeSlider} onChange={(e) => setTimeSlider(parseInt(e.target.value))} className="w-full" />
+                  <input
+                    type="range" min={0} max={100} value={timeSlider}
+                    onChange={(e) => setTimeSlider(parseInt(e.target.value))}
+                    className="w-full"
+                  />
                 </div>
-                <span className="text-xs font-mono font-bold text-foreground min-w-[44px] text-right">{daysForChart}d</span>
+                <span className="text-xs font-mono font-bold text-foreground min-w-[44px] text-right">
+                  {daysForChart}d
+                </span>
                 <span className="text-[10px] text-muted-foreground">/ {currentExp?.daysToExpiry}d</span>
               </div>
 
-              {/* Explain Trade — auto-generated educational bullets */}
               <ExplainTrade legs={legs} stock={stock} breakEvens={breakEvens} stats={stats} />
 
-              {/* AI Trade Coach — Claude Sonnet 4.5 analysis on demand */}
               <AITradeCoach
                 symbol={ticker}
                 stock={stock}
@@ -626,11 +504,11 @@ const CalculatorPage = () => {
               />
             </div>
 
-            {/* Right Panel — simplified to 3 core controls */}
             <aside className="w-[272px] min-w-[272px] bg-card border-l border-border flex flex-col">
-              {/* Expiration - always shown */}
               <div className="p-4 border-b border-border">
-                <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2.5 block">{t('optExpirationDate')}</label>
+                <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mb-2.5 block">
+                  {t('optExpirationDate')}
+                </label>
                 <div className="grid grid-cols-3 gap-1.5">
                   {expirations.slice(0, 9).map((exp, idx) => (
                     <button
@@ -649,7 +527,6 @@ const CalculatorPage = () => {
                 </div>
               </div>
 
-              {/* Leg Editor — always visible, single source of truth for legs */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <LegEditor
                   legs={customLegs}
@@ -661,92 +538,23 @@ const CalculatorPage = () => {
             </aside>
           </div>
 
-          {/* Advanced sections below — collapsible, full-width, reduce sidebar pressure */}
+          {/* Advanced sections — collapsible */}
           <div className="border-t border-border bg-background">
-            <div className="px-3 py-3 flex items-center gap-2 flex-wrap">
-              <button
-                onClick={() => setShowKelly((v) => !v)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
-                  showKelly
-                    ? 'bg-primary/10 border-primary/40 text-primary'
-                    : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
-                }`}
-                data-testid="toggle-kelly"
-              >
-                <Calculator className="w-3.5 h-3.5" />
-                Kelly Criterion Sizing
-                <span className="text-[10px] opacity-60">{showKelly ? `▲ ${t('ocultar_91e0e3')}` : `▼ ${t('mostrar_91e0e2')}`}</span>
-              </button>
-              <button
-                onClick={() => setShowGreeks((v) => !v)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
-                  showGreeks
-                    ? 'bg-[#3b82f6]/10 border-[#3b82f6]/40 text-[#60a5fa]'
-                    : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-[#3b82f6]/30'
-                }`}
-                data-testid="toggle-greeks"
-              >
-                <span className="font-serif italic font-bold text-sm">Δ</span>
-                {t('greeksDetalladas_91e0e4')}
-                <span className="text-[10px] opacity-60">{showGreeks ? `▲ ${t('ocultar_91e0e3')}` : `▼ ${t('mostrar_91e0e2')}`}</span>
-              </button>
-              <button
-                onClick={() => setShowPortfolio((v) => !v)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
-                  showPortfolio
-                    ? 'bg-[#a855f7]/10 border-[#a855f7]/40 text-[#c084fc]'
-                    : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-[#a855f7]/30'
-                }`}
-                data-testid="toggle-portfolio"
-              >
-                <Layers className="w-3.5 h-3.5" />
-                {t('miPortfolio_91e0e5')}
-                <span className="text-[10px] opacity-60">{showPortfolio ? `▲ ${t('ocultar_91e0e3')}` : `▼ ${t('mostrar_91e0e2')}`}</span>
-              </button>
-            </div>
-
-            {showPortfolio && (
-              <div className="bg-card border-t border-border p-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
-                <SavedPositionsPanel
-                  currentLegs={legs}
-                  currentSymbol={ticker}
-                  currentExpiration={currentExp?.fullLabel || currentExp?.date}
-                  onLoadPosition={(pos) => {
-                    const mapped = (pos.legs || []).map((l) => ({
-                      id: `leg-${Math.random().toString(36).slice(2, 8)}`,
-                      type: l.type, action: l.action,
-                      quantity: l.quantity || 1, strike: l.strike,
-                      premium: l.premium || 0, iv: l.iv || 0.3,
-                      daysToExpiry: l.daysToExpiry || 30,
-                    }));
-                    setCustomLegs(mapped);
-                    if (pos.symbol && pos.symbol !== ticker) setTicker(pos.symbol);
-                  }}
-                />
-                <PortfolioGreeks />
-              </div>
-            )}
-
-            {showKelly && (
-              <div className="bg-card border-t border-border">
-                <KellyPanel
-                  pop={parseFloat(stats.pop) || 0}
-                  maxProfit={parseFloat(stats.maxProfit) || 0}
-                  maxLoss={parseFloat(stats.maxLoss) || 0}
-                  capitalPerContract={contracts > 0 ? (parseFloat(stats.capitalRequired) || 0) / contracts : parseFloat(stats.capitalRequired) || 0}
-                  isMaxLossUnlimited={stats.isMaxLossUnlimited}
-                  accountBalance={accountBalance}
-                  onBalanceChange={setAccountBalance}
-                />
-              </div>
-            )}
-
-            {showGreeks && (
-              <div className="bg-card border-t border-border p-4 space-y-4">
-                <GreeksDisplay greeks={greeks} legs={legs} stock={stock} />
-                <GreeksTimeChart legs={legs} stockPrice={stock?.price} daysToExpiry={currentExp?.daysToExpiry || 30} />
-              </div>
-            )}
+            <AdvancedToggles
+              showKelly={showKelly} onToggleKelly={() => setShowKelly((v) => !v)}
+              showGreeks={showGreeks} onToggleGreeks={() => setShowGreeks((v) => !v)}
+              showPortfolio={showPortfolio} onTogglePortfolio={() => setShowPortfolio((v) => !v)}
+              greeks={greeks}
+              legs={legs}
+              stock={stock}
+              currentExp={currentExp}
+              ticker={ticker}
+              stats={stats}
+              contracts={contracts}
+              accountBalance={accountBalance}
+              onAccountBalanceChange={setAccountBalance}
+              onLoadPosition={handleLoadPosition}
+            />
 
             {/* Pro-grade panel: Fees + Dividends + P&L Attribution + Assignment */}
             <div className="px-4 py-3 border-t border-border">
@@ -762,56 +570,6 @@ const CalculatorPage = () => {
           </div>
         </>
       )}
-    </div>
-  );
-};
-
-const StatCard = ({ icon: Icon, label, value, color, title }) => (
-  <div className="bg-card rounded-xl border border-border px-4 py-3 hover:border-primary/30 transition-colors" title={title}>
-    <div className="flex items-center gap-1.5 mb-1">
-      <Icon className={`w-3.5 h-3.5 ${color}`} />
-      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold truncate">{label}</span>
-    </div>
-    <span className={`text-lg font-bold font-mono ${color} block truncate`}>{value}</span>
-  </div>
-);
-
-// --- Comparison helpers ---
-const compareNumeric = (a, b, prefer, aUnlim = false, bUnlim = false) => {
-  // Returns 'A', 'B', or 'tie'
-  if (aUnlim && !bUnlim) return prefer === 'higher' ? 'A' : 'B';
-  if (!aUnlim && bUnlim) return prefer === 'higher' ? 'B' : 'A';
-  const na = parseFloat(String(a).replace(/[^\d.\-]/g, ''));
-  const nb = parseFloat(String(b).replace(/[^\d.\-]/g, ''));
-  if (!Number.isFinite(na) || !Number.isFinite(nb)) return 'tie';
-  if (Math.abs(na - nb) < 0.005) return 'tie';
-  if (prefer === 'higher') return na > nb ? 'A' : 'B';
-  return na < nb ? 'A' : 'B';
-};
-
-const CompareCell = ({ label, a, b, winner, headers }) => {
-  if (headers) {
-    return (
-      <div className="col-span-1 text-[9px] text-muted-foreground uppercase tracking-wider font-semibold pt-1">
-        Métrica / Valor
-      </div>
-    );
-  }
-  return (
-    <div className="col-span-1 bg-muted/40 rounded-md border border-border/50 p-1.5 min-w-0">
-      <div className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5 truncate">{label}</div>
-      <div className="flex flex-col gap-0.5">
-        <div className={`flex items-center justify-between gap-1 ${winner === 'A' ? 'text-[#4ade80]' : 'text-muted-foreground'}`}>
-          <span className="text-[9px] font-bold">A</span>
-          <span className="font-mono text-[10px] truncate">{a}</span>
-          {winner === 'A' && <Trophy className="w-2.5 h-2.5 flex-shrink-0" />}
-        </div>
-        <div className={`flex items-center justify-between gap-1 ${winner === 'B' ? 'text-[#c084fc]' : 'text-muted-foreground'}`}>
-          <span className="text-[9px] font-bold">B</span>
-          <span className="font-mono text-[10px] truncate">{b}</span>
-          {winner === 'B' && <Trophy className="w-2.5 h-2.5 flex-shrink-0" />}
-        </div>
-      </div>
     </div>
   );
 };
