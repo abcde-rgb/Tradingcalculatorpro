@@ -218,6 +218,31 @@
 - Recharts cold-mount warning: `width(-1)/height(-1)` antes de que el container se dimensione.
 
 
+### Feb 2026 — Code Quality P2 (post Code-Review report del usuario) ✅
+**Reporte recibido con 11 hallazgos. Análisis técnico:**
+- **5 falsos positivos del analizador** (rebatidos con evidencia y línea por línea): "undefined vars en options_math.py 433-434" (if/elif/elif/else exhaustivo), "65 hook deps faltantes" (refs/módulo-const/vars locales async no van en deps), "localStorage sensitive data" (almacena commission $0.65 + accountBalance, no credenciales), "is vs ==" (todas las hits son `is None`, idioma PEP 8 correcto), "random.random() inseguro" (líneas marcadas usan `secure_random.random()` con `secure_random = secrets.SystemRandom()` ya declarado).
+- **6 issues reales arreglados**:
+
+**Frontend:**
+- `LandingPage.jsx:520` — Star key `i` → `star-${authorKey}-${i}`.
+- `TradeAdvancedPanel.jsx:275` — assignment row key `i` → `${a.leg}-${a.strike}`.
+- `PayoffChart.jsx` — `optionStrikes.labelObj` precomputado en useMemo + `breakEvenLabels` array memoizado. Elimina recreación de objetos inline.
+- `GreeksTimeChart.jsx` — `xDomain`/`xAxisLabel`/`expirationLineLabel` movidos a `useMemo`.
+
+**Backend (`server.py`) — 5 funciones complejas refactorizadas:**
+- `get_journal_stats` → 3 helpers: `_empty_journal_stats`, `_aggregate_journal_trades` (single-pass), `_journal_stats_from_aggregate`. Endpoint = 8 líneas.
+- `run_monte_carlo` → 2 helpers: `_simulate_one_mc_path`, `_summarize_mc_runs`.
+- `run_backtest` → helper `_simulate_backtest_trades`.
+- `opt_calculate_payoff/greeks/pnl-attribution/assignment` → 2 helpers compartidos `_legs_to_dicts` (elimina 4× duplicación) y `_payoff_summary`.
+- `get_iv_rank` → 3 helpers: `_compute_realized_vol_series`, `_fetch_atm_iv_proxy`, `_iv_rank_recommendation`. Removidos `recommendationLabel/recommendationReason` (frontend ya migró a i18n).
+
+**Verificación** (testing_agent_v3_fork iteration_3, 10/10 backend + frontend OK):
+- Math spec-exact: Long Call $150/$5 → maxProfit=$4749.35, maxLoss=$-500.65, totalFees=$0.65, BE=[155.0]. Sell 2 puts $100 (expiry $95) → net_shares=200, net_cash=$-20,000. **Idéntico pre/post-refactor.**
+- Schemas inalterados: journal/stats (11 campos), monte-carlo (statistics block), backtest (todos los campos).
+- Frontend sin warnings duplicate-key, charts memoizados sin errors, toggle-greeks renderiza 6 SVGs limpios.
+- Lint: ruff + eslint clean.
+- **No tocados intencionalmente** (riesgo > beneficio): `create_checkout`/`stripe_webhook` (pagos críticos), split de `SimulatorPro`/`EducationPage`/`LandingPage` (deferred al backlog P1).
+
 
 ### P1 (próximo)
 - **Backtesting histórico de estrategias**: simular ROI de una estrategia mensual sobre N meses (ej: Long Call AAPL 12m)
