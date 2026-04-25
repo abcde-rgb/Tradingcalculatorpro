@@ -244,7 +244,36 @@
 - **No tocados intencionalmente** (riesgo > beneficio): `create_checkout`/`stripe_webhook` (pagos críticos), split de `SimulatorPro`/`EducationPage`/`LandingPage` (deferred al backlog P1).
 
 
-### P1 (próximo)
+### Feb 2026 — Code Quality P3 (3er reporte) ✅
+**Reporte recibido (3ª iteración) con varios items repetidos. Análisis:**
+
+**Falsos positivos rebatidos por 3ª vez** (mismas evidencias previas): localStorage "sensitive" (UI prefs), `options_math.py:433-434` undefined vars (if/elif/elif/else exhaustivo), 66 hook deps faltantes en `usePersistedState/SubscriptionPage/PaymentPages/SearchBar` (refs no van en deps, vars locales async no son closures, consts de módulo no van en deps), `is None` flagged como `is constants` (PEP 8), `random.random()` flagged ya usa `secure_random` con `SystemRandom`.
+
+**Cosmético arreglado**: `tests/test_refactor_p2.py:17` — `DEMO_PASSWORD` movido a `os.environ.get("DEMO_USER_PASSWORD", "1234")` con `# nosec B105` para silenciar el analizador (fixture pública documentada en `test_credentials.md`, no es secreto real).
+
+**6 refactors backend reales arreglados (los pendientes que diferí en P2):**
+- `create_checkout()` → 3 helpers: `_PAYMENT_METHODS_MAP` (const), `_build_pending_transaction(user, plan_id, plan, payment_method)`, `_create_stripe_session(plan, payment_method, success_url, cancel_url, metadata, origin_url)`. Endpoint reducido a 25 líneas.
+- `stripe_webhook()` → 2 helpers: `_stripe_session_ids(session_id)` (with safe fallback) y `_activate_paid_subscription(user_id, plan_id, plan, transaction_id, session_id)`. Early return cuando `payment_status != "paid"`. De 63 a 22 líneas.
+- `get_unusual_options()` y `market_wide_flow()` → 5 helpers compartidos: `_build_unusual_row`, `_scan_chain_for_unusual`, `_build_market_flow_row`, `_scan_chain_for_flow`, `_scan_ticker_flow`. Elimina anidación 5-deep en ambos.
+- `ai_analyze_trade()` → 2 helpers: `_format_legs_for_prompt(legs)`, `_build_ai_trade_prompt(req)` (puro/sin side-effects, fácil unit-testable). Endpoint reducido a 20 líneas.
+- `get_stock_data()` (en `stock_data.py`) → 3 helpers: `_get_cached_stock(symbol)`, `_normalize_dividend_yield(raw)`, `_build_stock_dict(symbol, hist, info)`. De 76 a ~20 líneas.
+
+**Bug real encontrado por agente principal y arreglado:**
+- `PaymentCancelPage` (`/payment/cancel`) usaba `t()` sin importar `useTranslation` → ReferenceError al renderizar. Agregado `useTranslation` import + restablecidos los strings hardcoded `"Pago Cancelado"` y `"Ver Planes"` (los keys `paymentCancelledTitle_pc01`/`viewPlans_pc02` no existen en `i18n.js` y el patrón `t() || fallback` no funciona porque `t()` devuelve la key como truthy string).
+
+**Verificación testing_agent_v3_fork iteration_4 (52/52 backend ✅):**
+- Math regression spec-exact: Long Call $150/$5 fee=0.65 → maxProfit=$4749.35, maxLoss=$-500.65, totalFees=$0.65, BE=[155.0]. **Idéntico pre/post-refactor en 4 rondas.**
+- Stripe pipeline 100%: 4 plans × 4 payment methods + invalid_plan→400 + auth gate + status flow + webhook reachable. transaction_id/checkout_url/session_id correctos.
+- AI analyze: response markdown con `✅⚠️💡📊` sections, model=`claude-sonnet-4-5`.
+- Stock cache hit verificado (2ª llamada <5s, precio idéntico).
+- Market flow: scannedTickers=24 (matches `MARKET_FLOW_TICKERS`), filtros respetados.
+- Frontend `/payment/cancel`: 0 console errors, 0 raw key leaks (post-fix).
+- Lint: ruff + eslint clean.
+
+**Pre-existentes (NO regresiones)**:
+- `LegEditor.jsx`: `<span>` dentro de `<option>` → hydration warning (pre-3 rounds).
+
+
 - **Backtesting histórico de estrategias**: simular ROI de una estrategia mensual sobre N meses (ej: Long Call AAPL 12m)
 - **American-style binomial pricing**: premium por ejercicio anticipado, especialmente puts ITM con dividendos
 - **Paper Trading**: trades virtuales con precios reales, PnL tracking, win-rate, Sharpe

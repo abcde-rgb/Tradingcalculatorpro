@@ -110,11 +110,11 @@ export const PaymentCancelPage = () => {
       <Card className="w-full max-w-md bg-card border-border">
         <CardContent className="p-8 text-center">
           <XCircle className="w-16 h-16 mx-auto mb-4 text-zinc-500" />
-          <h2 className="text-xl font-bold mb-2">{t('paymentCancelledTitle_pc01') || 'Pago Cancelado'}</h2>
+          <h2 className="text-xl font-bold mb-2">Pago Cancelado</h2>
           <p className="text-zinc-400 mb-6">{t('hasCanceladoElProcesoDe_c37e10')}</p>
           <div className="space-y-2">
             <Button onClick={() => navigate('/pricing')} className="w-full bg-primary text-black">
-              {t('viewPlans_pc02') || 'Ver Planes'}
+              Ver Planes
             </Button>
             <Button onClick={() => navigate('/dashboard')} variant="outline" className="w-full">
               {t('goToDashboard') || 'Ir al Dashboard'}
