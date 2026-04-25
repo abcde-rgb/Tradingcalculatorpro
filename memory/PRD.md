@@ -194,12 +194,39 @@
 - **21 keys nuevas añadidas** a los 8 locales vía LLM Claude 4.5: `clearData`, `pnlTotal`, `ratioWL`, `loginToUseJournal`, `registerTrade`, `tradeStatusOpen/Closed`, `entryLabel`, `exitLabel`, `closeTrade`, `tradeRegistered`, `tradeClosed`, `completeRequired`, `exitPricePrompt`, `symbolLabel`, `sizeUsd`, `strategyPlaceholder`, `notesPlaceholder`, `totalTrades` (era parcial, ahora completo).
 - Verificación: screenshot en alemán muestra todo traducido ("Daten löschen", "Trading-Journal", "Neuer Trade", "Gesamte Trades", "Gewinnrate", "Gesamt-P&L", "W/L-Verhältnis", "Keine Trades aufgezeichnet"). Cero strings españoles detectados en el HTML.
 
-## Backlog
+### Feb 2026 — Code Quality P1 + Component Split ✅
+**Backend (`server.py`):**
+- **`get_ohlc_data()` refactor**: extraído en 4 helpers (`_COINGECKO_COIN_MAP`, `_pick_ohlc_interval_ms`, `_candle_from_bucket`, `_group_prices_into_ohlc`), cada uno <20 líneas con type hints. Cyclomatic complexity caída drásticamente.
+- **Type hints añadidos a `tests/test_stripe_payments.py` y `tests/test_trading_calculator.py`**: todos los `def test_*` con `-> None`, fixtures con `-> str` / `-> Dict[str, str]`, helper `_login_demo_token() -> str` extraído. `pytest --collect-only` recoge 28 tests sin TypeError.
+- **typing imports** ampliados: `from typing import Any, Dict, List, Optional`.
+
+**Frontend split de `CalculatorPage.jsx` (819 → 577 líneas, -29%):**
+- **`OptionsSubHeader.jsx`** (88l) — sticky sub-header con ticker search, live price, IV rank badge, 6 tabs (calculator/optimize/flow/chain/iv-surface/education), guide button, LIVE indicator.
+- **`StatsKPIBar.jsx`** (147l) — 5 StatCards primarios (MaxProfit/MaxLoss/CapitalReq/POP/ROI) + secondary KPI row (R:R, BreakEven, Premium, Commission input, Leg pills).
+- **`CompareBar.jsx`** (136l) — strategy B picker + 6 métricas comparadas con winner indicator (incluye `compareNumeric` y `CompareCell` helpers).
+- **`EarningsBanner.jsx`** (36l) — warning IV crush si earnings dentro del expiration.
+- **`AdvancedToggles.jsx`** (127l) — botones Kelly/Greeks/Portfolio + paneles colapsables.
+
+**Verificación end-to-end (testing_agent_v3_fork iteration_2):**
+- Backend: 8/8 tests P1 OK. Math endpoints sin regresión (Long Call $150/$5: maxProfit=$4749.35, maxLoss=$-500.65, totalFees=$0.65 idénticos pre/post-refactor). OHLC BTC 7d→168 candles, ETH 30d→4h interval, UNKNOWN→200 con fallback bitcoin sin crash.
+- Frontend: 12/12 testids visibles, las 6 tabs clickables, compare-panel toggleable, EarningsBanner sin null-crash, advanced toggles drive sus paneles correctamente.
+- Lint: ruff + eslint clean en todos los archivos tocados.
+- 1 regresión menor detectada y auto-corregida por testing agent: 4 de 6 tabs perdieron `data-testid` durante extracción a `OptionsSubHeader.jsx` → ahora restaurados (calculator/chain/iv-surface/education).
+
+**Issues pre-existentes detectadas (NO regresiones):**
+- `LegEditor.jsx`: `<span>` dentro de `<option>` triggers React hydration warning (HTML inválido).
+- Recharts cold-mount warning: `width(-1)/height(-1)` antes de que el container se dimensione.
+
+
 
 ### P1 (próximo)
 - **Backtesting histórico de estrategias**: simular ROI de una estrategia mensual sobre N meses (ej: Long Call AAPL 12m)
+- **American-style binomial pricing**: premium por ejercicio anticipado, especialmente puts ITM con dividendos
 - **Paper Trading**: trades virtuales con precios reales, PnL tracking, win-rate, Sharpe
-- Split componentes grandes (`CalculatorPage.jsx` 1085l, `SimulatorPro.jsx` 973l, `EducationPage.jsx` 1105l) — diferido: lint limpio, alta regresión
+- ~~Split `CalculatorPage.jsx`~~ **HECHO Feb 2026** (819→577 líneas, 5 sub-componentes)
+- Split pendiente: `SimulatorPro.jsx` (973l) y `EducationPage.jsx` (1105l)
+- Limpiar HTML inválido en `LegEditor.jsx` (`<span>` dentro de `<option>`) — pre-existente, hydration warning
+- Hook deps en `SubscriptionPage`, `PaymentPages`, `DashboardPage` (P2 originalmente, diferido)
 
 ### P2 (futuro)
 - Live P/L streaming vía WebSocket (reemplazar polling 15s)
