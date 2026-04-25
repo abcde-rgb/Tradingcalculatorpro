@@ -41,6 +41,7 @@ export const TargetPriceCalculator = () => {
     
     const current = parseFloat(currentPrice);
     const pct = parseFloat(percentage);
+    if (!current || current <= 0 || isNaN(pct)) return;
     const targetUp = current * (1 + pct / 100);
     const targetDown = current * (1 - pct / 100);
     
@@ -139,7 +140,7 @@ export const TargetPriceCalculator = () => {
                 <div className="flex gap-2">
                   <Button onClick={clearPersistedData} variant="outline" className="flex-1">
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Limpiar
+                    {t('clearShort_p006')}
                   </Button>
                   
                   {isAuthenticated && (

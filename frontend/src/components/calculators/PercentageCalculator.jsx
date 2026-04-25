@@ -44,27 +44,24 @@ export const PercentageCalculator = () => {
     
     const current = parseFloat(currentPrice);
     const target = parseFloat(targetPrice);
+    if (!current || current <= 0) return; // guard against div-by-zero
     const priceMovement = ((target - current) / current) * 100;
     
-    // En LONG: ganas si precio sube, pierdes si baja
-    // En SHORT: ganas si precio baja, pierdes si sube
     let isProfit;
     let effectiveMovement;
     
     if (isLong) {
-      // LONG: ganancia = precio sube
       isProfit = target > current;
       effectiveMovement = priceMovement;
     } else {
-      // SHORT: ganancia = precio baja (movimiento invertido)
       isProfit = target < current;
-      effectiveMovement = -priceMovement; // Invertir para mostrar ganancia como positiva
+      effectiveMovement = -priceMovement;
     }
     
     const res = {
       priceMovement: priceMovement,
       effectiveMovement: effectiveMovement,
-      direction: target > current ? 'ALCISTA' : 'BAJISTA',
+      direction: target > current ? t('directionBullish_p007') : t('directionBearish_p008'),
       isProfit: isProfit,
       difference: target - current,
       position: isLong ? 'LONG' : 'SHORT'
@@ -155,7 +152,7 @@ export const PercentageCalculator = () => {
               <div className="p-6 rounded-xl bg-muted/50 border border-border space-y-4">
                 <div className="text-center">
                   <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{t('position')}: {result.position}</p>
-                  <p className="text-xs text-muted-foreground mb-2">Movimiento del Precio: {result.direction}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{t('priceMovementLabel_p004')}: {result.direction}</p>
                   <p className={`font-mono text-4xl font-bold ${result.isProfit ? 'text-primary' : 'text-destructive'}`}>
                     {formatPercentage(result.effectiveMovement)}
                   </p>
@@ -166,7 +163,7 @@ export const PercentageCalculator = () => {
                 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
                   <div>
-                    <p className="text-xs text-muted-foreground">Diferencia $</p>
+                    <p className="text-xs text-muted-foreground">{t('differenceDollar_p005')}</p>
                     <p className={`font-mono text-lg ${result.difference >= 0 ? 'text-primary' : 'text-destructive'}`}>
                       {result.difference >= 0 ? '+' : ''}${formatNumber(result.difference)}
                     </p>
@@ -182,17 +179,17 @@ export const PercentageCalculator = () => {
                 <div className="p-3 rounded-lg bg-accent/10 border border-accent/20 text-xs">
                   <p className="text-accent font-semibold">{t('description')}:</p>
                   <p className="text-muted-foreground mt-1">
-                    {isLong 
-                      ? `En LONG ganas si el precio SUBE. El precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, por lo tanto ${result.isProfit ? 'GANAS' : 'PIERDES'}.`
-                      : `En SHORT ganas si el precio BAJA. El precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, por lo tanto ${result.isProfit ? 'GANAS' : 'PIERDES'}.`
-                    }
+                    {(isLong ? t('percLongDesc_p009') : t('percShortDesc_p010'))
+                      .replace('{dir}', result.priceMovement >= 0 ? t('goesUp_p011') : t('goesDown_p012'))
+                      .replace('{pct}', formatNumber(Math.abs(result.priceMovement)))
+                      .replace('{result}', result.isProfit ? t('youWin_p013') : t('youLose_p014'))}
                   </p>
                 </div>
                 
                 <div className="flex gap-2">
                   <Button onClick={clearPersistedData} variant="outline" className="flex-1">
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Limpiar
+                    {t('clearShort_p006')}
                   </Button>
                   
                   {isAuthenticated && (

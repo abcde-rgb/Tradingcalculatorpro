@@ -48,7 +48,7 @@ export function LotSizeCalculator() {
     const slPips = parseFloat(stopLossPips);
     const pair = FOREX_PAIRS.find(p => p.symbol === selectedPair);
     
-    if (!balance || !risk || !slPips || !pair) return;
+    if (!balance || balance <= 0 || !risk || risk <= 0 || !slPips || slPips <= 0 || !pair) return;
 
     // Cantidad que estamos dispuestos a arriesgar
     const riskAmount = balance * (risk / 100);
@@ -96,7 +96,7 @@ export function LotSizeCalculator() {
           <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
             <Scale className="w-4 h-4 text-blue-500" />
           </div>
-          Calculadora de Lotaje (Forex)
+          {t('lotSizeCalcTitle_p001')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

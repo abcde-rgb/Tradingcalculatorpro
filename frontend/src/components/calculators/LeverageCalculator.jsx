@@ -37,7 +37,7 @@ export const LeverageCalculator = () => {
     const entry = parseFloat(entryPrice);
     const exit = parseFloat(exitPrice);
     const lev = leverage;
-    if (!cap || !entry || !exit || !lev) return;
+    if (!cap || cap <= 0 || !entry || entry <= 0 || !exit || exit <= 0 || !lev || lev <= 0) return;
 
     // Calcular movimiento del precio
     const priceMovement = ((exit - entry) / entry) * 100;

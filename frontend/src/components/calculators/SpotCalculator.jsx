@@ -34,6 +34,7 @@ export const SpotCalculator = () => {
     const inv = parseFloat(investment);
     const buy = parseFloat(buyPrice);
     const sell = parseFloat(sellPrice);
+    if (!buy || buy <= 0 || !inv || inv <= 0) return; // guard: avoid div-by-zero / negative
     
     const btcBought = inv / buy;
     const currentValue = btcBought * sell;
@@ -136,7 +137,7 @@ export const SpotCalculator = () => {
                 <div className="flex gap-2">
                   <Button onClick={clearPersistedData} variant="outline" className="flex-1">
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Limpiar
+                    {t('clearShort_p006')}
                   </Button>
                   
                   {isAuthenticated && (

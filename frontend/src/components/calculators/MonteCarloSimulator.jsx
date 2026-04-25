@@ -118,7 +118,7 @@ export function MonteCarloSimulator() {
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
               <FlaskConical className="w-4 h-4 text-purple-500" />
             </div>
-            Simulador Monte Carlo
+            {t('monteCarloLockedTitle_p003')}
             <Crown className="w-4 h-4 text-yellow-500" />
           </CardTitle>
         </CardHeader>
@@ -270,11 +270,11 @@ export function MonteCarloSimulator() {
               <p className="text-sm font-medium mb-3">{t('distribucionDeResultados_032fd8')}</p>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-red-400">Peor 5%</span>
+                  <span className="text-sm text-red-400">{t('worstFivePct_p015')}</span>
                   <span className="font-mono font-semibold">${results.statistics.percentile5.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-yellow-500">Mediana (50%)</span>
+                  <span className="text-sm text-yellow-500">{t('medianFiftyPct_p016')}</span>
                   <span className="font-mono font-semibold">${results.statistics.percentile50.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -294,7 +294,7 @@ export function MonteCarloSimulator() {
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-orange-500/10 text-center">
-                <p className="text-xs text-muted-foreground">Drawdown Promedio</p>
+                <p className="text-xs text-muted-foreground">{t('avgDrawdown_p017')}</p>
                 <p className="text-lg font-bold text-orange-500" data-testid="avg-dd">
                   {results.statistics.avgMaxDrawdown}%
                 </p>
@@ -340,7 +340,7 @@ export function MonteCarloSimulator() {
                 <p className="text-red-500">{t('altaProbabilidadDePerdidaRevisa_a4b9b2')}</p>
               )}
               {results.statistics.riskOfRuin > 5 && (
-                <p className="text-red-400 mt-1">⚠ Riesgo de ruina elevado ({results.statistics.riskOfRuin}%)</p>
+                <p className="text-red-400 mt-1">{t('highRuinRisk_p018').replace('{pct}', results.statistics.riskOfRuin)}</p>
               )}
             </div>
           </div>

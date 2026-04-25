@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   TrendingUp, Calculator, Shield, Zap, Crown, ArrowRight, Check, 
   CandlestickChart, History, Bell, BookOpen, Wallet, Target, 
   Scale, FlaskConical, BarChart3, Globe, Moon, Sun, 
   LineChart, PieChart, DollarSign, Percent, Users, Award,
-  ChevronRight, Play, Star, Briefcase, GraduationCap
+  ChevronRight, Play, Star, Briefcase, GraduationCap, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -70,12 +71,34 @@ const plansData = [
   { id: 'lifetime' },
 ];
 
+// Testimonials data — names and roles preserved across locales (translation keys handle copy)
+const TESTIMONIALS = [
+  { quoteKey: 'testimonial1Quote_l010', authorKey: 'testimonial1Author_l011', roleKey: 'testimonial1Role_l012', initial: 'C' },
+  { quoteKey: 'testimonial2Quote_l020', authorKey: 'testimonial2Author_l021', roleKey: 'testimonial2Role_l022', initial: 'A' },
+  { quoteKey: 'testimonial3Quote_l030', authorKey: 'testimonial3Author_l031', roleKey: 'testimonial3Role_l032', initial: 'D' },
+];
+
+// FAQ data
+const FAQS = [
+  { qKey: 'faqQ1_l040', aKey: 'faqA1_l041' },
+  { qKey: 'faqQ2_l050', aKey: 'faqA2_l051' },
+  { qKey: 'faqQ3_l060', aKey: 'faqA3_l061' },
+  { qKey: 'faqQ4_l070', aKey: 'faqA4_l071' },
+  { qKey: 'faqQ5_l080', aKey: 'faqA5_l081' },
+];
+
 // Stats data will use t() in component
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuthStore();
-  const { t } = useTranslation();
+  const { t, detectBrowserLanguage } = useTranslation();
   const { theme, toggleTheme } = useThemeStore();
+  const [openFaq, setOpenFaq] = useState(null);
+
+  // Auto-detect browser language on first visit only
+  useEffect(() => {
+    detectBrowserLanguage();
+  }, [detectBrowserLanguage]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -464,6 +487,103 @@ export default function LandingPage() {
                 {t('exploreLearningCenter')} <ChevronRight className="w-4 h-4" />
               </Button>
             </Link>
+          </div>
+        </div>
+      </section>
+      
+      {/* Testimonials Section */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <motion.h2
+              {...MOTION_FADE_UP_VIEW}
+              className="font-unbounded text-3xl md:text-4xl font-bold mb-4"
+            >
+              {t('testimonialsTitle_l001')}
+            </motion.h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {t('testimonialsSubtitle_l002')}
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((testimonial, idx) => (
+              <motion.div
+                key={testimonial.authorKey}
+                {...MOTION_FADE_UP_VIEW}
+                transition={{ delay: idx * 0.1 }}
+                className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors flex flex-col"
+                data-testid={`testimonial-${idx}`}
+              >
+                <div className="flex gap-1 mb-3">
+                  {Array(5).fill(0).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                  ))}
+                </div>
+                <p className="text-sm leading-relaxed text-foreground/90 mb-4 flex-1">
+                  "{t(testimonial.quoteKey)}"
+                </p>
+                <div className="flex items-center gap-3 pt-3 border-t border-border">
+                  <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center font-bold text-primary">
+                    {testimonial.initial}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{t(testimonial.authorKey)}</p>
+                    <p className="text-xs text-muted-foreground">{t(testimonial.roleKey)}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+      
+      {/* FAQ Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <motion.h2
+              {...MOTION_FADE_UP_VIEW}
+              className="font-unbounded text-3xl md:text-4xl font-bold mb-4"
+            >
+              {t('faqTitle_l003')}
+            </motion.h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {t('faqSubtitle_l004')}
+            </p>
+          </div>
+          
+          <div className="space-y-3">
+            {FAQS.map((faq, idx) => (
+              <motion.div
+                key={faq.qKey}
+                {...MOTION_FADE_UP_VIEW}
+                transition={{ delay: idx * 0.05 }}
+                className="rounded-xl bg-card border border-border overflow-hidden"
+                data-testid={`faq-${idx}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-muted/40 transition-colors"
+                  data-testid={`faq-toggle-${idx}`}
+                >
+                  <span className="font-semibold text-sm md:text-base">{t(faq.qKey)}</span>
+                  <ChevronDown
+                    className={`w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform ${
+                      openFaq === idx ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {openFaq === idx && (
+                  <div className="px-5 pb-5 pt-1">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {t(faq.aKey)}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>

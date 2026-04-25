@@ -36,19 +36,15 @@ export const PositionSizeCalculator = () => {
     const entry = parseFloat(entryPrice);
     const sl = parseFloat(stopLoss);
     
-    // Calcular riesgo en dólares
-    const riskAmount = balance * (risk / 100);
+    // Edge case guards: avoid NaN/Infinity from div-by-zero or invalid inputs
+    if (!balance || balance <= 0 || !entry || entry <= 0 || !sl || sl <= 0) return;
+    if (entry === sl) return; // No SL distance → infinite position size
     
-    // Calcular distancia al stop loss
+    const riskAmount = balance * (risk / 100);
     const slDistance = Math.abs(entry - sl);
     const slPercent = (slDistance / entry) * 100;
-    
-    // Calcular tamaño de posición
-    // Posición = Riesgo en $ / Distancia SL en %
     const positionSize = riskAmount / (slPercent / 100);
     const positionInCoins = positionSize / entry;
-    
-    // Calcular apalancamiento necesario
     const leverageNeeded = positionSize / balance;
     
     const res = {
@@ -74,7 +70,7 @@ export const PositionSizeCalculator = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calculator className="w-5 h-5 text-blue-500" />
-          Calculadora de Tamaño de Posición
+          {t('positionSizeCalcTitle_p002')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
