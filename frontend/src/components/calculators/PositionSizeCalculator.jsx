@@ -129,7 +129,7 @@ export const PositionSizeCalculator = () => {
             </div>
             
             <Button onClick={calculate} className="w-full bg-blue-500 text-white hover:bg-blue-400" data-testid="position-calculate-btn">
-              Calcular Posición
+              {t('calcPosition_pos001')}
             </Button>
           </div>
           
@@ -150,7 +150,7 @@ export const PositionSizeCalculator = () => {
                     <p className="font-mono text-xl font-bold text-destructive">{formatCurrency(result.riskAmount)}</p>
                   </div>
                   <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Distancia SL</p>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{t('slDistanceLabel_pos002')}</p>
                     <p className="font-mono text-xl font-bold">{formatNumber(result.slPercent)}%</p>
                   </div>
                 </div>
@@ -161,7 +161,7 @@ export const PositionSizeCalculator = () => {
                   {result.leverageNeeded > 20 && (
                     <div className="flex items-center gap-2 mt-2 text-xs text-yellow-500">
                       <AlertTriangle className="w-4 h-4" />
-                      Alto apalancamiento - Mayor riesgo de liquidación
+                      {t('highLeverageWarning_pos003')}
                     </div>
                   )}
                 </div>
@@ -169,20 +169,23 @@ export const PositionSizeCalculator = () => {
                 <div className="p-3 rounded-lg bg-accent/10 border border-accent/20 text-xs">
                   <p className="text-accent font-semibold">{t('gestionDeRiesgo_bee33b')}</p>
                   <p className="text-muted-foreground mt-1">
-                    Con un riesgo del {riskPercent}%, si tu SL se activa perderás {formatCurrency(result.riskAmount)} 
-                    ({riskPercent}% de tu cuenta). Esto te permite sobrevivir a {Math.floor(100 / riskPercent)} pérdidas consecutivas.
+                    {t('positionSizeExplanation_pos004')
+                      .replace('{risk}', riskPercent)
+                      .replace('{sl}', formatNumber(parseFloat(stopLoss) || 0))
+                      .replace('{amount}', formatNumber(result.riskAmount))
+                      .replace('{pct}', riskPercent)}
                   </p>
                 </div>
                 
                 <div className="flex gap-2">
                   <Button onClick={clearPersistedData} variant="outline" className="flex-1">
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Limpiar
+                    {t('clearShort_p006')}
                   </Button>
                   
                   {isAuthenticated && (
                     <Button onClick={handleSave} variant="outline" className="flex-1">
-                      <Save className="w-4 h-4 mr-2" /> Guardar
+                      <Save className="w-4 h-4 mr-2" /> {t('save_lev008')}
                     </Button>
                   )}
                 </div>

@@ -71,6 +71,43 @@
 ### Feb 2026 — Revisión final i18n Options en los 8 idiomas ✅
 
 ### Feb 2026 — Patrones de trading i18n ✅ (chart + candlestick patterns)
+
+### Feb 2026 — Análisis y preparación para lanzamiento ✅ (P0 completo)
+
+**Verificación matemática de calculadoras** (todas correctas):
+- LeverageCalculator: PnL, ROI, precio liquidación ✓ (fórmulas estándar de futuros isolated margin)
+- PositionSizeCalculator: position = riskAmount / (slPercent/100) ✓
+- FibonacciCalculator: retracement + extension ✓
+- LotSizeCalculator: $10/pip XXX/USD ✓ (válido para EUR/USD, GBP/USD, etc.)
+- MonteCarloSimulator: percentiles p5/p50/p95, riskOfRuin, profitProbability ✓
+- PercentageCalculator, SpotCalculator, TargetPriceCalculator: todos correctos ✓
+
+**Edge case guards añadidos** (eliminan NaN/Infinity):
+- LeverageCalculator: `lev/entry/exit/cap > 0`
+- PositionSizeCalculator: `entry !== sl` + todos > 0
+- SpotCalculator: `buy > 0`
+- PercentageCalculator: `current > 0`
+- TargetPriceCalculator: `current > 0` + `!isNaN(pct)`
+- LotSizeCalculator: `balance/risk/slPips > 0`
+
+**Hardcoded Spanish strings traducidos a 8 locales** (~40 strings nuevas):
+- LeverageCalculator: "Simular", "Posición", "Mov. Precio", "Capital Final", explicaciones LONG/SHORT con placeholders, "A {pct}% del precio de entrada", "Limpiar", "Guardar".
+- PositionSizeCalculator: "Calcular Posición", "Distancia SL", "Alto apalancamiento - Mayor riesgo", explicación con placeholders {risk}/{sl}/{amount}.
+- MonteCarloSimulator: "Peor 5%", "Mediana (50%)", "Drawdown Promedio", "Riesgo de ruina elevado".
+- PercentageCalculator: "Movimiento del Precio:", "Diferencia $", "ALCISTA"/"BAJISTA", "GANAS"/"PIERDES", explicaciones LONG/SHORT.
+- LotSize/PositionSize titles, Spot/Target "Limpiar".
+
+**Landing Page mejorada** (P1 launch readiness):
+- **Sección Testimonios**: 3 cards con star ratings, quotes profesionales, names + roles. Datos de testimoniales en 8 idiomas.
+- **Sección FAQ**: 5 preguntas con accordion expand/collapse (uso experto, cancelación, activos soportados, AI Coach gratis, mobile). Datos en 8 idiomas.
+- **Auto-detect idioma del navegador**: `useI18nStore.detectBrowserLanguage()` lee `navigator.language`, mapea a uno de 8 locales soportados, aplica solo en primera visita (flag `autoDetected`). Llamado desde `useEffect` en LandingPage.
+
+**Limpieza de dead code** (-790 líneas):
+- Eliminado `lib/tradingEducation.js` (dead code, 696 líneas).
+- Eliminado `components/calculators/SimulatorPro_BACKUP.txt`.
+- Eliminado `TRADING_PATTERNS` de `constants.js` (no importado en ningún lugar; constants.js: 799→35 líneas).
+
+**Testing agent results** (iteration_1): ✅ Testimonials, FAQ, auto-detect, RTL, edge guards — todos verificados sin NaN/Infinity. Confirmó matemática del LeverageCalculator correcta.
 - **`tradingEducationContent.js`**: 94 strings únicos hardcoded en español de los `howToTrade` steps (chart patterns + candlestick patterns) traducidos a 8 idiomas vía Claude 4.5 (**752 traducciones**).
 - **Reemplazo automático**: 106 ocurrencias reemplazadas con `t(key)` calls en el file (manteniendo los t() existentes intactos).
 - **Missing keys fix**: `bullishPattern`, `bearishPattern`, `neutralPattern`, `continuationPattern`, `reversalPattern` — 5 × 8 locales inyectados (antes renderizaban como raw key literal).

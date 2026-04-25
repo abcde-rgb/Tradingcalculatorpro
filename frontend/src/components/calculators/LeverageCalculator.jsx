@@ -172,7 +172,7 @@ export const LeverageCalculator = () => {
             </div>
             
             <Button onClick={calculate} className="w-full bg-yellow-500 text-black hover:bg-yellow-400" data-testid="leverage-calculate-btn">
-              Simular
+              {t('simular_lev001')}
             </Button>
           </div>
           
@@ -180,9 +180,9 @@ export const LeverageCalculator = () => {
             {result && (
               <div className="space-y-4">
                 <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Posición: {isLong ? 'LONG' : 'SHORT'}</p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{t('positionLabel_lev002')}: {isLong ? 'LONG' : 'SHORT'}</p>
                   <p className="text-xs text-muted-foreground">
-                    Mov. Precio: <span className={result.priceMovement >= 0 ? 'text-primary' : 'text-destructive'}>
+                    {t('movPriceLabel_lev003')}: <span className={result.priceMovement >= 0 ? 'text-primary' : 'text-destructive'}>
                       {formatPercentage(result.priceMovement)}
                     </span>
                   </p>
@@ -209,7 +209,7 @@ export const LeverageCalculator = () => {
                     </p>
                   </div>
                   <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Capital Final</p>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{t('finalCapital_lev004')}</p>
                     <p className="font-mono text-xl font-bold">{formatCurrency(result.finalCapital)}</p>
                   </div>
                 </div>
@@ -220,29 +220,31 @@ export const LeverageCalculator = () => {
                     ${formatNumber(result.liquidationPrice)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    A {formatNumber(result.liquidationPercent)}% del precio de entrada
+                    {t('atPercentOfEntry_lev005').replace('{pct}', formatNumber(result.liquidationPercent))}
                   </p>
                 </div>
                 
                 <div className="p-3 rounded-lg bg-accent/10 border border-accent/20 text-xs">
                   <p className="text-accent font-semibold">{t('explicacion_b7856e')}</p>
                   <p className="text-muted-foreground mt-1">
-                    {isLong 
-                      ? `En LONG con ${leverage}x: si el precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, tu ${result.isProfit ? t('ganancia_c67565') : t('perdida_f5eb7c')} es ${formatNumber(Math.abs(result.roi))}% (${leverage}x el movimiento).`
-                      : `En SHORT con ${leverage}x: si el precio ${result.priceMovement >= 0 ? 'sube' : 'baja'} ${formatNumber(Math.abs(result.priceMovement))}%, tu ${result.isProfit ? t('ganancia_c67565') : t('perdida_f5eb7c')} es ${formatNumber(Math.abs(result.roi))}% (inverso al movimiento x${leverage}).`
-                    }
+                    {(isLong ? t('longExplanation_lev006') : t('shortExplanation_lev007'))
+                      .replace(/\{lev\}/g, leverage)
+                      .replace('{dir}', result.priceMovement >= 0 ? t('goesUp_p011') : t('goesDown_p012'))
+                      .replace('{pct}', formatNumber(Math.abs(result.priceMovement)))
+                      .replace('{res}', result.isProfit ? t('ganancia_c67565') : t('perdida_f5eb7c'))
+                      .replace('{roi}', formatNumber(Math.abs(result.roi)))}
                   </p>
                 </div>
                 
                 <div className="flex gap-2">
                   <Button onClick={clearState} variant="outline" className="flex-1">
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Limpiar
+                    {t('clearShort_p006')}
                   </Button>
                   
                   {isAuthenticated && (
                     <Button onClick={handleSave} variant="outline" className="flex-1">
-                      <Save className="w-4 h-4 mr-2" /> Guardar
+                      <Save className="w-4 h-4 mr-2" /> {t('save_lev008')}
                     </Button>
                   )}
                 </div>
