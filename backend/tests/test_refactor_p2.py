@@ -13,8 +13,8 @@ import requests
 BASE_URL: str = os.environ.get(
     "REACT_APP_BACKEND_URL", "https://unified-site-1.preview.emergentagent.com"
 ).rstrip("/")
-DEMO_EMAIL = "demo@btccalc.pro"
-DEMO_PASSWORD = "1234"
+DEMO_EMAIL = os.environ.get("DEMO_USER_EMAIL", "demo@btccalc.pro")
+DEMO_PASSWORD = os.environ.get("DEMO_USER_PASSWORD", "1234")  # demo fixture; not a real secret  # nosec B105
 
 
 @pytest.fixture(scope="module")

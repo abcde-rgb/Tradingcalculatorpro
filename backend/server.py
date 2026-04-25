@@ -904,20 +904,19 @@ async def delete_calculation(calc_id: str, user: dict = Depends(require_user)):
 async def get_plans():
     return SUBSCRIPTION_PLANS
 
-@api_router.post("/checkout/create")
-async def create_checkout(request: dict, user: dict = Depends(require_user)):
-    plan_id = request.get("plan_id")
-    payment_method = request.get("payment_method", "stripe")
-    origin_url = request.get("origin_url", "")
-    
-    plan = SUBSCRIPTION_PLANS.get(plan_id)
-    if not plan:
-        raise HTTPException(status_code=400, detail="Plan no válido")
-    
-    success_url = f"{origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{origin_url}/payment/cancel"
-    
-    transaction = {
+_PAYMENT_METHODS_MAP = {
+    "stripe": ["card"],
+    "card":   ["card"],
+    "sepa":   ["sepa_debit"],
+    "klarna": ["klarna"],
+}
+
+
+def _build_pending_transaction(
+    user: dict, plan_id: str, plan: dict, payment_method: str
+) -> Dict[str, Any]:
+    """Build the pending payment_transactions document (no Stripe fields yet)."""
+    return {
         "id": str(uuid.uuid4()),
         "user_id": user["id"],
         "user_email": user["email"],
@@ -926,46 +925,63 @@ async def create_checkout(request: dict, user: dict = Depends(require_user)):
         "currency": plan["currency"],
         "payment_method": payment_method,
         "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    
-    if payment_method in ["stripe", "card", "sepa", "klarna"]:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
-        
-        webhook_url = f"{origin_url}/api/webhook/stripe"
-        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-        
-        # Map payment methods
-        payment_methods_map = {
-            "stripe": ["card"],
-            "card": ["card"],
-            "sepa": ["sepa_debit"],
-            "klarna": ["klarna"]
-        }
-        
-        checkout_request = CheckoutSessionRequest(
-            amount=float(plan["price"]),
-            currency=plan["currency"].lower(),
-            success_url=success_url,
-            cancel_url=cancel_url,
-            payment_methods=payment_methods_map.get(payment_method, ["card"]),
+
+
+async def _create_stripe_session(
+    plan: dict, payment_method: str, success_url: str, cancel_url: str,
+    metadata: Dict[str, str], origin_url: str,
+) -> Any:
+    """Create a Stripe Checkout session via emergentintegrations and return it."""
+    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+    webhook_url = f"{origin_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    checkout_request = CheckoutSessionRequest(
+        amount=float(plan["price"]),
+        currency=plan["currency"].lower(),
+        success_url=success_url,
+        cancel_url=cancel_url,
+        payment_methods=_PAYMENT_METHODS_MAP.get(payment_method, ["card"]),
+        metadata=metadata,
+    )
+    return await stripe_checkout.create_checkout_session(checkout_request)
+
+
+@api_router.post("/checkout/create")
+async def create_checkout(request: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
+    plan_id = request.get("plan_id")
+    payment_method = request.get("payment_method", "stripe")
+    origin_url = request.get("origin_url", "")
+
+    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="Plan no válido")
+
+    transaction = _build_pending_transaction(user, plan_id, plan, payment_method)
+
+    if payment_method in _PAYMENT_METHODS_MAP:
+        session = await _create_stripe_session(
+            plan,
+            payment_method,
+            success_url=f"{origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{origin_url}/payment/cancel",
             metadata={
                 "user_id": user["id"],
                 "plan_id": plan_id,
-                "transaction_id": transaction["id"]
-            }
+                "transaction_id": transaction["id"],
+            },
+            origin_url=origin_url,
         )
-        
-        session = await stripe_checkout.create_checkout_session(checkout_request)
         transaction["session_id"] = session.session_id
         transaction["checkout_url"] = session.url
-    
+
     await db.payment_transactions.insert_one(transaction)
-    
+
     return {
         "transaction_id": transaction["id"],
         "checkout_url": transaction.get("checkout_url"),
-        "session_id": transaction.get("session_id")
+        "session_id": transaction.get("session_id"),
     }
 
 @api_router.get("/checkout/status/{session_id}")
@@ -990,67 +1006,67 @@ async def get_checkout_status(session_id: str, user: dict = Depends(require_user
         "created_at": transaction.get("created_at")
     }
 
+def _stripe_session_ids(session_id: str) -> Dict[str, Optional[str]]:
+    """Retrieve Stripe customer & subscription IDs for a paid session, with safe fallback."""
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        return {"customer": session.customer, "subscription": session.subscription}
+    except Exception as e:
+        logging.error(f"Error retrieving Stripe session: {e}")
+        return {"customer": None, "subscription": None}
+
+
+async def _activate_paid_subscription(
+    user_id: str, plan_id: str, plan: dict, transaction_id: Optional[str], session_id: str,
+) -> None:
+    """Mark user premium and the matching transaction as paid."""
+    subscription_end = datetime.now(timezone.utc) + timedelta(days=plan["days"])
+    update_data: Dict[str, Any] = {
+        "subscription_plan": plan_id,
+        "subscription_end": subscription_end.isoformat(),
+        "is_premium": True,
+    }
+    ids = _stripe_session_ids(session_id)
+    if ids["customer"]:
+        update_data["stripe_customer_id"] = ids["customer"]
+    if ids["subscription"]:
+        update_data["stripe_subscription_id"] = ids["subscription"]
+    await db.users.update_one({"id": user_id}, {"$set": update_data})
+
+    if transaction_id:
+        await db.payment_transactions.update_one(
+            {"id": transaction_id},
+            {"$set": {"status": "paid", "paid_at": datetime.now(timezone.utc).isoformat()}},
+        )
+
+
 @api_router.post("/webhook/stripe")
-async def stripe_webhook(request: Request):
+async def stripe_webhook(request: Request) -> Dict[str, str]:
     from emergentintegrations.payments.stripe.checkout import StripeCheckout
-    
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
-    
-    host_url = str(request.base_url).rstrip('/')
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-    
+    host_url = str(request.base_url).rstrip("/")
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=f"{host_url}/api/webhook/stripe")
+
     try:
         webhook_response = await stripe_checkout.handle_webhook(body, signature)
-        
-        if webhook_response.payment_status == "paid":
-            metadata = webhook_response.metadata
-            user_id = metadata.get("user_id")
-            plan_id = metadata.get("plan_id")
-            transaction_id = metadata.get("transaction_id")
-            
-            if user_id and plan_id:
-                plan = SUBSCRIPTION_PLANS.get(plan_id)
-                subscription_end = datetime.now(timezone.utc) + timedelta(days=plan["days"])
-                
-                # Get Stripe session to extract customer and subscription IDs
-                try:
-                    session = stripe.checkout.Session.retrieve(webhook_response.session_id)
-                    stripe_customer_id = session.customer
-                    stripe_subscription_id = session.subscription
-                except Exception as e:
-                    logging.error(f"Error retrieving Stripe session: {e}")
-                    stripe_customer_id = None
-                    stripe_subscription_id = None
-                
-                # Actualizar usuario a premium con IDs de Stripe
-                update_data = {
-                    "subscription_plan": plan_id,
-                    "subscription_end": subscription_end.isoformat(),
-                    "is_premium": True
-                }
-                
-                if stripe_customer_id:
-                    update_data["stripe_customer_id"] = stripe_customer_id
-                if stripe_subscription_id:
-                    update_data["stripe_subscription_id"] = stripe_subscription_id
-                
-                await db.users.update_one(
-                    {"id": user_id},
-                    {"$set": update_data}
-                )
-                
-                # Actualizar estado de la transacción
-                if transaction_id:
-                    await db.payment_transactions.update_one(
-                        {"id": transaction_id},
-                        {"$set": {
-                            "status": "paid",
-                            "paid_at": datetime.now(timezone.utc).isoformat()
-                        }}
-                    )
-        
+        if webhook_response.payment_status != "paid":
+            return {"status": "received"}
+
+        meta = webhook_response.metadata or {}
+        user_id = meta.get("user_id")
+        plan_id = meta.get("plan_id")
+        plan = SUBSCRIPTION_PLANS.get(plan_id) if plan_id else None
+        if not (user_id and plan_id and plan):
+            return {"status": "received"}
+
+        await _activate_paid_subscription(
+            user_id=user_id,
+            plan_id=plan_id,
+            plan=plan,
+            transaction_id=meta.get("transaction_id"),
+            session_id=webhook_response.session_id,
+        )
         return {"status": "received"}
     except Exception as e:
         logging.error(f"Webhook error: {e}")
@@ -1936,55 +1952,64 @@ async def get_iv_rank(symbol: str) -> Dict[str, Any]:
         return {"symbol": symbol.upper(), "available": False, "error": str(e)}
 
 
+def _build_unusual_row(symbol: str, side: str, row: Dict[str, Any], opt: Dict[str, Any],
+                       exp: Dict[str, Any], stock: Dict[str, Any], ratio: float) -> Dict[str, Any]:
+    """Construct one normalized unusual-options row."""
+    moneyness_pct = ((row["strike"] - stock["price"]) / stock["price"]) * 100
+    is_itm = (side == "call" and row["strike"] < stock["price"]) or \
+             (side == "put"  and row["strike"] > stock["price"])
+    return {
+        "symbol": symbol.upper(),
+        "type": side,
+        "strike": row["strike"],
+        "expiration": exp["fullLabel"],
+        "daysToExpiry": exp["daysToExpiry"],
+        "volume": opt.get("volume", 0) or 0,
+        "openInterest": opt.get("openInterest", 0) or 0,
+        "ratio": round(ratio, 2),
+        "iv": round(opt.get("iv", 0) or 0, 4),
+        "premium": opt.get("mid", 0),
+        "bid": opt.get("bid"),
+        "ask": opt.get("ask"),
+        "last": opt.get("last"),
+        "moneynessPct": round(moneyness_pct, 2),
+        "isITM": is_itm,
+        "estNotional": round((opt.get("volume", 0) or 0) * (opt.get("mid", 0) or 0) * 100, 0),
+    }
+
+
+def _scan_chain_for_unusual(symbol: str, chain: List[Dict[str, Any]], exp: Dict[str, Any],
+                            stock: Dict[str, Any], min_ratio: float, min_volume: int) -> List[Dict[str, Any]]:
+    """Walk one chain (single expiry) and return the rows that pass the filters."""
+    rows: List[Dict[str, Any]] = []
+    for row in chain:
+        for side in ("call", "put"):
+            opt = row.get(side, {})
+            vol = opt.get("volume", 0) or 0
+            oi = opt.get("openInterest", 0) or 0
+            if vol < min_volume:
+                continue
+            ratio = vol / max(oi, 1)
+            if ratio < min_ratio:
+                continue
+            rows.append(_build_unusual_row(symbol, side, row, opt, exp, stock, ratio))
+    return rows
+
+
 @api_router.get("/options/unusual/{symbol}")
-async def get_unusual_options(symbol: str, min_ratio: float = 2.0, min_volume: int = 100):
-    """
-    Detect unusual options activity: contracts with volume >> open interest.
-    Classic flow indicator used by institutional traders.
-    Returns ranked list of suspicious activity in the current chain.
-    """
+async def get_unusual_options(symbol: str, min_ratio: float = 2.0, min_volume: int = 100) -> Dict[str, Any]:
+    """Detect unusual options activity (volume >> open interest) across the 5 nearest expiries."""
     try:
         stock = get_stock_data(symbol)
         expirations = get_available_expirations(symbol) or generate_expirations()
 
-        all_unusual = []
-        # Scan first 5 nearest expirations
+        all_unusual: List[Dict[str, Any]] = []
         for exp in expirations[:5]:
             chain = get_options_chain_real(symbol, exp["date"])
             if not chain:
                 continue
-            for row in chain:
-                for side in ("call", "put"):
-                    opt = row.get(side, {})
-                    vol = opt.get("volume", 0) or 0
-                    oi = opt.get("openInterest", 0) or 0
-                    if vol < min_volume:
-                        continue
-                    ratio = vol / max(oi, 1)
-                    if ratio < min_ratio:
-                        continue
-                    moneyness_pct = ((row["strike"] - stock["price"]) / stock["price"]) * 100
-                    is_itm = (side == "call" and row["strike"] < stock["price"]) or (side == "put" and row["strike"] > stock["price"])
-                    all_unusual.append({
-                        "symbol": symbol.upper(),
-                        "type": side,
-                        "strike": row["strike"],
-                        "expiration": exp["fullLabel"],
-                        "daysToExpiry": exp["daysToExpiry"],
-                        "volume": vol,
-                        "openInterest": oi,
-                        "ratio": round(ratio, 2),
-                        "iv": round(opt.get("iv", 0) or 0, 4),
-                        "premium": opt.get("mid", 0),
-                        "bid": opt.get("bid"),
-                        "ask": opt.get("ask"),
-                        "last": opt.get("last"),
-                        "moneynessPct": round(moneyness_pct, 2),
-                        "isITM": is_itm,
-                        "estNotional": round(vol * (opt.get("mid", 0) or 0) * 100, 0),
-                    })
+            all_unusual.extend(_scan_chain_for_unusual(symbol, chain, exp, stock, min_ratio, min_volume))
 
-        # Sort by ratio desc (most unusual first), then by notional
         all_unusual.sort(key=lambda x: (x["ratio"], x["estNotional"]), reverse=True)
         return {
             "symbol": symbol.upper(),
@@ -2010,45 +2035,46 @@ class AITradeAnalysisRequest(BaseModel):
     userBalance: Optional[float] = None
 
 
-@api_router.post("/options/ai-analyze")
-async def ai_analyze_trade(req: AITradeAnalysisRequest):
-    """AI-powered options trade coach using Claude Sonnet 4.5."""
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        key = os.environ.get("EMERGENT_LLM_KEY")
-        if not key:
-            raise HTTPException(status_code=500, detail="AI key not configured")
-
-        # Build structured prompt
-        legs_desc = []
-        for leg in req.legs:
-            if leg.get("type") == "stock":
-                legs_desc.append(f"{leg['action'].upper()} {leg.get('quantity', 100)} acciones @ ${leg.get('strike')}")
-            else:
-                legs_desc.append(
-                    f"{leg['action'].upper()} {leg.get('quantity', 1)}x {leg['type'].upper()} Strike ${leg['strike']} "
-                    f"@ ${leg.get('premium', 0):.2f} (IV {(leg.get('iv', 0.3) * 100):.0f}%)"
-                )
-        greeks_str = ""
-        if req.greeks:
-            greeks_str = (
-                f"\nGreeks: Delta={req.greeks.get('delta', 0):.3f} Gamma={req.greeks.get('gamma', 0):.4f} "
-                f"Theta={req.greeks.get('theta', 0):.3f} Vega={req.greeks.get('vega', 0):.3f}"
+def _format_legs_for_prompt(legs: List[Dict[str, Any]]) -> List[str]:
+    """Render a list of trade legs as human-readable bullet strings."""
+    out: List[str] = []
+    for leg in legs:
+        if leg.get("type") == "stock":
+            out.append(f"{leg['action'].upper()} {leg.get('quantity', 100)} acciones @ ${leg.get('strike')}")
+        else:
+            out.append(
+                f"{leg['action'].upper()} {leg.get('quantity', 1)}x {leg['type'].upper()} Strike ${leg['strike']} "
+                f"@ ${leg.get('premium', 0):.2f} (IV {(leg.get('iv', 0.3) * 100):.0f}%)"
             )
-        iv_str = f"\nIV Rank: {req.ivRank:.0f}%" if req.ivRank is not None else ""
-        balance_str = f"\nCapital disponible del trader: ${req.userBalance}" if req.userBalance else ""
+    return out
 
-        prompt = f"""Actúa como un coach de trading de opciones experto y conciso. Analiza esta operación:
+
+def _build_ai_trade_prompt(req: "AITradeAnalysisRequest") -> str:
+    """Compose the markdown prompt sent to Claude. Pure / side-effect free."""
+    legs_lines = _format_legs_for_prompt(req.legs)
+    greeks_str = ""
+    if req.greeks:
+        greeks_str = (
+            f"\nGreeks: Delta={req.greeks.get('delta', 0):.3f} Gamma={req.greeks.get('gamma', 0):.4f} "
+            f"Theta={req.greeks.get('theta', 0):.3f} Vega={req.greeks.get('vega', 0):.3f}"
+        )
+    iv_str = f"\nIV Rank: {req.ivRank:.0f}%" if req.ivRank is not None else ""
+    balance_str = f"\nCapital disponible del trader: ${req.userBalance}" if req.userBalance else ""
+
+    max_profit_str = "Ilimitado" if req.stats.get("isMaxProfitUnlimited") else f"${req.stats.get('maxProfit', 0)}"
+    max_loss_str = "Ilimitado" if req.stats.get("isMaxLossUnlimited") else f"${req.stats.get('maxLoss', 0)}"
+
+    return f"""Actúa como un coach de trading de opciones experto y conciso. Analiza esta operación:
 
 Subyacente: {req.symbol} @ ${req.stockPrice:.2f}
 Vencimiento: {req.daysToExpiry}d
 
 Legs:
-{chr(10).join(['  - ' + leg for leg in legs_desc])}
+{chr(10).join(['  - ' + leg for leg in legs_lines])}
 
 Métricas:
-- Máx. Beneficio: {'Ilimitado' if req.stats.get('isMaxProfitUnlimited') else '$' + str(req.stats.get('maxProfit', 0))}
-- Máx. Pérdida: {'Ilimitado' if req.stats.get('isMaxLossUnlimited') else '$' + str(req.stats.get('maxLoss', 0))}
+- Máx. Beneficio: {max_profit_str}
+- Máx. Pérdida: {max_loss_str}
 - POP: {req.stats.get('pop', '—')}%
 - ROI: {req.stats.get('roi', '—')}%
 - R/R: {req.stats.get('rr', '—')}
@@ -2070,13 +2096,26 @@ Una frase final recomendando ENTRAR / AJUSTAR / EVITAR y por qué.
 
 Sé directo, profesional y práctico. No repitas los números que ya tiene el trader — analiza el SIGNIFICADO. Máximo 250 palabras totales."""
 
+
+@api_router.post("/options/ai-analyze")
+async def ai_analyze_trade(req: AITradeAnalysisRequest) -> Dict[str, Any]:
+    """AI-powered options trade coach using Claude Sonnet 4.5."""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        key = os.environ.get("EMERGENT_LLM_KEY")
+        if not key:
+            raise HTTPException(status_code=500, detail="AI key not configured")
+
         chat = LlmChat(
             api_key=key,
             session_id=f"options-analysis-{req.symbol}",
-            system_message="Eres un coach de trading de opciones experto con 15+ años de experiencia en volatility trading. Respondes en español, directo, profesional, y basado en datos.",
+            system_message=(
+                "Eres un coach de trading de opciones experto con 15+ años de experiencia "
+                "en volatility trading. Respondes en español, directo, profesional, y basado en datos."
+            ),
         ).with_model("anthropic", "claude-sonnet-4-5-20250929")
 
-        response = await chat.send_message(UserMessage(text=prompt))
+        response = await chat.send_message(UserMessage(text=_build_ai_trade_prompt(req)))
         return {"analysis": response, "model": "claude-sonnet-4-5"}
     except Exception as e:
         logging.error(f"AI analyze error: {e}")
@@ -2091,43 +2130,64 @@ MARKET_FLOW_TICKERS = [
 ]
 
 
+def _build_market_flow_row(sym: str, side: str, row: Dict[str, Any], opt: Dict[str, Any],
+                           exp: Dict[str, Any], stock: Dict[str, Any], ratio: float) -> Dict[str, Any]:
+    """Slimmer flow row used by the market-wide scan (skips bid/ask/last)."""
+    vol = opt.get("volume", 0) or 0
+    return {
+        "symbol": sym, "stockPrice": stock["price"],
+        "type": side, "strike": row["strike"],
+        "expiration": exp["fullLabel"], "daysToExpiry": exp["daysToExpiry"],
+        "volume": vol, "openInterest": opt.get("openInterest", 0) or 0,
+        "ratio": round(ratio, 2),
+        "iv": round(opt.get("iv", 0) or 0, 4),
+        "premium": opt.get("mid", 0),
+        "estNotional": round(vol * (opt.get("mid", 0) or 0) * 100, 0),
+        "moneynessPct": round(((row["strike"] - stock["price"]) / stock["price"]) * 100, 2),
+    }
+
+
+def _scan_chain_for_flow(sym: str, chain: List[Dict[str, Any]], exp: Dict[str, Any],
+                         stock: Dict[str, Any], min_ratio: float, min_volume: int) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for row in chain:
+        for side in ("call", "put"):
+            opt = row.get(side, {})
+            vol = opt.get("volume", 0) or 0
+            oi = opt.get("openInterest", 0) or 0
+            if vol < min_volume:
+                continue
+            ratio = vol / max(oi, 1)
+            if ratio < min_ratio:
+                continue
+            rows.append(_build_market_flow_row(sym, side, row, opt, exp, stock, ratio))
+    return rows
+
+
+def _scan_ticker_flow(sym: str, min_ratio: float, min_volume: int) -> List[Dict[str, Any]]:
+    """Scan one ticker's 2 nearest expiries; return any unusual flow rows or [] on error."""
+    try:
+        stock = get_stock_data(sym)
+        expirations = get_available_expirations(sym) or []
+        rows: List[Dict[str, Any]] = []
+        for exp in expirations[:2]:  # 2 nearest expirations for speed
+            chain = get_options_chain_real(sym, exp["date"])
+            if not chain:
+                continue
+            rows.extend(_scan_chain_for_flow(sym, chain, exp, stock, min_ratio, min_volume))
+        return rows
+    except Exception as e:
+        logging.warning(f"market-flow skipping {sym}: {e}")
+        return []
+
+
 @api_router.get("/options/market-flow")
-async def market_wide_flow(min_ratio: float = 3.0, min_volume: int = 300, max_results: int = 30):
+async def market_wide_flow(min_ratio: float = 3.0, min_volume: int = 300, max_results: int = 30) -> Dict[str, Any]:
     """Scan popular tickers for unusual options activity (market-wide flow)."""
     try:
-        all_flow = []
+        all_flow: List[Dict[str, Any]] = []
         for sym in MARKET_FLOW_TICKERS:
-            try:
-                stock = get_stock_data(sym)
-                expirations = get_available_expirations(sym) or []
-                for exp in expirations[:2]:  # Only 2 nearest for speed
-                    chain = get_options_chain_real(sym, exp["date"])
-                    if not chain:
-                        continue
-                    for row in chain:
-                        for side in ("call", "put"):
-                            opt = row.get(side, {})
-                            vol = opt.get("volume", 0) or 0
-                            oi = opt.get("openInterest", 0) or 0
-                            if vol < min_volume:
-                                continue
-                            ratio = vol / max(oi, 1)
-                            if ratio < min_ratio:
-                                continue
-                            all_flow.append({
-                                "symbol": sym, "stockPrice": stock["price"],
-                                "type": side, "strike": row["strike"],
-                                "expiration": exp["fullLabel"], "daysToExpiry": exp["daysToExpiry"],
-                                "volume": vol, "openInterest": oi,
-                                "ratio": round(ratio, 2),
-                                "iv": round(opt.get("iv", 0) or 0, 4),
-                                "premium": opt.get("mid", 0),
-                                "estNotional": round(vol * (opt.get("mid", 0) or 0) * 100, 0),
-                                "moneynessPct": round(((row["strike"] - stock["price"]) / stock["price"]) * 100, 2),
-                            })
-            except Exception as e:
-                logging.warning(f"market-flow skipping {sym}: {e}")
-                continue
+            all_flow.extend(_scan_ticker_flow(sym, min_ratio, min_volume))
         all_flow.sort(key=lambda x: x["estNotional"], reverse=True)
         return {
             "scannedTickers": len(MARKET_FLOW_TICKERS),

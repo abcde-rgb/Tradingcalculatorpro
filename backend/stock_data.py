@@ -30,82 +30,70 @@ def _get_sector(symbol: str) -> str:
     return "Technology"  # Default fallback
 
 
-def get_stock_data(symbol: str) -> dict:
-    """Get real stock data from Yahoo Finance."""
-    symbol = symbol.upper().strip()
-    
-    # Check cache
-    now = datetime.now()
+def _get_cached_stock(symbol: str) -> Optional[dict]:
+    """Return cached stock dict if still fresh, otherwise None."""
     cache_key = f"stock_{symbol}"
-    if cache_key in _ticker_cache:
-        cached_data, cached_time = _ticker_cache[cache_key]
-        if (now - cached_time).total_seconds() < _cache_duration:
-            logger.info(f"Using cached data for {symbol}")
-            return cached_data
-    
+    if cache_key not in _ticker_cache:
+        return None
+    cached_data, cached_time = _ticker_cache[cache_key]
+    if (datetime.now() - cached_time).total_seconds() < _cache_duration:
+        logger.info(f"Using cached data for {symbol}")
+        return cached_data
+    return None
+
+
+def _normalize_dividend_yield(raw: Optional[float]) -> float:
+    """Yahoo sometimes returns dividendYield as decimal (0.005) and sometimes
+    as percentage (0.5). Normalize defensively to a decimal in [0, 1)."""
+    div = raw or 0.0
+    if div > 1:
+        div = div / 100.0
+    return float(div)
+
+
+def _build_stock_dict(symbol: str, hist, info: dict) -> dict:
+    """Compose the public stock-data response from a yfinance hist DataFrame + info dict."""
+    current_price = float(hist["Close"].iloc[-1])
+    fallback_prev = hist["Close"].iloc[-2] if len(hist) > 1 else current_price
+    previous_close = float(info.get("previousClose", fallback_prev))
+
+    change = current_price - previous_close
+    change_percent = (change / previous_close * 100) if previous_close > 0 else 0
+    volume = info.get("volume", 0) or 0
+    return {
+        "symbol": symbol,
+        "name": info.get("longName") or info.get("shortName") or f"{symbol} Corp.",
+        "price": round(current_price, 2),
+        "change": round(change, 2),
+        "changePercent": round(change_percent, 2),
+        "high52w": round(float(info.get("fiftyTwoWeekHigh", current_price * 1.3)), 2),
+        "low52w":  round(float(info.get("fiftyTwoWeekLow",  current_price * 0.7)), 2),
+        "volume": f"{volume / 1_000_000:.1f}M" if volume > 0 else "N/A",
+        "sector": info.get("sector") or _get_sector(symbol),
+        "dividendYield": round(_normalize_dividend_yield(info.get("dividendYield")), 6),
+    }
+
+
+def get_stock_data(symbol: str) -> dict:
+    """Get real stock data from Yahoo Finance, caching for `_cache_duration` seconds."""
+    symbol = symbol.upper().strip()
+
+    cached = _get_cached_stock(symbol)
+    if cached is not None:
+        return cached
+
     try:
         logger.info(f"Fetching real data for {symbol} from Yahoo Finance")
         ticker = yf.Ticker(symbol)
-        
-        # Get current info
-        info = ticker.info
-        
-        # Get historical data for price changes
         hist = ticker.history(period="5d")
-        
         if hist.empty:
             raise ValueError(f"No data found for {symbol}")
-        
-        # Get latest price
-        current_price = hist['Close'].iloc[-1]
-        previous_close = info.get('previousClose', hist['Close'].iloc[-2] if len(hist) > 1 else current_price)
-        
-        # Calculate change
-        change = current_price - previous_close
-        change_percent = (change / previous_close * 100) if previous_close > 0 else 0
-        
-        # Get 52-week high/low
-        high_52w = info.get('fiftyTwoWeekHigh', current_price * 1.3)
-        low_52w = info.get('fiftyTwoWeekLow', current_price * 0.7)
-        
-        # Get volume
-        volume = info.get('volume', 0)
-        volume_str = f"{volume / 1_000_000:.1f}M" if volume > 0 else "N/A"
-        
-        # Get sector
-        sector = info.get('sector', _get_sector(symbol))
-        
-        # Get company name
-        name = info.get('longName') or info.get('shortName') or f"{symbol} Corp."
-        
-        # Get dividend yield (annual, as decimal e.g. 0.005 = 0.5%)
-        # Yahoo returns dividendYield as decimal already (0.005) or sometimes None
-        div_yield = info.get('dividendYield') or 0.0
-        # Some tickers return percentage (>1) instead of decimal — normalize defensively
-        if div_yield > 1:
-            div_yield = div_yield / 100.0
-        
-        result = {
-            "symbol": symbol,
-            "name": name,
-            "price": round(float(current_price), 2),
-            "change": round(float(change), 2),
-            "changePercent": round(float(change_percent), 2),
-            "high52w": round(float(high_52w), 2),
-            "low52w": round(float(low_52w), 2),
-            "volume": volume_str,
-            "sector": sector,
-            "dividendYield": round(float(div_yield), 6),
-        }
-        
-        # Cache the result
-        _ticker_cache[cache_key] = (result, now)
-        
+
+        result = _build_stock_dict(symbol, hist, ticker.info)
+        _ticker_cache[f"stock_{symbol}"] = (result, datetime.now())
         return result
-        
     except Exception as e:
         logger.error(f"Error fetching data for {symbol}: {str(e)}")
-        # Fallback to mock data
         return _get_fallback_stock_data(symbol)
 
 
