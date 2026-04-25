@@ -272,8 +272,8 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
 
             {assignment && (
               <div className="space-y-2">
-                {assignment.assignments.map((a, i) => (
-                  <div key={i} className={`rounded p-2 border ${a.is_itm ? 'bg-[#ef4444]/10 border-[#ef4444]/30' : 'bg-background/60 border-border/40'}`}>
+                {assignment.assignments.map((a) => (
+                  <div key={`${a.leg}-${a.strike}`} className={`rounded p-2 border ${a.is_itm ? 'bg-[#ef4444]/10 border-[#ef4444]/30' : 'bg-background/60 border-border/40'}`}>
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="font-mono font-bold text-foreground">{a.leg}</span>
                       <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${a.is_itm ? 'bg-[#ef4444]/30 text-[#f87171]' : 'bg-muted text-muted-foreground'}`}>

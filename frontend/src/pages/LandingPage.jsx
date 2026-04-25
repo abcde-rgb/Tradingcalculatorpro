@@ -516,8 +516,8 @@ export default function LandingPage() {
                 data-testid={`testimonial-${idx}`}
               >
                 <div className="flex gap-1 mb-3">
-                  {Array(5).fill(0).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={`star-${testimonial.authorKey}-${i}`} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
                   ))}
                 </div>
                 <p className="text-sm leading-relaxed text-foreground/90 mb-4 flex-1">

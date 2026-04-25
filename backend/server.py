@@ -489,80 +489,82 @@ async def delete_trade(trade_id: str, user: dict = Depends(require_user)):
         raise HTTPException(status_code=404, detail="Trade no encontrado")
     return {"message": "Trade eliminado"}
 
-@api_router.get("/journal/stats")
-async def get_journal_stats(user: dict = Depends(require_user)):
-    """Get trading statistics from journal"""
-    trades = await db.trades.find(
-        {"user_id": user["id"], "status": "closed"},
-        {"_id": 0}
-    ).to_list(1000)
-    
-    if not trades:
-        return {
-            "totalTrades": 0,
-            "wins": 0,
-            "losses": 0,
-            "winRate": 0,
-            "totalPnl": 0,
-            "avgWin": 0,
-            "avgLoss": 0,
-            "profitFactor": 0,
-            "expectancy": 0,
-            "maxDrawdown": 0,
-            "consecutiveLosses": 0
-        }
-    
-    # Single-pass aggregation — previously iterated trades 5 separate times
-    total_pnl = 0.0
-    gross_profit = 0.0
-    gross_loss = 0.0
-    wins_count = 0
-    losses_count = 0
-    max_consecutive = 0
-    current_consecutive = 0
+def _empty_journal_stats() -> Dict[str, Any]:
+    return {
+        "totalTrades": 0, "wins": 0, "losses": 0, "winRate": 0,
+        "totalPnl": 0, "avgWin": 0, "avgLoss": 0,
+        "profitFactor": 0, "expectancy": 0,
+        "maxDrawdown": 0, "consecutiveLosses": 0,
+    }
+
+
+def _aggregate_journal_trades(trades: List[Dict[str, Any]]) -> Dict[str, float]:
+    """Single-pass aggregation over a list of closed trades."""
+    agg = {
+        "total_pnl": 0.0, "gross_profit": 0.0, "gross_loss": 0.0,
+        "wins": 0, "losses": 0,
+        "max_consecutive_losses": 0, "max_drawdown": 0.0,
+    }
+    current_streak = 0
     equity = 0.0
     peak = 0.0
-    max_drawdown = 0.0
 
-    for t in trades:
-        pnl = t.get("pnl", 0) or 0
-        total_pnl += pnl
+    for trade in trades:
+        pnl = trade.get("pnl", 0) or 0
+        agg["total_pnl"] += pnl
         if pnl > 0:
-            wins_count += 1
-            gross_profit += pnl
-            current_consecutive = 0
+            agg["wins"] += 1
+            agg["gross_profit"] += pnl
+            current_streak = 0
         else:
-            losses_count += 1
-            gross_loss += abs(pnl)
-            current_consecutive += 1
-            if current_consecutive > max_consecutive:
-                max_consecutive = current_consecutive
+            agg["losses"] += 1
+            agg["gross_loss"] += abs(pnl)
+            current_streak += 1
+            if current_streak > agg["max_consecutive_losses"]:
+                agg["max_consecutive_losses"] = current_streak
         equity += pnl
         if equity > peak:
             peak = equity
         drawdown = peak - equity
-        if drawdown > max_drawdown:
-            max_drawdown = drawdown
+        if drawdown > agg["max_drawdown"]:
+            agg["max_drawdown"] = drawdown
+    return agg
 
-    avg_win = gross_profit / wins_count if wins_count else 0
-    avg_loss = -gross_loss / losses_count if losses_count else 0  # negative by convention
-    profit_factor = gross_profit / gross_loss if gross_loss > 0 else 0
-    win_rate = (wins_count / len(trades)) * 100 if trades else 0
+
+def _journal_stats_from_aggregate(agg: Dict[str, float], total: int) -> Dict[str, Any]:
+    """Derive the public stats dict from the aggregate counters."""
+    wins, losses = agg["wins"], agg["losses"]
+    avg_win = agg["gross_profit"] / wins if wins else 0
+    avg_loss = -agg["gross_loss"] / losses if losses else 0
+    profit_factor = agg["gross_profit"] / agg["gross_loss"] if agg["gross_loss"] > 0 else 0
+    win_rate = (wins / total) * 100 if total else 0
     expectancy = (win_rate / 100 * avg_win) + ((100 - win_rate) / 100 * avg_loss)
-
     return {
-        "totalTrades": len(trades),
-        "wins": wins_count,
-        "losses": losses_count,
+        "totalTrades": total,
+        "wins": wins,
+        "losses": losses,
         "winRate": round(win_rate, 2),
-        "totalPnl": round(total_pnl, 2),
+        "totalPnl": round(agg["total_pnl"], 2),
         "avgWin": round(avg_win, 2),
         "avgLoss": round(avg_loss, 2),
         "profitFactor": round(profit_factor, 2),
         "expectancy": round(expectancy, 2),
-        "maxDrawdown": round(max_drawdown, 2),
-        "consecutiveLosses": max_consecutive
+        "maxDrawdown": round(agg["max_drawdown"], 2),
+        "consecutiveLosses": agg["max_consecutive_losses"],
     }
+
+
+@api_router.get("/journal/stats")
+async def get_journal_stats(user: dict = Depends(require_user)) -> Dict[str, Any]:
+    """Get trading statistics from the user's closed trades."""
+    trades = await db.trades.find(
+        {"user_id": user["id"], "status": "closed"},
+        {"_id": 0},
+    ).to_list(1000)
+    if not trades:
+        return _empty_journal_stats()
+    agg = _aggregate_journal_trades(trades)
+    return _journal_stats_from_aggregate(agg, len(trades))
 
 # ============= PORTFOLIO =============
 
@@ -727,139 +729,144 @@ async def send_alert_email(request: EmailAlertRequest):
 
 # ============= MONTE CARLO SIMULATION =============
 
+def _simulate_one_mc_path(
+    initial: float, num_trades: int, win_rate: float,
+    avg_win: float, avg_loss: float, rng: secrets.SystemRandom,
+) -> Dict[str, Any]:
+    """Simulate one full equity curve and its max drawdown."""
+    balance = initial
+    curve = [balance]
+    peak = balance
+    max_dd = 0.0
+    for _ in range(num_trades):
+        balance += avg_win if rng.random() < win_rate else avg_loss
+        curve.append(balance)
+        if balance > peak:
+            peak = balance
+        dd = (peak - balance) / peak if peak > 0 else 0
+        if dd > max_dd:
+            max_dd = dd
+    return {"final": balance, "curve": curve, "max_dd_pct": max_dd * 100}
+
+
+def _summarize_mc_runs(initial: float, finals: List[float], drawdowns: List[float]) -> Dict[str, Any]:
+    """Compute percentile/risk-of-ruin statistics from a batch of MC final balances."""
+    finals_sorted = sorted(finals)
+    n = len(finals_sorted)
+    return {
+        "initialCapital": initial,
+        "avgFinalBalance": round(sum(finals_sorted) / n, 2),
+        "percentile5": round(finals_sorted[int(n * 0.05)], 2),
+        "percentile50": round(finals_sorted[int(n * 0.50)], 2),
+        "percentile95": round(finals_sorted[int(n * 0.95)], 2),
+        "riskOfRuin": round(sum(1 for b in finals_sorted if b <= 0) / n * 100, 2),
+        "avgMaxDrawdown": round(sum(drawdowns) / len(drawdowns), 2),
+        "profitProbability": round(sum(1 for b in finals_sorted if b > initial) / n * 100, 2),
+    }
+
+
 @api_router.post("/monte-carlo")
-async def run_monte_carlo(request: dict, user: dict = Depends(require_user)):
-    """Run Monte Carlo simulation based on trading statistics"""
+async def run_monte_carlo(request: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
+    """Run Monte Carlo simulation based on trading statistics."""
     if not check_premium(user):
         raise HTTPException(status_code=403, detail="Función premium requerida")
-    
+
     win_rate = request.get("winRate", 50) / 100
     avg_win = request.get("avgWin", 100)
     avg_loss = request.get("avgLoss", -50)
-    initial_capital = request.get("initialCapital", 10000)
+    initial = request.get("initialCapital", 10000)
     num_trades = request.get("numTrades", 100)
     num_simulations = request.get("numSimulations", 1000)
-    
-    simulations = []
-    final_balances = []
-    max_drawdowns = []
-    
-    # ✅ SECURITY FIX: Using secrets for cryptographically secure random
-    secure_random = secrets.SystemRandom()
-    
+
+    rng = secrets.SystemRandom()
+    finals: List[float] = []
+    drawdowns: List[float] = []
+    curves: List[List[float]] = []
     for _ in range(num_simulations):
-        balance = initial_capital
-        equity_curve = [balance]
-        peak = balance
-        max_dd = 0
-        
-        for _ in range(num_trades):
-            if secure_random.random() < win_rate:
-                balance += avg_win
-            else:
-                balance += avg_loss
-            
-            equity_curve.append(balance)
-            peak = max(peak, balance)
-            dd = (peak - balance) / peak if peak > 0 else 0
-            max_dd = max(max_dd, dd)
-        
-        final_balances.append(balance)
-        max_drawdowns.append(max_dd * 100)
-        
-        if len(simulations) < 100:  # Keep first 100 for visualization
-            simulations.append(equity_curve)
-    
-    # Calculate statistics
-    final_balances.sort()
-    percentile_5 = final_balances[int(len(final_balances) * 0.05)]
-    percentile_50 = final_balances[int(len(final_balances) * 0.50)]
-    percentile_95 = final_balances[int(len(final_balances) * 0.95)]
-    
-    risk_of_ruin = len([b for b in final_balances if b <= 0]) / len(final_balances) * 100
-    avg_max_drawdown = sum(max_drawdowns) / len(max_drawdowns)
-    
-    return {
-        "simulations": simulations[:50],  # Return subset for charting
-        "statistics": {
-            "initialCapital": initial_capital,
-            "avgFinalBalance": round(sum(final_balances) / len(final_balances), 2),
-            "percentile5": round(percentile_5, 2),
-            "percentile50": round(percentile_50, 2),
-            "percentile95": round(percentile_95, 2),
-            "riskOfRuin": round(risk_of_ruin, 2),
-            "avgMaxDrawdown": round(avg_max_drawdown, 2),
-            "profitProbability": round(len([b for b in final_balances if b > initial_capital]) / len(final_balances) * 100, 2)
-        }
-    }
+        path = _simulate_one_mc_path(initial, num_trades, win_rate, avg_win, avg_loss, rng)
+        finals.append(path["final"])
+        drawdowns.append(path["max_dd_pct"])
+        if len(curves) < 100:  # keep first 100 paths for charting
+            curves.append(path["curve"])
+
+    return {"simulations": curves[:50], "statistics": _summarize_mc_runs(initial, finals, drawdowns)}
 
 # ============= BACKTESTING =============
 
+def _simulate_backtest_trades(
+    n: int, initial_balance: float, win_rate: float,
+    take_profit_pct: float, stop_loss_pct: float, leverage: float,
+    rng: secrets.SystemRandom,
+) -> Dict[str, Any]:
+    """Run a single synthetic backtest pass, return trades list + summary fields."""
+    trades: List[Dict[str, Any]] = []
+    balance = initial_balance
+    wins = 0
+    losses = 0
+    peak = balance
+    max_drawdown = 0.0
+
+    for i in range(n):
+        is_win = rng.random() < win_rate
+        if is_win:
+            wins += 1
+            pnl = balance * (take_profit_pct / 100) * leverage
+        else:
+            losses += 1
+            pnl = -balance * (stop_loss_pct / 100) * leverage
+        balance += pnl
+        if balance > peak:
+            peak = balance
+        drawdown = (peak - balance) / peak * 100 if peak > 0 else 0
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
+        trades.append({
+            "trade_num": i + 1,
+            "type": "LONG" if rng.random() > 0.5 else "SHORT",
+            "result": "WIN" if is_win else "LOSS",
+            "pnl": round(pnl, 2),
+            "balance": round(balance, 2),
+        })
+    return {"trades": trades, "balance": balance, "wins": wins, "losses": losses,
+            "max_drawdown": max_drawdown}
+
+
 @api_router.post("/backtest")
-async def run_backtest(request: dict, user: dict = Depends(require_user)):
+async def run_backtest(request: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
     if not check_premium(user):
         raise HTTPException(status_code=403, detail="Función premium requerida")
-    
+
     strategy = request.get("strategy", "SMA Crossover")
     initial_capital = request.get("initial_capital", 10000)
     take_profit = request.get("take_profit", 5)
     stop_loss = request.get("stop_loss", 2)
     leverage = request.get("leverage", 1)
-    
-    # Simulated backtest
-    trades = []
-    balance = initial_capital
-    wins = 0
-    losses = 0
-    max_drawdown = 0
-    peak_balance = balance
-    
-    # ✅ SECURITY FIX: Using secrets for secure random generation
-    secure_random = secrets.SystemRandom()
-    num_trades = secure_random.randint(50, 150)
-    win_rate = secure_random.uniform(0.45, 0.65)
-    
-    for i in range(num_trades):
-        is_win = secure_random.random() < win_rate
-        if is_win:
-            wins += 1
-            pnl = balance * (take_profit / 100) * leverage
-        else:
-            losses += 1
-            pnl = -balance * (stop_loss / 100) * leverage
-        
-        balance += pnl
-        peak_balance = max(peak_balance, balance)
-        drawdown = (peak_balance - balance) / peak_balance * 100
-        max_drawdown = max(max_drawdown, drawdown)
-        
-        trades.append({
-            "trade_num": i + 1,
-            "type": "LONG" if secure_random.random() > 0.5 else "SHORT",
-            "result": "WIN" if is_win else "LOSS",
-            "pnl": round(pnl, 2),
-            "balance": round(balance, 2)
-        })
-    
-    roi = ((balance - initial_capital) / initial_capital) * 100
-    
-    result = {
+
+    rng = secrets.SystemRandom()
+    n = rng.randint(50, 150)
+    win_rate = rng.uniform(0.45, 0.65)
+    sim = _simulate_backtest_trades(n, initial_capital, win_rate, take_profit, stop_loss, leverage, rng)
+
+    final = sim["balance"]
+    wins, losses = sim["wins"], sim["losses"]
+    roi = ((final - initial_capital) / initial_capital) * 100
+    profit_factor = round((wins * take_profit) / (losses * stop_loss), 2) if losses > 0 else 0
+
+    return {
         "id": str(uuid.uuid4()),
         "strategy": strategy,
         "initial_capital": initial_capital,
-        "final_balance": round(balance, 2),
-        "total_trades": num_trades,
+        "final_balance": round(final, 2),
+        "total_trades": n,
         "wins": wins,
         "losses": losses,
-        "win_rate": round(wins / num_trades * 100, 2),
+        "win_rate": round(wins / n * 100, 2),
         "roi": round(roi, 2),
-        "max_drawdown": round(max_drawdown, 2),
-        "profit_factor": round((wins * take_profit) / (losses * stop_loss) if losses > 0 else 0, 2),
-        "trades": trades[-20:],
-        "equity_curve": [t["balance"] for t in trades]
+        "max_drawdown": round(sim["max_drawdown"], 2),
+        "profit_factor": profit_factor,
+        "trades": sim["trades"][-20:],
+        "equity_curve": [t["balance"] for t in sim["trades"]],
     }
-    
-    return result
 
 # ============= CALCULATIONS =============
 
@@ -1437,6 +1444,56 @@ class AssignmentRequest(BaseModel):
     stockPriceAtExpiry: float
 
 
+def _legs_to_dicts(legs: List[OptionLegInput]) -> List[Dict[str, Any]]:
+    """Convert a list of OptionLegInput pydantic models into the dict shape
+    consumed by options_math (calculate_payoff/greeks/etc).
+    Centralised to avoid per-endpoint duplication.
+    """
+    out: List[Dict[str, Any]] = []
+    for leg in legs:
+        qty = leg.get_qty()
+        out.append({
+            "type": leg.type,
+            "action": leg.action,
+            "quantity": qty,
+            "qty": qty,
+            "strike": leg.strike,
+            "premium": leg.premium or 0,
+            "iv": leg.iv or 0.3,
+            "daysToExpiry": leg.daysToExpiry or 30,
+        })
+    return out
+
+
+def _payoff_summary(
+    legs_dicts: List[Dict[str, Any]],
+    points: List[Dict[str, float]],
+    fee_per_contract: float,
+) -> Dict[str, Any]:
+    """Compute payoff summary stats from raw points + legs."""
+    expiry_pnls = [p["pnlAtExpiry"] for p in points]
+    max_profit = max(expiry_pnls)
+    max_loss = min(expiry_pnls)
+    net_premium = 0.0
+    total_fees = 0.0
+    for leg in legs_dicts:
+        if leg["type"] == "stock":
+            continue
+        qty = leg.get("quantity", leg.get("qty", 1))
+        mult = -1 if leg["action"] == "buy" else 1
+        net_premium += leg.get("premium", 0) * mult * qty * 100
+        total_fees += qty * fee_per_contract
+    roi = (max_profit / abs(net_premium) * 100) if net_premium != 0 else 0
+    return {
+        "maxProfit": round(max_profit, 2),
+        "maxLoss": round(max_loss, 2),
+        "netPremium": round(net_premium, 2),
+        "totalFees": round(total_fees, 2),
+        "roi": round(roi, 1),
+        "isMaxProfitUnlimited": max_profit > 5000000,
+    }
+
+
 @api_router.get("/stock/{symbol}")
 async def opt_get_stock(symbol: str):
     try:
@@ -1552,52 +1609,22 @@ async def opt_get_iv_surface(symbol: str, max_expirations: int = 8):
 
 
 @api_router.post("/calculate/payoff")
-async def opt_calculate_payoff(request: PayoffRequest):
+async def opt_calculate_payoff(request: PayoffRequest) -> Dict[str, Any]:
     try:
-        legs_dicts = []
-        for leg in request.legs:
-            legs_dicts.append({
-                "type": leg.type,
-                "action": leg.action,
-                "quantity": leg.get_qty(),
-                "qty": leg.get_qty(),
-                "strike": leg.strike,
-                "premium": leg.premium or 0,
-                "iv": leg.iv or 0.3,
-                "daysToExpiry": leg.daysToExpiry or 30,
-            })
+        fee = request.feePerContract or 0.0
+        legs_dicts = _legs_to_dicts(request.legs)
         points = calculate_payoff(
             legs_dicts,
             request.stockPrice,
             request.priceRange or 0.35,
             request.daysToChart or 30,
-            fee_per_contract=request.feePerContract or 0.0,
+            fee_per_contract=fee,
             q=request.dividendYield or 0.0,
         )
-        break_evens = find_break_evens(points)
-        expiry_pnls = [p["pnlAtExpiry"] for p in points]
-        max_profit = max(expiry_pnls)
-        max_loss = min(expiry_pnls)
-        net_premium = 0
-        total_fees = 0
-        for leg in legs_dicts:
-            if leg["type"] != "stock":
-                mult = -1 if leg["action"] == "buy" else 1
-                net_premium += (leg.get("premium", 0) * mult *
-                                leg.get("quantity", leg.get("qty", 1)) * 100)
-                total_fees += leg.get("quantity", leg.get("qty", 1)) * (request.feePerContract or 0.0)
-        roi = (max_profit / abs(net_premium) * 100) if net_premium != 0 else 0
         return {
             "points": points,
-            "breakEvens": break_evens,
-            "stats": {
-                "maxProfit": round(max_profit, 2),
-                "maxLoss": round(max_loss, 2),
-                "netPremium": round(net_premium, 2),
-                "totalFees": round(total_fees, 2),
-                "roi": round(roi, 1),
-                "isMaxProfitUnlimited": max_profit > 5000000,
-            },
+            "breakEvens": find_break_evens(points),
+            "stats": _payoff_summary(legs_dicts, points, fee),
         }
     except Exception as e:
         logging.error(f"Payoff calculation error: {e}")
@@ -1605,46 +1632,23 @@ async def opt_calculate_payoff(request: PayoffRequest):
 
 
 @api_router.post("/calculate/greeks")
-async def opt_calculate_greeks(request: GreeksRequest):
+async def opt_calculate_greeks(request: GreeksRequest) -> Dict[str, Any]:
     try:
-        legs_dicts = []
-        for leg in request.legs:
-            legs_dicts.append({
-                "type": leg.type,
-                "action": leg.action,
-                "quantity": leg.get_qty(),
-                "qty": leg.get_qty(),
-                "strike": leg.strike,
-                "premium": leg.premium or 0,
-                "iv": leg.iv or 0.3,
-                "daysToExpiry": leg.daysToExpiry or 30,
-            })
-        greeks = calculate_greeks(legs_dicts, request.stockPrice, q=request.dividendYield or 0.0)
-        return greeks
+        legs_dicts = _legs_to_dicts(request.legs)
+        return calculate_greeks(legs_dicts, request.stockPrice, q=request.dividendYield or 0.0)
     except Exception as e:
         logging.error(f"Greeks calculation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.post("/calculate/pnl-attribution")
-async def opt_pnl_attribution(request: PnlAttributionRequest):
+async def opt_pnl_attribution(request: PnlAttributionRequest) -> Dict[str, Any]:
     """Decompose post-trade P&L into Δ/Γ/Θ/ν contributions."""
     try:
-        legs_dicts = []
-        for leg in request.legs:
-            legs_dicts.append({
-                "type": leg.type,
-                "action": leg.action,
-                "quantity": leg.get_qty(),
-                "qty": leg.get_qty(),
-                "strike": leg.strike,
-                "premium": leg.premium or 0,
-                "iv": leg.iv or 0.3,
-                "daysToExpiry": leg.daysToExpiry or 30,
-            })
+        legs_dicts = _legs_to_dicts(request.legs)
         T0 = max(request.initialDaysToExpiry, 1) / 365
         T1 = max(request.initialDaysToExpiry - request.daysElapsed, 0) / 365
-        result = calculate_pnl_attribution(
+        return calculate_pnl_attribution(
             legs_dicts,
             S0=request.stockPriceInitial,
             S1=request.stockPriceFinal,
@@ -1653,28 +1657,16 @@ async def opt_pnl_attribution(request: PnlAttributionRequest):
             IV_change=request.ivChangeAbs or 0.0,
             q=request.dividendYield or 0.0,
         )
-        return result
     except Exception as e:
         logging.error(f"PnL attribution error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.post("/calculate/assignment")
-async def opt_assignment(request: AssignmentRequest):
+async def opt_assignment(request: AssignmentRequest) -> Dict[str, Any]:
     """Simulate exercise/assignment at expiry given a final stock price."""
     try:
-        legs_dicts = []
-        for leg in request.legs:
-            legs_dicts.append({
-                "type": leg.type,
-                "action": leg.action,
-                "quantity": leg.get_qty(),
-                "qty": leg.get_qty(),
-                "strike": leg.strike,
-                "premium": leg.premium or 0,
-                "iv": leg.iv or 0.3,
-                "daysToExpiry": leg.daysToExpiry or 30,
-            })
+        legs_dicts = _legs_to_dicts(request.legs)
         return simulate_assignment(legs_dicts, request.stockPriceAtExpiry)
     except Exception as e:
         logging.error(f"Assignment simulation error: {e}")
@@ -1866,47 +1858,59 @@ async def portfolio_greeks(user=Depends(get_current_user)):
 
 
 # ========== P1 FEATURES: IV Rank & Unusual Options Activity ==========
+def _compute_realized_vol_series(hist) -> Optional[Any]:
+    """Return the rolling-20d annualised realised-vol series (or None if not enough data)."""
+    import numpy as np
+    closes = hist["Close"].dropna()
+    log_returns = np.log(closes / closes.shift(1)).dropna()
+    rolling_vol = log_returns.rolling(window=20).std() * np.sqrt(252)
+    rolling_vol = rolling_vol.dropna()
+    if len(rolling_vol) < 10:
+        return None
+    return rolling_vol
+
+
+def _fetch_atm_iv_proxy(symbol: str, spot: float) -> Optional[float]:
+    """Return current ATM IV (avg of call+put) from the 4th available expiration, if any."""
+    try:
+        exps = get_available_expirations(symbol)
+        if not exps:
+            return None
+        chain = get_options_chain_real(symbol, exps[min(3, len(exps) - 1)]["date"])
+        if not chain:
+            return None
+        atm = min(chain, key=lambda c: abs(c["strike"] - spot))
+        ivs = [v for v in [atm.get("call", {}).get("iv"), atm.get("put", {}).get("iv")] if v and v > 0]
+        return sum(ivs) / len(ivs) if ivs else None
+    except Exception as e:
+        logging.warning(f"IV rank ATM IV fetch failed: {e}")
+        return None
+
+
+def _iv_rank_recommendation(iv_rank: float) -> str:
+    """Map an IV rank score to a semantic recommendation key."""
+    if iv_rank >= 60:
+        return "sell_premium"
+    if iv_rank <= 30:
+        return "buy_premium"
+    return "neutral"
+
+
 @api_router.get("/options/iv-rank/{symbol}")
-async def get_iv_rank(symbol: str):
-    """
-    Compute IV Rank & Percentile using stock's realized volatility over 52w
-    as proxy (since yfinance doesn't expose historical IV directly).
-    IV Rank = (IV_current - IV_low) / (IV_high - IV_low) × 100
-    IV Percentile = % of days in last 252 where IV was ≤ current IV
-    """
+async def get_iv_rank(symbol: str) -> Dict[str, Any]:
+    """Compute IV Rank & Percentile from realized volatility (1y window)."""
     try:
         import yfinance as yf
-        import numpy as np
-        ticker = yf.Ticker(symbol)
-        hist = ticker.history(period="1y")
+        hist = yf.Ticker(symbol).history(period="1y")
         if hist.empty or len(hist) < 30:
             return {"symbol": symbol.upper(), "available": False}
 
-        # Realized volatility: rolling 30-day std of log returns, annualized
-        closes = hist["Close"].dropna()
-        log_returns = np.log(closes / closes.shift(1)).dropna()
-        rolling_vol = log_returns.rolling(window=20).std() * np.sqrt(252)
-        rolling_vol = rolling_vol.dropna()
-
-        if len(rolling_vol) < 10:
+        rolling_vol = _compute_realized_vol_series(hist)
+        if rolling_vol is None:
             return {"symbol": symbol.upper(), "available": False}
 
-        # Get current ATM IV from the nearest expiration as proxy for "current IV"
-        current_iv = None
-        try:
-            exps = get_available_expirations(symbol)
-            if exps:
-                chain = get_options_chain_real(symbol, exps[min(3, len(exps) - 1)]["date"])
-                if chain:
-                    spot = float(hist["Close"].iloc[-1])
-                    atm = min(chain, key=lambda c: abs(c["strike"] - spot))
-                    call_iv = atm.get("call", {}).get("iv")
-                    put_iv = atm.get("put", {}).get("iv")
-                    ivs = [v for v in [call_iv, put_iv] if v and v > 0]
-                    if ivs:
-                        current_iv = sum(ivs) / len(ivs)
-        except Exception as e:
-            logging.warning(f"IV rank ATM IV fetch failed: {e}")
+        spot = float(hist["Close"].iloc[-1])
+        current_iv = _fetch_atm_iv_proxy(symbol, spot)
 
         iv_high = float(rolling_vol.max())
         iv_low = float(rolling_vol.min())
@@ -1917,20 +1921,6 @@ async def get_iv_rank(symbol: str):
         iv_rank = max(0, min(100, iv_rank))
         iv_percentile = float((rolling_vol < iv_now).sum() / len(rolling_vol) * 100)
 
-        # Trading recommendation
-        if iv_rank >= 60:
-            recommendation = "sell_premium"
-            rec_label = "VENDE PRIMA"
-            rec_reason = "IV elevada — primas caras. Favorable para vendedores (short puts/calls, iron condors)."
-        elif iv_rank <= 30:
-            recommendation = "buy_premium"
-            rec_label = "COMPRA PRIMA"
-            rec_reason = "IV baja — primas baratas. Favorable para compradores (long calls/puts, straddles)."
-        else:
-            recommendation = "neutral"
-            rec_label = "NEUTRAL"
-            rec_reason = "IV en rango medio. Sin edge claro por volatilidad."
-
         return {
             "symbol": symbol.upper(),
             "available": True,
@@ -1939,9 +1929,7 @@ async def get_iv_rank(symbol: str):
             "ivLow52w": round(iv_low, 4),
             "ivRank": round(iv_rank, 1),
             "ivPercentile": round(iv_percentile, 1),
-            "recommendation": recommendation,
-            "recommendationLabel": rec_label,
-            "recommendationReason": rec_reason,
+            "recommendation": _iv_rank_recommendation(iv_rank),
         }
     except Exception as e:
         logging.error(f"IV rank error for {symbol}: {e}")

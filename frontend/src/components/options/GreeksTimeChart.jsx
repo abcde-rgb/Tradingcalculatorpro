@@ -26,9 +26,19 @@ const LEGEND_STYLE = { fontSize: 10, paddingTop: 8 };
 
 const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
   const { t } = useTranslation();
-  const AXIS_LABEL_X = { value: t('diasDesdeHoy_114266'), position: 'insideBottom', offset: -2, fill: '#6b7a94', fontSize: 10 };
   const [visible, setVisible] = useState({ delta: true, gamma: true, theta: true, vega: true });
   const [normalize, setNormalize] = useState(false);
+
+  // Memoize inline objects so Recharts doesn't see new references on every render.
+  const xDomain = useMemo(() => [0, daysToExpiry || 0], [daysToExpiry]);
+  const xAxisLabel = useMemo(
+    () => ({ value: t('diasDesdeHoy_114266'), position: 'insideBottom', offset: -2, fill: '#6b7a94', fontSize: 10 }),
+    [t]
+  );
+  const expirationLineLabel = useMemo(
+    () => ({ value: t('vencimiento_91e0e1'), position: 'top', fill: '#f59e0b', fontSize: 9 }),
+    [t]
+  );
 
   const series = useMemo(() => {
     if (!legs || legs.length === 0 || !stockPrice || !daysToExpiry || daysToExpiry < 1) return [];
@@ -128,11 +138,11 @@ const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
             <XAxis
               dataKey="day"
               type="number"
-              domain={[0, today]}
+              domain={xDomain}
               stroke="#262626"
               tick={AXIS_TICK}
               tickFormatter={(v) => `T+${v}d`}
-              label={AXIS_LABEL_X}
+              label={xAxisLabel}
             />
             <YAxis
               stroke="#262626"
@@ -150,7 +160,7 @@ const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
               iconType="line"
             />
             <ReferenceLine y={0} stroke="#444" strokeWidth={1} />
-            <ReferenceLine x={today} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1} label={{ value: t('vencimiento_91e0e1'), position: 'top', fill: '#f59e0b', fontSize: 9 }} />
+            <ReferenceLine x={today} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1} label={expirationLineLabel} />
             {GREEKS_CONFIG.map(({ key, label, color }) =>
               visible[key] ? (
                 <Line

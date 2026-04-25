@@ -49,11 +49,24 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [], dataB = n
     });
   }, [data, dataB]);
 
-  // Strikes from option legs (stock legs excluded)
+  // Strikes from option legs (stock legs excluded) with pre-computed label objects
+  // to avoid recreating inline label={{...}} objects on every render.
   const optionStrikes = useMemo(() => {
     const strikes = (legs || [])
       .filter((l) => l && l.type !== 'stock' && Number.isFinite(l.strike))
-      .map((l) => ({ strike: l.strike, type: l.type, action: l.action }));
+      .map((l) => ({
+        strike: l.strike,
+        type: l.type,
+        action: l.action,
+        labelObj: {
+          value: `${l.action === 'buy' ? '+' : '−'}${l.type.toUpperCase()} $${l.strike}`,
+          position: 'insideBottom',
+          fill: l.type === 'call' ? '#4ade80' : '#f87171',
+          fontSize: 10,
+          fontFamily: 'JetBrains Mono',
+          offset: 8,
+        },
+      }));
     // Deduplicate by strike
     const seen = new Set();
     return strikes.filter((s) => {
@@ -62,6 +75,19 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [], dataB = n
       return true;
     });
   }, [legs]);
+
+  // Pre-computed BE label objects (avoid inline object on every render)
+  const breakEvenLabels = useMemo(
+    () =>
+      (breakEvens || []).map((be) => ({
+        value: `BE $${be}`,
+        position: 'insideTopRight',
+        fill: '#a78bfa',
+        fontSize: 9,
+        fontFamily: 'JetBrains Mono',
+      })),
+    [breakEvens]
+  );
 
   // Domain X (min/max of chart prices) for moneyness zone shading
   const xDomain = useMemo(() => {
@@ -211,14 +237,7 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [], dataB = n
                     strokeDasharray="2 3"
                     strokeOpacity={0.75}
                     strokeWidth={1.2}
-                    label={{
-                      value: `${opt.action === 'buy' ? '+' : '−'}${opt.type.toUpperCase()} $${K}`,
-                      position: 'insideBottom',
-                      fill: isCall ? '#4ade80' : '#f87171',
-                      fontSize: 10,
-                      fontFamily: 'JetBrains Mono',
-                      offset: 8,
-                    }}
+                    label={opt.labelObj}
                   />
                 </React.Fragment>
               );
@@ -245,7 +264,7 @@ const PayoffChart = ({ data, breakEvens, stockPrice, title, legs = [], dataB = n
             {breakEvens?.map((be, i) => (
               <ReferenceLine
                 key={`be-${be}-${i}`} x={be} stroke="#a78bfa" strokeDasharray="4 4" strokeWidth={1}
-                label={{ value: `BE $${be}`, position: 'insideTopRight', fill: '#a78bfa', fontSize: 9, fontFamily: 'JetBrains Mono' }}
+                label={breakEvenLabels[i]}
               />
             ))}
             <Area type="monotone" dataKey="profitArea" stroke="none" fill="url(#profitFill)" isAnimationActive={false} baseValue={0} />
