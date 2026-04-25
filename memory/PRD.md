@@ -74,6 +74,32 @@
 
 ### Feb 2026 — Análisis y preparación para lanzamiento ✅ (P0 completo)
 
+### Feb 2026 — Pro-grade options features (Fase 1) ✅
+**Backend (`options_math.py` + `server.py`):**
+- **Black-Scholes-Merton** con dividend yield `q` (continuous) — todos los Greeks (Δ Γ Θ ν ρ) actualizados con factor `e^(-qT)`. Backward compatible: q=0 default.
+- **`calculate_payoff(..., fee_per_contract, q)`**: comisiones se restan de P&L en cada punto. Stats devuelven `totalFees` separado.
+- **Endpoint `/api/calculate/pnl-attribution`** (POST): descompone P&L en delta_pnl, gamma_pnl, theta_pnl, vega_pnl + total_actual (full revaluation) + residual.
+- **Endpoint `/api/calculate/assignment`** (POST): para cada leg ITM al vencimiento, devuelve outcome (exercise/assigned/expires_worthless), shares_delivered, cash_flow, net result.
+- **`stock_data.py`**: extrae `dividendYield` real de Yahoo Finance (con normalización defensiva por si Yahoo devuelve % en vez de decimal).
+
+**Frontend:**
+- **`utils/blackScholes.js`**: BSM con `q` parameter en todas las funciones (callPrice/putPrice/optionPrice/delta/gamma/theta/vega/rho/calculateStrategyPayoff/calculateStrategyGreeks/legPnL).
+- **`components/options/TradeAdvancedPanel.jsx`** (nuevo): 3 secciones colapsables expuestas:
+  1. **Comisiones y Dividendos**: input fee/contract ($0.65 default Tastytrade), input dividend yield (auto-fetched de Yahoo).
+  2. **P&L Attribution**: 3 sliders (price move, days passed, IV change), descomposición visual Δ/Γ/Θ/ν con colores + total revaluación + residual (error de orden superior).
+  3. **Assignment Simulation**: slider de precio al vencimiento, lista de legs con ITM badges, shares delivered, cash flow + net result.
+- **`CalculatorPage.jsx`**: panel integrado al final, dividend yield auto-aplicado a payoff/greeks reactivamente.
+
+**i18n:** 24 keys nuevas × 8 locales = 192 traducciones (Comisiones y Dividendos, Atribución P&L, Asignación, etc.) vía Claude 4.5 con placeholders `{pct}` preservados. En alemán: "Gebühren und Dividenden", "P&L-Zuordnung", "Assignment-Simulation bei Verfall", "Nettoresultat" — verificado en screenshot.
+
+**Verificación end-to-end:**
+- Curl payoff: `feePerContract=0.65` → `totalFees: 0.65` y `maxLoss` -$500.65 (era -$500). ✅
+- Curl pnl-attribution: dS=+5%, dT=5d, dIV=-2% → Δ +$268.56, Γ +$57.73, Θ -$32, ν -$22.78, total_actual +$276, residual +$4.6 (error 1.7%). ✅
+- Curl assignment: Sell 2 puts $100 strike, expiry $95 → "assigned_receive_shares" +200 sh, cash -$20,000. ✅
+- Screenshot UI alemán: 3 paneles colapsables, sliders interactivos, attribution muestra $+651.45 Δ + $+262.56 Γ + $-112.03 Θ. ✅
+
+### Feb 2026 — Análisis y preparación para lanzamiento ✅ (P0 completo)
+
 **Verificación matemática de calculadoras** (todas correctas):
 - LeverageCalculator: PnL, ROI, precio liquidación ✓ (fórmulas estándar de futuros isolated margin)
 - PositionSizeCalculator: position = riskAmount / (slPercent/100) ✓

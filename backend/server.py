@@ -21,6 +21,8 @@ from options_math import (
     calculate_payoff,
     find_break_evens,
     calculate_greeks,
+    calculate_pnl_attribution,
+    simulate_assignment,
 )
 from stock_data import (
     get_stock_data,
@@ -1406,11 +1408,29 @@ class PayoffRequest(BaseModel):
     stockPrice: float
     priceRange: Optional[float] = 0.35
     daysToChart: Optional[int] = 30
+    feePerContract: Optional[float] = 0.0     # broker fee per option contract (e.g., 0.65)
+    dividendYield: Optional[float] = 0.0      # continuous yield q (e.g., 0.005)
 
 
 class GreeksRequest(BaseModel):
     legs: List[OptionLegInput]
     stockPrice: float
+    dividendYield: Optional[float] = 0.0
+
+
+class PnlAttributionRequest(BaseModel):
+    legs: List[OptionLegInput]
+    stockPriceInitial: float
+    stockPriceFinal: float
+    daysElapsed: int = 1
+    ivChangeAbs: float = 0.0  # +0.05 = +5 IV points
+    initialDaysToExpiry: int = 30
+    dividendYield: Optional[float] = 0.0
+
+
+class AssignmentRequest(BaseModel):
+    legs: List[OptionLegInput]
+    stockPriceAtExpiry: float
 
 
 @api_router.get("/stock/{symbol}")
@@ -1547,17 +1567,21 @@ async def opt_calculate_payoff(request: PayoffRequest):
             request.stockPrice,
             request.priceRange or 0.35,
             request.daysToChart or 30,
+            fee_per_contract=request.feePerContract or 0.0,
+            q=request.dividendYield or 0.0,
         )
         break_evens = find_break_evens(points)
         expiry_pnls = [p["pnlAtExpiry"] for p in points]
         max_profit = max(expiry_pnls)
         max_loss = min(expiry_pnls)
         net_premium = 0
+        total_fees = 0
         for leg in legs_dicts:
             if leg["type"] != "stock":
                 mult = -1 if leg["action"] == "buy" else 1
                 net_premium += (leg.get("premium", 0) * mult *
                                 leg.get("quantity", leg.get("qty", 1)) * 100)
+                total_fees += leg.get("quantity", leg.get("qty", 1)) * (request.feePerContract or 0.0)
         roi = (max_profit / abs(net_premium) * 100) if net_premium != 0 else 0
         return {
             "points": points,
@@ -1566,6 +1590,7 @@ async def opt_calculate_payoff(request: PayoffRequest):
                 "maxProfit": round(max_profit, 2),
                 "maxLoss": round(max_loss, 2),
                 "netPremium": round(net_premium, 2),
+                "totalFees": round(total_fees, 2),
                 "roi": round(roi, 1),
                 "isMaxProfitUnlimited": max_profit > 5000000,
             },
@@ -1590,10 +1615,65 @@ async def opt_calculate_greeks(request: GreeksRequest):
                 "iv": leg.iv or 0.3,
                 "daysToExpiry": leg.daysToExpiry or 30,
             })
-        greeks = calculate_greeks(legs_dicts, request.stockPrice)
+        greeks = calculate_greeks(legs_dicts, request.stockPrice, q=request.dividendYield or 0.0)
         return greeks
     except Exception as e:
         logging.error(f"Greeks calculation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/calculate/pnl-attribution")
+async def opt_pnl_attribution(request: PnlAttributionRequest):
+    """Decompose post-trade P&L into Δ/Γ/Θ/ν contributions."""
+    try:
+        legs_dicts = []
+        for leg in request.legs:
+            legs_dicts.append({
+                "type": leg.type,
+                "action": leg.action,
+                "quantity": leg.get_qty(),
+                "qty": leg.get_qty(),
+                "strike": leg.strike,
+                "premium": leg.premium or 0,
+                "iv": leg.iv or 0.3,
+                "daysToExpiry": leg.daysToExpiry or 30,
+            })
+        T0 = max(request.initialDaysToExpiry, 1) / 365
+        T1 = max(request.initialDaysToExpiry - request.daysElapsed, 0) / 365
+        result = calculate_pnl_attribution(
+            legs_dicts,
+            S0=request.stockPriceInitial,
+            S1=request.stockPriceFinal,
+            T0=T0,
+            T1=T1,
+            IV_change=request.ivChangeAbs or 0.0,
+            q=request.dividendYield or 0.0,
+        )
+        return result
+    except Exception as e:
+        logging.error(f"PnL attribution error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/calculate/assignment")
+async def opt_assignment(request: AssignmentRequest):
+    """Simulate exercise/assignment at expiry given a final stock price."""
+    try:
+        legs_dicts = []
+        for leg in request.legs:
+            legs_dicts.append({
+                "type": leg.type,
+                "action": leg.action,
+                "quantity": leg.get_qty(),
+                "qty": leg.get_qty(),
+                "strike": leg.strike,
+                "premium": leg.premium or 0,
+                "iv": leg.iv or 0.3,
+                "daysToExpiry": leg.daysToExpiry or 30,
+            })
+        return simulate_assignment(legs_dicts, request.stockPriceAtExpiry)
+    except Exception as e:
+        logging.error(f"Assignment simulation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

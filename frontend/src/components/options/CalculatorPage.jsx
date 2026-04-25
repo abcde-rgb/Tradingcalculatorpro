@@ -23,6 +23,7 @@ import IVRankBadge from './IVRankBadge';
 import UnusualActivity from './UnusualActivity';
 import AITradeCoach from './AITradeCoach';
 import MarketFlow from './MarketFlow';
+import TradeAdvancedPanel from './TradeAdvancedPanel';
 import { TrendingUp, TrendingDown, Activity, Clock, Minus, Plus, Target, DollarSign, ArrowUpRight, ArrowDownRight, BarChart2, LayoutGrid, Loader2, BookOpen, HelpCircle, Percent, Scale, Wrench, Layers, Wallet, GitCompare, Trophy, Calculator } from 'lucide-react';
 
 const CalculatorPage = () => {
@@ -59,6 +60,8 @@ const CalculatorPage = () => {
       if (process.env.NODE_ENV !== 'production') console.warn('commission save failed:', err);
     }
   }, [commission]);
+  // Dividend yield (decimal, e.g. 0.005 = 0.5%) — auto from stock data when available
+  const [dividendYield, setDividendYield] = useState(0);
   const [accountBalance, setAccountBalance] = useState(() => {
     try {
       const saved = typeof window !== 'undefined' ? window.localStorage.getItem('options_account_balance') : null;
@@ -91,7 +94,13 @@ const CalculatorPage = () => {
           fetchStock(ticker),
           fetchExpirations(ticker),
         ]);
-        if (stockData) setStock(stockData);
+        if (stockData) {
+          setStock(stockData);
+          // Auto-set dividend yield from real Yahoo data
+          if (typeof stockData.dividendYield === 'number') {
+            setDividendYield(stockData.dividendYield);
+          }
+        }
         if (expData?.expirations) setExpirations(expData.expirations);
       } catch (e) {
         if (process.env.NODE_ENV !== 'production') {
@@ -257,19 +266,19 @@ const CalculatorPage = () => {
 
   const payoffData = useMemo(() => {
     if (!stock || legs.length === 0) return [];
-    return calculateStrategyPayoff(legs, stock.price, 0.35, daysForChart);
-  }, [legs, stock, daysForChart]);
+    return calculateStrategyPayoff(legs, stock.price, 0.35, daysForChart, 0.05, dividendYield);
+  }, [legs, stock, daysForChart, dividendYield]);
 
   const payoffDataB = useMemo(() => {
     if (!compareMode || !stock || legsB.length === 0) return [];
-    return calculateStrategyPayoff(legsB, stock.price, 0.35, daysForChart);
-  }, [compareMode, legsB, stock, daysForChart]);
+    return calculateStrategyPayoff(legsB, stock.price, 0.35, daysForChart, 0.05, dividendYield);
+  }, [compareMode, legsB, stock, daysForChart, dividendYield]);
 
   const breakEvens = useMemo(() => findBreakEvenPoints(payoffData), [payoffData]);
   const greeks = useMemo(() => {
     if (!stock || legs.length === 0) return { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0 };
-    return calculateStrategyGreeks(legs, stock.price);
-  }, [legs, stock]);
+    return calculateStrategyGreeks(legs, stock.price, 0.05, dividendYield);
+  }, [legs, stock, dividendYield]);
 
   // Probability of Profit & Risk/Reward
   const pop = useMemo(() => {
@@ -738,6 +747,18 @@ const CalculatorPage = () => {
                 <GreeksTimeChart legs={legs} stockPrice={stock?.price} daysToExpiry={currentExp?.daysToExpiry || 30} />
               </div>
             )}
+
+            {/* Pro-grade panel: Fees + Dividends + P&L Attribution + Assignment */}
+            <div className="px-4 py-3 border-t border-border">
+              <TradeAdvancedPanel
+                legs={legs}
+                stock={stock}
+                feePerContract={commission}
+                onFeeChange={setCommission}
+                dividendYield={dividendYield}
+                onDividendChange={setDividendYield}
+              />
+            </div>
           </div>
         </>
       )}

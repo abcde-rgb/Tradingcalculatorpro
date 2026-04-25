@@ -24,63 +24,63 @@ function normalPDF(x) {
   return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
 }
 
-// Calculate d1 and d2
-function d1d2(S, K, T, r, sigma) {
-  const d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+// Calculate d1 and d2 — supports continuous dividend yield q (default 0)
+function d1d2(S, K, T, r, sigma, q = 0) {
+  const d1 = (Math.log(S / K) + (r - q + 0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
   const d2 = d1 - sigma * Math.sqrt(T);
   return { d1, d2 };
 }
 
-// Black-Scholes Call Price
-export function callPrice(S, K, T, r, sigma) {
+// Black-Scholes-Merton Call Price (with dividend yield q)
+export function callPrice(S, K, T, r, sigma, q = 0) {
   if (T <= 0) return Math.max(0, S - K);
-  const { d1, d2 } = d1d2(S, K, T, r, sigma);
-  return S * normalCDF(d1) - K * Math.exp(-r * T) * normalCDF(d2);
+  const { d1, d2 } = d1d2(S, K, T, r, sigma, q);
+  return S * Math.exp(-q * T) * normalCDF(d1) - K * Math.exp(-r * T) * normalCDF(d2);
 }
 
-// Black-Scholes Put Price
-export function putPrice(S, K, T, r, sigma) {
+// Black-Scholes-Merton Put Price (with dividend yield q)
+export function putPrice(S, K, T, r, sigma, q = 0) {
   if (T <= 0) return Math.max(0, K - S);
-  const { d1, d2 } = d1d2(S, K, T, r, sigma);
-  return K * Math.exp(-r * T) * normalCDF(-d2) - S * normalCDF(-d1);
+  const { d1, d2 } = d1d2(S, K, T, r, sigma, q);
+  return K * Math.exp(-r * T) * normalCDF(-d2) - S * Math.exp(-q * T) * normalCDF(-d1);
 }
 
 // Greeks
-export function delta(S, K, T, r, sigma, optionType) {
+export function delta(S, K, T, r, sigma, optionType, q = 0) {
   if (T <= 0) {
     if (optionType === 'call') return S > K ? 1 : 0;
     return S < K ? -1 : 0;
   }
-  const { d1 } = d1d2(S, K, T, r, sigma);
-  if (optionType === 'call') return normalCDF(d1);
-  return normalCDF(d1) - 1;
+  const { d1 } = d1d2(S, K, T, r, sigma, q);
+  if (optionType === 'call') return Math.exp(-q * T) * normalCDF(d1);
+  return Math.exp(-q * T) * (normalCDF(d1) - 1);
 }
 
-export function gamma(S, K, T, r, sigma) {
+export function gamma(S, K, T, r, sigma, q = 0) {
   if (T <= 0) return 0;
-  const { d1 } = d1d2(S, K, T, r, sigma);
-  return normalPDF(d1) / (S * sigma * Math.sqrt(T));
+  const { d1 } = d1d2(S, K, T, r, sigma, q);
+  return (Math.exp(-q * T) * normalPDF(d1)) / (S * sigma * Math.sqrt(T));
 }
 
-export function theta(S, K, T, r, sigma, optionType) {
+export function theta(S, K, T, r, sigma, optionType, q = 0) {
   if (T <= 0) return 0;
-  const { d1, d2 } = d1d2(S, K, T, r, sigma);
-  const term1 = -(S * normalPDF(d1) * sigma) / (2 * Math.sqrt(T));
+  const { d1, d2 } = d1d2(S, K, T, r, sigma, q);
+  const term1 = -(S * Math.exp(-q * T) * normalPDF(d1) * sigma) / (2 * Math.sqrt(T));
   if (optionType === 'call') {
-    return (term1 - r * K * Math.exp(-r * T) * normalCDF(d2)) / 365;
+    return (term1 - r * K * Math.exp(-r * T) * normalCDF(d2) + q * S * Math.exp(-q * T) * normalCDF(d1)) / 365;
   }
-  return (term1 + r * K * Math.exp(-r * T) * normalCDF(-d2)) / 365;
+  return (term1 + r * K * Math.exp(-r * T) * normalCDF(-d2) - q * S * Math.exp(-q * T) * normalCDF(-d1)) / 365;
 }
 
-export function vega(S, K, T, r, sigma) {
+export function vega(S, K, T, r, sigma, q = 0) {
   if (T <= 0) return 0;
-  const { d1 } = d1d2(S, K, T, r, sigma);
-  return (S * Math.sqrt(T) * normalPDF(d1)) / 100;
+  const { d1 } = d1d2(S, K, T, r, sigma, q);
+  return (S * Math.exp(-q * T) * Math.sqrt(T) * normalPDF(d1)) / 100;
 }
 
-export function rho(S, K, T, r, sigma, optionType) {
+export function rho(S, K, T, r, sigma, optionType, q = 0) {
   if (T <= 0) return 0;
-  const { d2 } = d1d2(S, K, T, r, sigma);
+  const { d2 } = d1d2(S, K, T, r, sigma, q);
   if (optionType === 'call') {
     return (K * T * Math.exp(-r * T) * normalCDF(d2)) / 100;
   }
@@ -88,9 +88,9 @@ export function rho(S, K, T, r, sigma, optionType) {
 }
 
 // Calculate option price at a given stock price and time
-export function optionPrice(S, K, T, r, sigma, optionType) {
-  if (optionType === 'call') return callPrice(S, K, T, r, sigma);
-  return putPrice(S, K, T, r, sigma);
+export function optionPrice(S, K, T, r, sigma, optionType, q = 0) {
+  if (optionType === 'call') return callPrice(S, K, T, r, sigma, q);
+  return putPrice(S, K, T, r, sigma, q);
 }
 
 // Calculate payoff at expiration
@@ -106,19 +106,19 @@ export function payoffAtExpiry(S, K, optionType, action, premium, quantity = 1) 
   return (intrinsic * multiplier - premium * multiplier * (action === 'buy' ? 1 : -1)) * quantity * 100;
 }
 
-// Calculate P&L for a leg
-export function legPnL(stockPrice, leg, currentTime, r = 0.05) {
-  const { strike, type, action, premium, iv, daysToExpiry, quantity = 1 } = leg;
+// Calculate P&L for a leg (with optional dividend yield q)
+export function legPnL(stockPrice, leg, currentTime, r = 0.05, q = 0) {
+  const { strike, type, action, premium, iv, quantity = 1 } = leg;
   const T = Math.max(0, currentTime / DAYS_PER_YEAR);
   const multiplier = action === 'buy' ? 1 : -1;
 
-  const currentValue = optionPrice(stockPrice, strike, T, r, iv, type);
+  const currentValue = optionPrice(stockPrice, strike, T, r, iv, type, q);
   const pnl = (currentValue - premium) * multiplier * quantity * 100;
   return pnl;
 }
 
-// Calculate total strategy P&L across price range
-export function calculateStrategyPayoff(legs, stockPrice, priceRange, daysToExpiry, r = 0.05) {
+// Calculate total strategy P&L across price range (with optional dividend yield q)
+export function calculateStrategyPayoff(legs, stockPrice, priceRange, daysToExpiry, r = 0.05, q = 0) {
   const points = [];
   const minPrice = stockPrice * (1 - priceRange);
   const maxPrice = stockPrice * (1 + priceRange);
@@ -134,10 +134,8 @@ export function calculateStrategyPayoff(legs, stockPrice, priceRange, daysToExpi
         totalPnL += (price - stockPrice) * multiplier * (leg.quantity || 100);
         totalPnLAtExpiry += (price - stockPrice) * multiplier * (leg.quantity || 100);
       } else {
-        // Current value
-        totalPnL += legPnL(price, leg, daysToExpiry, r);
-        // At expiry
-        totalPnLAtExpiry += legPnL(price, leg, 0, r);
+        totalPnL += legPnL(price, leg, daysToExpiry, r, q);
+        totalPnLAtExpiry += legPnL(price, leg, 0, r, q);
       }
     });
 
@@ -167,8 +165,8 @@ export function findBreakEvenPoints(payoffData) {
   return breakEvens;
 }
 
-// Calculate all Greeks for a strategy
-export function calculateStrategyGreeks(legs, stockPrice, r = 0.05) {
+// Calculate all Greeks for a strategy (with optional dividend yield q)
+export function calculateStrategyGreeks(legs, stockPrice, r = 0.05, q = 0) {
   let totalDelta = 0;
   let totalGamma = 0;
   let totalTheta = 0;
@@ -186,11 +184,11 @@ export function calculateStrategyGreeks(legs, stockPrice, r = 0.05) {
     const multiplier = leg.action === 'buy' ? 1 : -1;
     const qty = leg.quantity || 1;
 
-    totalDelta += delta(stockPrice, leg.strike, T, r, leg.iv, leg.type) * multiplier * qty;
-    totalGamma += gamma(stockPrice, leg.strike, T, r, leg.iv) * multiplier * qty;
-    totalTheta += theta(stockPrice, leg.strike, T, r, leg.iv, leg.type) * multiplier * qty;
-    totalVega += vega(stockPrice, leg.strike, T, r, leg.iv) * multiplier * qty;
-    totalRho += rho(stockPrice, leg.strike, T, r, leg.iv, leg.type) * multiplier * qty;
+    totalDelta += delta(stockPrice, leg.strike, T, r, leg.iv, leg.type, q) * multiplier * qty;
+    totalGamma += gamma(stockPrice, leg.strike, T, r, leg.iv, q) * multiplier * qty;
+    totalTheta += theta(stockPrice, leg.strike, T, r, leg.iv, leg.type, q) * multiplier * qty;
+    totalVega += vega(stockPrice, leg.strike, T, r, leg.iv, q) * multiplier * qty;
+    totalRho += rho(stockPrice, leg.strike, T, r, leg.iv, leg.type, q) * multiplier * qty;
   });
 
   return {

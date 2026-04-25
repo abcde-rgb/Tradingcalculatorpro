@@ -78,6 +78,13 @@ def get_stock_data(symbol: str) -> dict:
         # Get company name
         name = info.get('longName') or info.get('shortName') or f"{symbol} Corp."
         
+        # Get dividend yield (annual, as decimal e.g. 0.005 = 0.5%)
+        # Yahoo returns dividendYield as decimal already (0.005) or sometimes None
+        div_yield = info.get('dividendYield') or 0.0
+        # Some tickers return percentage (>1) instead of decimal — normalize defensively
+        if div_yield > 1:
+            div_yield = div_yield / 100.0
+        
         result = {
             "symbol": symbol,
             "name": name,
@@ -88,6 +95,7 @@ def get_stock_data(symbol: str) -> dict:
             "low52w": round(float(low_52w), 2),
             "volume": volume_str,
             "sector": sector,
+            "dividendYield": round(float(div_yield), 6),
         }
         
         # Cache the result
@@ -117,6 +125,7 @@ def _get_fallback_stock_data(symbol: str) -> dict:
         "low52w": round(price * 0.7, 2),
         "volume": f"{rng.random() * 50 + 1:.1f}M",
         "sector": _get_sector(symbol),
+        "dividendYield": 0.0,
     }
 
 
