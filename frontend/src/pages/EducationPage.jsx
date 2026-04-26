@@ -24,6 +24,7 @@ import CandlePatternFigure from '@/components/education/CandlePatternFigure';
 import LivePatternDetector from '@/components/education/LivePatternDetector';
 import LeverageGuide from '@/components/education/LeverageGuide';
 import TradingPillarsGuide from '@/components/education/TradingPillarsGuide';
+import ExpandingPatternsSection from '@/components/education/ExpandingPatternsSection';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -1035,6 +1036,9 @@ export default function EducationPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Advanced Broadening (expansion) patterns — uploaded by user */}
+              <ExpandingPatternsSection />
             </TabsContent>
 
             {/* Candlestick Patterns */}

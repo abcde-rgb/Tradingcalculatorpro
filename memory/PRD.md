@@ -288,8 +288,33 @@
 - Lint clean.
 
 
+### Feb 2026 — Patrones de Expansión Avanzados (Broadening) ✅
+**Feature solicitada por usuario** — añadir 5 patrones de gráficos avanzados (broadening / expanding triangles) al Education Center con sus diagramas educativos subidos.
+
+**Frontend:**
+- Nuevo `/app/frontend/src/components/education/ExpandingPatternsSection.jsx` (~150 líneas):
+  - **5 patrones** con sus diagramas educativos PNG (URLs públicas en `customer-assets.emergentagent.com`):
+    1. **Cuña de Expansión Ascendente** — bearish reversal
+    2. **Triángulo Expansivo Alcista (Continuación)** — bullish continuation
+    3. **Triángulo Expansivo Bajista (Cambio Alcista)** — bullish reversal
+    4. **Triángulo Expansivo Bajista (Continuación)** — bearish continuation
+    5. **Triángulo Expansivo Bajista (Cambio Bajista)** — bearish reversal
+  - Cada card: imagen embed (object-contain, fondo blanco para diagramas) + título + badge bias (con TrendingUp/Down + color tier-coding) + descripción + **plan de trading checklist** (E1=Breakout, E2=Retest, Stop Loss, T1/T2 con icono Shield/Target).
+  - Layout grid 1/2/3 columnas responsivo, lazy-loading de imágenes.
+  - Inyectado al final del tab `chart-patterns` (debajo de las secciones existentes Reversal + Continuation).
+
+**i18n**: 13 keys × 8 idiomas = 104 strings (`expandingPatternsTitle/Intro/TradePlan/Target/AscWedgeName/Desc/BullContName/Desc/BearRevName/Desc/BearContName/Desc/BearRevDownName/Desc`).
+
+**Validación end-to-end** (screenshot ES):
+- Las 5 imágenes cargan correctamente (naturalWidth 1263-1352 px, no broken links)
+- Layout grid 3-2 perfecto, badges color-coded (3 verdes ↗ + 2 rojos ↘)
+- Trade plan checklist visible en cada card (E1/E2/Stop Loss/T1-T2)
+- Sin errores de console
+- Math regression intacto: payoff 4749.35/-500.65 ✓
+- Lint clean
+
+
 ### Feb 2026 — Los 3 Pilares del Trading 50/30/20 (Education) ✅
-**Feature solicitada por usuario** — contenido pedagógico fundacional (psicología vs riesgo vs análisis) con donut chart + interactividad.
 
 **Frontend:**
 - Nuevo `/app/frontend/src/components/education/TradingPillarsGuide.jsx` (~210 líneas):
