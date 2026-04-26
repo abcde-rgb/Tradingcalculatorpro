@@ -646,6 +646,14 @@ export const translations = {
     
     // Probability & Statistics - SPANISH
     probabilityStatsTitle: 'Probabilidad y Estadística',
+    expectancyMatrixTitle: 'Matriz de Esperanza Matemática',
+    expectancyMatrixIntro: 'Esta tabla muestra el resultado esperado en R por operación según tu tasa de aciertos (%A) y tu Relación Riesgo/Beneficio (R). Una esperanza positiva significa que, a largo plazo, tu sistema es rentable.',
+    expectancyMatrixRiskRewardCol: 'Relación Riesgo / Beneficio (R)',
+    expectancyMatrixWinRateCol: '% Aciertos',
+    expectancyMatrixLossRateCol: '% Fallos',
+    expectancyMatrixLegendLoss: 'Pérdida esperada',
+    expectancyMatrixLegendProfit: 'Beneficio esperado',
+    expectancyMatrixInterpretation: 'Si tu sistema cae en zona roja, debes mejorar tu R o tu tasa de aciertos. Cualquier valor positivo (verde) es un sistema con edge: 100 trades con EV = +0.50R te dan +50R de beneficio esperado a largo plazo.',
     probabilityStatsIntro: 'La probabilidad y estadística son la base matemática del trading exitoso. Entender estos conceptos te permite tomar decisiones racionales basadas en datos, no en emociones.',
     
     mathematicalExpectationTitle: 'Expectativa Matemática',
@@ -2068,6 +2076,14 @@ export const translations = {
     
     // Probability & Statistics - ENGLISH
     probabilityStatsTitle: 'Probability & Statistics',
+    expectancyMatrixTitle: 'Mathematical Expectancy Matrix',
+    expectancyMatrixIntro: 'This table shows the expected result in R per trade based on your Win Rate (%W) and your Risk/Reward ratio (R). A positive expectancy means that, in the long run, your system is profitable.',
+    expectancyMatrixRiskRewardCol: 'Risk / Reward Ratio (R)',
+    expectancyMatrixWinRateCol: 'Win Rate',
+    expectancyMatrixLossRateCol: 'Loss Rate',
+    expectancyMatrixLegendLoss: 'Expected loss',
+    expectancyMatrixLegendProfit: 'Expected profit',
+    expectancyMatrixInterpretation: 'If your system lands in the red zone, you need to improve your R or your win rate. Any positive (green) value is a system with edge: 100 trades with EV = +0.50R yield +50R of expected profit over the long run.',
     probabilityStatsIntro: 'Probability and statistics are the mathematical foundation of successful trading. Understanding these concepts allows you to make rational data-driven decisions, not emotional ones.',
     mathematicalExpectationTitle: 'Mathematical Expectation',
     expectationFormulaTitle: 'Expectation Formula',
@@ -3515,6 +3531,14 @@ export const translations = {
     
     // Probability & Statistics - GERMAN
     probabilityStatsTitle: 'Wahrscheinlichkeit & Statistik',
+    expectancyMatrixTitle: 'Matrix des mathematischen Erwartungswerts',
+    expectancyMatrixIntro: 'Diese Tabelle zeigt das erwartete Ergebnis in R pro Trade basierend auf deiner Trefferquote (%T) und deinem Chance/Risiko-Verhältnis (R). Eine positive Erwartung bedeutet, dass dein System langfristig profitabel ist.',
+    expectancyMatrixRiskRewardCol: 'Chance/Risiko-Verhältnis (R)',
+    expectancyMatrixWinRateCol: 'Trefferquote',
+    expectancyMatrixLossRateCol: 'Verlustquote',
+    expectancyMatrixLegendLoss: 'Erwarteter Verlust',
+    expectancyMatrixLegendProfit: 'Erwarteter Gewinn',
+    expectancyMatrixInterpretation: 'Liegt dein System im roten Bereich, musst du dein R oder deine Trefferquote verbessern. Jeder positive (grüne) Wert ist ein System mit Edge: 100 Trades mit EV = +0.50R ergeben langfristig +50R erwarteten Gewinn.',
     probabilityStatsIntro: 'Wahrscheinlichkeit und Statistik sind die mathematische Grundlage erfolgreichen Tradings.',
     mathematicalExpectationTitle: 'Mathematische Erwartung',
     expectationFormulaTitle: 'Erwartungsformel',
@@ -4984,6 +5008,14 @@ export const translations = {
     
     // Probability & Statistics - FRENCH
     probabilityStatsTitle: 'Probabilité & Statistiques',
+    expectancyMatrixTitle: 'Matrice d\'Espérance Mathématique',
+    expectancyMatrixIntro: 'Ce tableau montre le résultat attendu en R par opération selon votre Taux de Réussite (%R) et votre rapport Risque/Récompense (R). Une espérance positive signifie qu\'à long terme, votre système est rentable.',
+    expectancyMatrixRiskRewardCol: 'Rapport Risque / Récompense (R)',
+    expectancyMatrixWinRateCol: 'Taux de Réussite',
+    expectancyMatrixLossRateCol: 'Taux d\'Échec',
+    expectancyMatrixLegendLoss: 'Perte attendue',
+    expectancyMatrixLegendProfit: 'Bénéfice attendu',
+    expectancyMatrixInterpretation: 'Si votre système est dans la zone rouge, améliorez votre R ou votre taux de réussite. Toute valeur positive (verte) est un système avec edge : 100 trades avec EV = +0.50R donnent +50R de bénéfice attendu sur le long terme.',
     probabilityStatsIntro: 'La probabilité et les statistiques sont le fondement mathématique du trading réussi.',
     mathematicalExpectationTitle: 'Espérance Mathématique',
     expectationFormulaTitle: 'Formule d\'Espérance',
@@ -6395,6 +6427,14 @@ export const translations = {
     
     // Probability & Statistics - RUSSIAN
     probabilityStatsTitle: 'Вероятность и Статистика',
+    expectancyMatrixTitle: 'Матрица математического ожидания',
+    expectancyMatrixIntro: 'Эта таблица показывает ожидаемый результат в R на сделку в зависимости от вашего процента выигрышей (%В) и соотношения Риск/Прибыль (R). Положительное матожидание означает, что в долгосрочной перспективе ваша система прибыльна.',
+    expectancyMatrixRiskRewardCol: 'Соотношение Риск / Прибыль (R)',
+    expectancyMatrixWinRateCol: '% Выигрышей',
+    expectancyMatrixLossRateCol: '% Проигрышей',
+    expectancyMatrixLegendLoss: 'Ожидаемый убыток',
+    expectancyMatrixLegendProfit: 'Ожидаемая прибыль',
+    expectancyMatrixInterpretation: 'Если ваша система в красной зоне — улучшайте R или процент выигрышей. Любое положительное (зелёное) значение — это система с преимуществом: 100 сделок с EV = +0.50R дают +50R ожидаемой прибыли в долгосроке.',
     probabilityStatsIntro: 'Вероятность и статистика - математическая основа успешной торговли.',
     mathematicalExpectationTitle: 'Математическое Ожидание',
     expectationFormulaTitle: 'Формула Ожидания',
@@ -7679,6 +7719,14 @@ export const translations = {
     
     // Probability & Statistics - CHINESE
     probabilityStatsTitle: '概率与统计',
+    expectancyMatrixTitle: '数学期望矩阵',
+    expectancyMatrixIntro: '此表显示根据您的胜率 (%胜) 和风险/收益比 (R) 每笔交易的预期R值结果。正期望意味着您的系统从长期来看是盈利的。',
+    expectancyMatrixRiskRewardCol: '风险 / 收益比 (R)',
+    expectancyMatrixWinRateCol: '胜率',
+    expectancyMatrixLossRateCol: '败率',
+    expectancyMatrixLegendLoss: '预期亏损',
+    expectancyMatrixLegendProfit: '预期盈利',
+    expectancyMatrixInterpretation: '如果您的系统位于红色区域,需要提高 R 或胜率。任何正(绿色)值都是有优势的系统:EV = +0.50R 的 100 笔交易长期可获得 +50R 的预期收益。',
     probabilityStatsIntro: '概率和统计是成功交易的数学基础。',
     mathematicalExpectationTitle: '数学期望',
     expectationFormulaTitle: '期望公式',
@@ -9090,6 +9138,14 @@ export const translations = {
     
     // Probability & Statistics - JAPANESE
     probabilityStatsTitle: '確率と統計',
+    expectancyMatrixTitle: '数学的期待値マトリックス',
+    expectancyMatrixIntro: 'この表は、勝率 (%勝) とリスク/リワード比 (R) に基づく1トレードあたりの期待R値を示しています。期待値がプラスであれば、長期的に見てそのシステムは利益を生みます。',
+    expectancyMatrixRiskRewardCol: 'リスク / リワード比 (R)',
+    expectancyMatrixWinRateCol: '勝率',
+    expectancyMatrixLossRateCol: '敗率',
+    expectancyMatrixLegendLoss: '期待損失',
+    expectancyMatrixLegendProfit: '期待利益',
+    expectancyMatrixInterpretation: 'システムが赤ゾーンにある場合、R か勝率を改善する必要があります。プラス(緑)の値はすべてエッジのあるシステムです:EV = +0.50R の100トレードは長期的に +50R の期待利益をもたらします。',
     probabilityStatsIntro: '確率と統計は成功するトレーディングの数学的基礎です。',
     mathematicalExpectationTitle: '数学的期待値',
     expectationFormulaTitle: '期待値の公式',
@@ -10417,6 +10473,14 @@ export const translations = {
     
     // Probability & Statistics - ARABIC
     probabilityStatsTitle: 'الاحتمالات والإحصاء',
+    expectancyMatrixTitle: 'مصفوفة التوقع الرياضي',
+    expectancyMatrixIntro: 'يوضح هذا الجدول النتيجة المتوقعة بـ R لكل صفقة بناءً على نسبة فوزك (%ف) ونسبة المخاطرة/المكافأة (R). التوقع الإيجابي يعني أن نظامك مربح على المدى الطويل.',
+    expectancyMatrixRiskRewardCol: 'نسبة المخاطرة / المكافأة (R)',
+    expectancyMatrixWinRateCol: 'نسبة الفوز',
+    expectancyMatrixLossRateCol: 'نسبة الخسارة',
+    expectancyMatrixLegendLoss: 'خسارة متوقعة',
+    expectancyMatrixLegendProfit: 'ربح متوقع',
+    expectancyMatrixInterpretation: 'إذا كان نظامك في المنطقة الحمراء، يجب تحسين R أو نسبة الفوز. أي قيمة موجبة (خضراء) هي نظام له ميزة: 100 صفقة بـ EV = +0.50R تعطي +50R ربحًا متوقعًا على المدى الطويل.',
     probabilityStatsIntro: 'الاحتمالات والإحصاء هي الأساس الرياضي للتداول الناجح.',
     mathematicalExpectationTitle: 'التوقع الرياضي',
     expectationFormulaTitle: 'صيغة التوقع',

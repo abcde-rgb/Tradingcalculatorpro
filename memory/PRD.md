@@ -274,6 +274,20 @@
 - `LegEditor.jsx`: `<span>` dentro de `<option>` → hydration warning (pre-3 rounds).
 
 
+### Feb 2026 — Matriz de Esperanza Matemática (Education) ✅
+**Feature solicitada por el usuario** (con imagen de referencia: tabla "Esperanza Matemática" con %A/%F columns × R columns 0.25–4):
+- Nuevo componente `/app/frontend/src/components/education/ExpectancyMatrix.jsx` (~165 líneas).
+- Tabla 9×10 derivada de la fórmula `EV = (%A × R) − (%F × 1)` — sin valores hardcoded; coincide exacto con la imagen (10%/0.25=-0.88, 50%/2=+0.50, 50%/1=0.00, 90%/4=+3.50, 30%/2.5=+0.05).
+- Headers rojos, filas alternas, celdas rojas para EV negativo y verdes para EV positivo.
+- **Interactivo**: hover en celda → highlight con ring + barra superior muestra fórmula expandida (ej: `50% × 2 − 50% × 1 = 0.50 R`).
+- Leyenda + interpretación final con tip accionable.
+- Inyectado en `EducationPage.jsx` tab "probability" justo después del bloque "Mathematical Expectation".
+- **8 idiomas completos**: 8 keys × 8 lenguas = 64 strings añadidos a `/app/frontend/src/lib/i18n.js`.
+- Verificación visual: screenshot EN + ES renderizan idénticos a la imagen de referencia con math bit-exact.
+- Premium-gated (la página `/education` ya requiere `is_premium`).
+- Lint clean.
+
+
 - **Backtesting histórico de estrategias**: simular ROI de una estrategia mensual sobre N meses (ej: Long Call AAPL 12m)
 - **American-style binomial pricing**: premium por ejercicio anticipado, especialmente puts ITM con dividendos
 - **Paper Trading**: trades virtuales con precios reales, PnL tracking, win-rate, Sharpe
