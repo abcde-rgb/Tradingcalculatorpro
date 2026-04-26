@@ -22,6 +22,7 @@ import ExpectancyCalculator from '@/components/education/ExpectancyCalculator';
 import CandleAnatomy from '@/components/education/CandleAnatomy';
 import CandlePatternFigure from '@/components/education/CandlePatternFigure';
 import LivePatternDetector from '@/components/education/LivePatternDetector';
+import LeverageGuide from '@/components/education/LeverageGuide';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -1094,6 +1095,9 @@ export default function EducationPage() {
 
             {/* Risk Management */}
             <TabsContent value="risk" className="space-y-6">
+              {/* Leverage 0x-100x guide with mini calc + redirect to full Dashboard */}
+              <LeverageGuide />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {RISK_MANAGEMENT_CONCEPTS.map(concept => (
                   <Card key={concept.id} className="bg-card border-border">

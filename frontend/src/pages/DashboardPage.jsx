@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { PriceTicker } from '@/components/dashboard/PriceTicker';
@@ -35,6 +36,17 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const isPremium = useIsPremium();
   const [activeTab, setActiveTab] = useState('percentage');
+  const [searchParams] = useSearchParams();
+
+  // Allow deep-linking to a calculator from outside (e.g. /dashboard?tab=leverage).
+  useEffect(() => {
+    const requested = searchParams.get('tab');
+    const allowed = [
+      'percentage', 'target', 'leverage', 'position', 'lotsize',
+      'fibonacci', 'spot', 'pattern', 'montecarlo', 'simulator', 'measure',
+    ];
+    if (requested && allowed.includes(requested)) setActiveTab(requested);
+  }, [searchParams]);
 
   useEffect(() => {
     refreshUser();

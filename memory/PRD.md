@@ -288,8 +288,32 @@
 - Lint clean.
 
 
+### Feb 2026 — Guía de Apalancamiento 0x–100x (Education) ✅
+**Feature solicitada por usuario**: contenido pedagógico sobre apalancamiento en futuros con micro-calc + redirect al dashboard.
+
+**Frontend:**
+- Nuevo `/app/frontend/src/components/education/LeverageGuide.jsx` (~210 líneas) con:
+  - **Tabla de 4 niveles** con color tier-coding: 0x-2x (verde) / 5x-10x (amarillo) / 20x-50x (naranja) / 75x-100x (rojo). Cada nivel: `Nivel · Estilo · Comentario`.
+  - **Fórmula de liquidación** explicada (`% liq ≈ 100 / leverage`) + **quick reference** con 5 ejemplos pre-calculados (2x→50%, 10x→10%, 20x→5%, 50x→2%, 100x→1%).
+  - **Mini calculadora interactiva**: slider leverage (1-125x) + capital input → muestra **% movimiento hasta liquidación** (color tier-coded) + **exposición total** (capital × leverage). Math: `100 / max(leverage, 0.5)`.
+  - **CTA "Abrir Calculadora Completa →"** que redirige a `/dashboard?tab=leverage` (deep-link al `LeverageCalculator` existente del Dashboard).
+  - **3 reglas de gestión de riesgo** en bloque destacado.
+- Inyectado en `EducationPage.jsx` tab `risk` (Gestión de Riesgo) al inicio.
+
+**Backend changes**: ninguno (puro frontend).
+
+**Mejora UX en `DashboardPage.jsx`**: nuevo soporte de query param `?tab=`. Lee `useSearchParams`, valida contra whitelist (`percentage/target/leverage/position/lotsize/fibonacci/spot/pattern/montecarlo/simulator/measure`) y aplica al `activeTab`. Permite deep-linking desde cualquier parte de la app.
+
+**i18n**: 24 keys × 8 idiomas = 192 strings añadidos a `i18n.js` (`leverageGuideTitle`, `leverageGuideIntro`, `leverageLevelCol`, `leverageStyleCol`, `leverageCommentCol`, `leverageStyleSwing/DayTrading/Aggressive/Scalping`, `leverageCommentLow/Medium/MediumHigh/Extreme`, `liquidationFormulaTitle/Explain`, `leverageMiniCalcTitle/Capital/Result/Exposure/OpenFull`, `leverageRiskRule1/2/3`).
+
+**Validación end-to-end** (screenshot ES + redirect):
+- 20x → 5.0% · 100x → 1.0% · 50x → 2.0% · 2x → 50.0% (todos bit-exact con la fórmula).
+- CTA redirect funcional: `/dashboard?tab=leverage` → tab "Apalancamiento" activo en el dashboard.
+- Tier coloring correcto (verde >25%, amarillo >8%, naranja >3%, rojo <3%).
+- Lint clean.
+
+
 ### Feb 2026 — Detector de Patrones en Vivo (Education) ✅
-**Feature solicitada por usuario** — sin IA, sin upload de imagen, sólo math determinística sobre OHLC real:
 
 **Backend:**
 - Nuevo módulo `/app/backend/candle_patterns.py` (~205 líneas) — 14 detectores puros con thresholds canónicos del manual:
