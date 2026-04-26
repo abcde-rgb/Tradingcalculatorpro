@@ -288,8 +288,17 @@
 - Lint clean.
 
 
-### Feb 2026 — Calculadora Interactiva de Edge Real ✅
-**Complemento de la Matriz** (solicitada por usuario: "calculadora interactiva"):
+### Feb 2026 — Velas Japonesas: Anatomía + ilustraciones SVG en patrones ✅
+**Feature solicitada por usuario** (con manual de referencia pegado):
+- Nuevo primitivo `/app/frontend/src/components/education/CandleSVG.jsx` (~85 líneas) — vela japonesa pura SVG con `(o, h, l, c, width, height, showLabels)`. Body con stroke + rounded corners, wick con `strokeLinecap="round"`. Mapping 0..100 → SVG y axis invertido. Colores oficiales: bull `#22c55e` / bear `#ef4444`.
+- Nuevo `/app/frontend/src/components/education/CandlePatternFigure.jsx` (~80 líneas) — diccionario `PATTERN_BLUEPRINTS` con OHLC predefinidos para los 12 patrones: hammer, bullish-engulfing, morning-star, dragonfly-doji, three-white-soldiers, shooting-star, bearish-engulfing, evening-star, gravestone-doji, three-black-crows, doji, spinning-top. Cada vela **24×80 px** → 1-candle: 24×80, 2-candle: 56×80, 3-candle: 84×80 (compacto, no se excede).
+- Nuevo `/app/frontend/src/components/education/CandleAnatomy.jsx` (~90 líneas) — card "Anatomía de una vela japonesa" en el top del tab `candlesticks`: 2 velas etiquetadas (1 alcista + 1 bajista, 36×150 px) con O/H/L/C labels, leyenda inline (Mecha superior · Cuerpo · Mecha inferior) y footer OHLC compact.
+- `EducationPage.jsx` `PatternCard` modificado: ahora renderiza `<CandlePatternFigure patternId={pattern.id} />` a la derecha del título — la mini-ilustración carga automáticamente para cada uno de los 12 patrones existentes.
+- **8 idiomas**: 7 keys × 8 lenguas = 56 strings añadidos a `i18n.js` (`candleAnatomyTitle`, `candleAnatomyIntro`, `candleBodyLabel`, `candleUpperWickLabel`, `candleLowerWickLabel`, `candleOpenPrice`, `candleClosePrice`). Reusa keys ya existentes: `bullish`, `bearish`, `high`, `low`.
+- Validación visual: screenshot ES verifica anatomía + 12 patterns con 34 SVG renders sin errores.
+- Lint clean.
+
+ (solicitada por usuario: "calculadora interactiva"):
 - Nuevo componente `/app/frontend/src/components/education/ExpectancyCalculator.jsx` (~210 líneas).
 - 2 inputs sincronizados (slider + numeric): Win Rate (1-99%) y R/R Ratio (0.1-10).
 - **EV calculado en tiempo real** con fórmula visible en lateral derecho (`60% × 2.00 − 40% × 1 = 0.80`).

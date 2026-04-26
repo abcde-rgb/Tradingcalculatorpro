@@ -19,6 +19,8 @@ import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
 import ExpectancyMatrix from '@/components/education/ExpectancyMatrix';
 import ExpectancyCalculator from '@/components/education/ExpectancyCalculator';
+import CandleAnatomy from '@/components/education/CandleAnatomy';
+import CandlePatternFigure from '@/components/education/CandlePatternFigure';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -105,13 +107,17 @@ function PatternCard({ pattern, onClick }) {
       data-testid={`pattern-${pattern.id}`}
     >
       <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <h3 className="font-semibold">{pattern.name}</h3>
-          {pattern.type && (
-            <span className={`text-xs font-medium ${patternTypeColors[pattern.type]}`}>
-              {getPatternTypeLabel(pattern.type)}
-            </span>
-          )}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold">{pattern.name}</h3>
+            {pattern.type && (
+              <span className={`text-xs font-medium ${patternTypeColors[pattern.type]}`}>
+                {getPatternTypeLabel(pattern.type)}
+              </span>
+            )}
+          </div>
+          {/* Mini SVG illustration drawn from OHLC blueprints (24x80 px per candle) */}
+          <CandlePatternFigure patternId={pattern.id} className="flex-shrink-0" />
         </div>
         <p className="text-sm text-muted-foreground line-clamp-2">{pattern.description}</p>
         {pattern.reliability && (
@@ -1027,6 +1033,9 @@ export default function EducationPage() {
 
             {/* Candlestick Patterns */}
             <TabsContent value="candlesticks" className="space-y-8">
+              {/* Anatomy primer with SVG candles */}
+              <CandleAnatomy />
+
               {/* Bullish */}
               <div>
                 <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
