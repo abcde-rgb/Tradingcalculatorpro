@@ -288,6 +288,19 @@
 - Lint clean.
 
 
+### Feb 2026 — Calculadora Interactiva de Edge Real ✅
+**Complemento de la Matriz** (solicitada por usuario: "calculadora interactiva"):
+- Nuevo componente `/app/frontend/src/components/education/ExpectancyCalculator.jsx` (~210 líneas).
+- 2 inputs sincronizados (slider + numeric): Win Rate (1-99%) y R/R Ratio (0.1-10).
+- **EV calculado en tiempo real** con fórmula visible en lateral derecho (`60% × 2.00 − 40% × 1 = 0.80`).
+- **Verdict tricolor** según EV: verde "Sistema con edge" (>+0.05), amarillo "Punto de equilibrio" (±0.05), rojo "Sistema perdedor" (<-0.05).
+- **3 cards de proyección**: 100/500/1000 trades muestra R esperados acumulados con color coding.
+- **Botón "Cargar desde mi Journal"** que llama `/api/journal/stats` y auto-pobla con datos reales del usuario (R = avgWin / |avgLoss|). Toast success al cargar; toast warning si no hay trades.
+- **Inyectado encima de la matriz** en el tab "probability".
+- **8 idiomas completos**: 12 keys × 8 lenguas = 96 strings añadidos a `i18n.js`.
+- Verificación end-to-end con screenshot: 50%/1.5→+0.25R · 30%/1.5→-0.25R · 50%/1→0.00R (breakeven) · 60%/2→+0.80R con proyección 1000 trades=+800R. Todo bit-exact.
+
+
 - **Backtesting histórico de estrategias**: simular ROI de una estrategia mensual sobre N meses (ej: Long Call AAPL 12m)
 - **American-style binomial pricing**: premium por ejercicio anticipado, especialmente puts ITM con dividendos
 - **Paper Trading**: trades virtuales con precios reales, PnL tracking, win-rate, Sharpe

@@ -18,6 +18,7 @@ import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { Link } from 'react-router-dom';
 import ExpectancyMatrix from '@/components/education/ExpectancyMatrix';
+import ExpectancyCalculator from '@/components/education/ExpectancyCalculator';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -792,6 +793,7 @@ export default function EducationPage() {
               </div>
 
               {/* Expectancy Matrix — interactive table derived from EV = (%A × R) − (%F × 1) */}
+              <ExpectancyCalculator />
               <ExpectancyMatrix />
 
               {/* Law of Large Numbers */}
