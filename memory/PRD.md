@@ -288,8 +288,29 @@
 - Lint clean.
 
 
+### Feb 2026 — Los 3 Pilares del Trading 50/30/20 (Education) ✅
+**Feature solicitada por usuario** — contenido pedagógico fundacional (psicología vs riesgo vs análisis) con donut chart + interactividad.
+
+**Frontend:**
+- Nuevo `/app/frontend/src/components/education/TradingPillarsGuide.jsx` (~210 líneas):
+  - **Donut chart Recharts** (PieChart con 3 Cells: 50% psicología azul / 30% riesgo naranja / 20% análisis verde) + texto "100% Trading" en el centro.
+  - **3 cards interactivos** de cada pilar (icono Brain/Shield/BarChart3 + badge %% + nombre + descripción corta) con accordion behavior — clic alterna detalle expandido.
+  - **Detalle expandido por pilar** con 3 bullets (control emocional / arriesgar 0,5-1% / 1-2 señales claras, etc.).
+  - **Splitter interactivo de tiempo de estudio**: slider weekly hours (1-40h) → calcula automáticamente horas por pilar (`weeklyHours × pct/100`). Ej 6h/sem → 3h/1.8h/1.2h. 10h/sem → 5h/3h/2h.
+  - **Quote final** destacado: "Si tu psicología es floja, aunque el análisis sea perfecto, romperás reglas, cerrarás antes y moverás stops."
+- Inyectado en `EducationPage.jsx` tab `psychology` al inicio (tab fundacional para este contenido).
+
+**i18n**: 23 keys × 8 idiomas = 184 strings nuevos (`pillarsTitle`, `pillarsIntro`, `pillarPsychology/Risk/AnalysisName/Short/P1/P2/P3`, `pillarsTimeTitle/Intro/Weekly`, `pillarsKeyQuote`).
+
+**Validación end-to-end** (screenshot ES):
+- Donut renderiza con 3 segmentos visibles y proporcionales.
+- Math splitter 100% correcto: 6h→[3h,1.8h,1.2h], 10h→[5h,3h,2h].
+- Accordion behavior funciona (1 expandido a la vez).
+- Sin regresiones: payoff math idéntico, pattern-scan AAPL 63/26 idénticos.
+- Lint clean.
+
+
 ### Feb 2026 — Guía de Apalancamiento 0x–100x (Education) ✅
-**Feature solicitada por usuario**: contenido pedagógico sobre apalancamiento en futuros con micro-calc + redirect al dashboard.
 
 **Frontend:**
 - Nuevo `/app/frontend/src/components/education/LeverageGuide.jsx` (~210 líneas) con:
