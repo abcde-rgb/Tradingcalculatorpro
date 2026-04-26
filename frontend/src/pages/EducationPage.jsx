@@ -136,6 +136,7 @@ function PatternCard({ pattern, onClick }) {
 
 function PatternDetailModal({ pattern, onClose }) {
   const { t } = useTranslation();
+  const [imageZoom, setImageZoom] = useState(false);
   
   if (!pattern) return null;
   
@@ -155,89 +156,128 @@ function PatternDetailModal({ pattern, onClose }) {
     >
       <motion.div
         {...MOTION_SCALE_IN}
-        className="bg-card border border-border rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-card border border-border rounded-xl max-w-5xl w-full max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
+        data-testid="pattern-detail-modal"
       >
-        <div className="p-6">
-          <div className="flex items-start justify-between mb-4">
+        <div className="p-6 lg:p-8">
+          <div className="flex items-start justify-between mb-5 sticky top-0 bg-card/95 backdrop-blur-sm pb-3 -mt-2 -mx-2 px-2 z-10">
             <div>
-              <h2 className="text-2xl font-bold">{pattern.name}</h2>
+              <h2 className="text-2xl lg:text-3xl font-bold">{pattern.name}</h2>
               {pattern.type && (
                 <span className={`text-sm font-medium ${patternTypeColors[pattern.type]}`}>
                   {getPatternTypeLabel(pattern.type)}
                 </span>
               )}
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} data-testid="pattern-modal-close">
               <X className="w-5 h-5" />
             </Button>
           </div>
           
-          <div className="space-y-6">
-            {/* Imagen del patrón si existe */}
-            {pattern.image && (
-              <div className="rounded-lg overflow-hidden border border-border">
-                <img 
-                  src={pattern.image} 
-                  alt={pattern.name}
-                  className="w-full h-auto"
-                />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+            {/* LEFT column: image (large) */}
+            {pattern.image ? (
+              <div className="lg:sticky lg:top-20 self-start">
+                <button
+                  type="button"
+                  onClick={() => setImageZoom(true)}
+                  className="w-full rounded-lg overflow-hidden border border-border bg-white cursor-zoom-in hover:border-primary/50 transition-colors group relative"
+                  data-testid="pattern-image-zoom-trigger"
+                  aria-label="Click to zoom"
+                >
+                  <img 
+                    src={pattern.image} 
+                    alt={pattern.name}
+                    className="w-full h-auto max-h-[70vh] object-contain"
+                  />
+                  <span className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-mono">
+                    🔍 Zoom
+                  </span>
+                </button>
               </div>
-            )}
-            
-            <div>
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <Info className="w-4 h-4 text-primary" /> {t('description')}
-              </h3>
-              <p className="text-muted-foreground">{pattern.description}</p>
-            </div>
-            
-            {pattern.howToTrade && (
+            ) : null}
+
+            {/* RIGHT column: textual content */}
+            <div className="space-y-6">
               <div>
                 <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <Target className="w-4 h-4 text-primary" /> {t('howToTrade')}
+                  <Info className="w-4 h-4 text-primary" /> {t('description')}
                 </h3>
-                <ol className="space-y-2">
-                  {pattern.howToTrade.map((step, idx) => (
-                    <li key={`${pattern.id}-step-${idx}`} className="flex items-start gap-3 text-sm">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                        {idx + 1}
-                      </span>
-                      <span className="text-muted-foreground">{step}</span>
-                    </li>
-                  ))}
-                </ol>
+                <p className="text-muted-foreground leading-relaxed">{pattern.description}</p>
               </div>
-            )}
-            
-            {pattern.reliability && (
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
+              
+              {pattern.howToTrade && (
                 <div>
-                  <p className="text-xs text-muted-foreground">{t('reliability')}</p>
-                  <p className="font-semibold">{pattern.reliability}</p>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-primary" /> {t('howToTrade')}
+                  </h3>
+                  <ol className="space-y-2.5">
+                    {pattern.howToTrade.map((step, idx) => (
+                      <li key={`${pattern.id}-step-${idx}`} className="flex items-start gap-3 text-sm">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                          {idx + 1}
+                        </span>
+                        <span className="text-muted-foreground leading-relaxed">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
-                {pattern.timeframes && (
+              )}
+              
+              {pattern.reliability && (
+                <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
                   <div>
-                    <p className="text-xs text-muted-foreground">{t('bestTimeframes')}</p>
-                    <div className="flex gap-1">
-                      {pattern.timeframes.map(tf => (
-                        <Badge key={tf} variant="secondary" className="text-xs">{tf}</Badge>
-                      ))}
-                    </div>
+                    <p className="text-xs text-muted-foreground">{t('reliability')}</p>
+                    <p className="font-semibold">{pattern.reliability}</p>
                   </div>
-                )}
-              </div>
-            )}
+                  {pattern.timeframes && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('bestTimeframes')}</p>
+                      <div className="flex gap-1">
+                        {pattern.timeframes.map(tf => (
+                          <Badge key={tf} variant="secondary" className="text-xs">{tf}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             
-            {pattern.signal && (
-              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-                <p className="text-sm text-muted-foreground">{t('signal')}</p>
-                <p className="font-semibold text-primary">{pattern.signal}</p>
-              </div>
-            )}
+              {pattern.signal && (
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-sm text-muted-foreground">{t('signal')}</p>
+                  <p className="font-semibold text-primary">{pattern.signal}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
+
+      {/* Image zoom lightbox */}
+      {imageZoom && pattern.image && (
+        <motion.div
+          {...MOTION_FADE}
+          className="fixed inset-0 z-[60] bg-black/95 flex items-center justify-center p-4"
+          onClick={(e) => { e.stopPropagation(); setImageZoom(false); }}
+          data-testid="pattern-image-lightbox"
+        >
+          <Button
+            variant="ghost" size="icon"
+            onClick={(e) => { e.stopPropagation(); setImageZoom(false); }}
+            className="absolute top-4 right-4 text-white hover:bg-white/10 z-10"
+          >
+            <X className="w-6 h-6" />
+          </Button>
+          <img
+            src={pattern.image}
+            alt={pattern.name}
+            className="max-w-[95vw] max-h-[92vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </motion.div>
+      )}
     </motion.div>
   );
 }
