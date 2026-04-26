@@ -31,6 +31,7 @@ from stock_data import (
     get_options_chain_real,
     get_available_expirations,
 )
+from candle_patterns import detect_all_patterns, PATTERN_META
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -2197,6 +2198,52 @@ async def market_wide_flow(min_ratio: float = 3.0, min_volume: int = 300, max_re
     except Exception as e:
         logging.error(f"Market flow error: {e}")
         return {"error": str(e), "results": []}
+
+
+# ========== EDUCATION: Live Pattern Detector ==========
+def _yfinance_to_ohlc_rows(symbol: str, period: str = "3mo", interval: str = "1d") -> List[Dict[str, Any]]:
+    """Fetch historical OHLC from Yahoo Finance and shape it for the detector."""
+    import yfinance as yf
+    hist = yf.Ticker(symbol).history(period=period, interval=interval)
+    if hist.empty:
+        return []
+    rows: List[Dict[str, Any]] = []
+    for idx, row in hist.iterrows():
+        rows.append({
+            "date": idx.strftime("%Y-%m-%d"),
+            "open": float(row["Open"]),
+            "high": float(row["High"]),
+            "low": float(row["Low"]),
+            "close": float(row["Close"]),
+        })
+    return rows
+
+
+@api_router.get("/education/pattern-scan/{symbol}")
+async def education_pattern_scan(
+    symbol: str, period: str = "3mo", interval: str = "1d", limit: int = 30,
+) -> Dict[str, Any]:
+    """Scan real OHLC for the given ticker and return canonical candlestick
+    pattern detections (educational view)."""
+    sym = symbol.upper().strip()
+    try:
+        rows = _yfinance_to_ohlc_rows(sym, period=period, interval=interval)
+        if not rows:
+            return {"symbol": sym, "rowsScanned": 0, "totalDetections": 0, "detections": []}
+        detections = detect_all_patterns(rows)
+        # Most recent first, capped at `limit`.
+        detections.reverse()
+        return {
+            "symbol": sym,
+            "period": period,
+            "interval": interval,
+            "rowsScanned": len(rows),
+            "totalDetections": len(detections),
+            "detections": detections[:limit],
+        }
+    except Exception as e:
+        logging.error(f"Pattern scan error for {sym}: {e}")
+        return {"symbol": sym, "error": str(e), "detections": []}
 
 
 # Include router and setup middleware

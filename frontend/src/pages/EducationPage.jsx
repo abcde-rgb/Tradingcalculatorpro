@@ -21,6 +21,7 @@ import ExpectancyMatrix from '@/components/education/ExpectancyMatrix';
 import ExpectancyCalculator from '@/components/education/ExpectancyCalculator';
 import CandleAnatomy from '@/components/education/CandleAnatomy';
 import CandlePatternFigure from '@/components/education/CandlePatternFigure';
+import LivePatternDetector from '@/components/education/LivePatternDetector';
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/30',
@@ -1035,6 +1036,9 @@ export default function EducationPage() {
             <TabsContent value="candlesticks" className="space-y-8">
               {/* Anatomy primer with SVG candles */}
               <CandleAnatomy />
+
+              {/* Live pattern detector — scans real Yahoo Finance OHLC */}
+              <LivePatternDetector />
 
               {/* Bullish */}
               <div>

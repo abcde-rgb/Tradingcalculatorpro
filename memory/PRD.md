@@ -288,9 +288,35 @@
 - Lint clean.
 
 
-### Feb 2026 — Velas Japonesas: Anatomía + ilustraciones SVG en patrones ✅
-**Feature solicitada por usuario** (con manual de referencia pegado):
-- Nuevo primitivo `/app/frontend/src/components/education/CandleSVG.jsx` (~85 líneas) — vela japonesa pura SVG con `(o, h, l, c, width, height, showLabels)`. Body con stroke + rounded corners, wick con `strokeLinecap="round"`. Mapping 0..100 → SVG y axis invertido. Colores oficiales: bull `#22c55e` / bear `#ef4444`.
+### Feb 2026 — Detector de Patrones en Vivo (Education) ✅
+**Feature solicitada por usuario** — sin IA, sin upload de imagen, sólo math determinística sobre OHLC real:
+
+**Backend:**
+- Nuevo módulo `/app/backend/candle_patterns.py` (~205 líneas) — 14 detectores puros con thresholds canónicos del manual:
+  - Single (1 vela): doji (body ≤ 7% range), dragonfly-doji, gravestone-doji, hammer (lower ≥ 1.8×body, upper ≤ 0.4×body), shooting-star (mirror), marubozu-bullish/bearish, spinning-top.
+  - 2 velas: bullish-engulfing, bearish-engulfing (con condición body₂ > body₁).
+  - 3 velas: morning-star, evening-star (con cierre tercera ≥ midpoint primera), three-white-soldiers, three-black-crows (con condición de open dentro del body anterior).
+- `detect_all_patterns(rows)` walking O(n) sobre toda la serie + `PATTERN_META` con tipo y candle_count.
+- Nuevo endpoint `GET /api/education/pattern-scan/{symbol}?period=3mo&interval=1d&limit=20` — usa `yfinance.history()` para fetch real, devuelve detecciones más recientes primero.
+- Lint clean.
+
+**Frontend:**
+- Nuevo `/app/frontend/src/components/education/LivePatternDetector.jsx` (~190 líneas):
+  - Input ticker + selector de período (1mo / 3mo / 6mo / 1y) + botón Scan.
+  - Stats line: `{rows} velas escaneadas · {hits} patrones detectados` con interpolación.
+  - Lista de detecciones (max 20) con: mini-SVG del patrón a la izquierda (vía `CandlePatternFigure` reutilizado, escalado 60%), nombre traducido, badge tricolor (bullish/bearish/neutral con icono ↑↓↔), fecha + OHLC inline.
+  - Mapping `PATTERN_NAME_KEY` → 12 nombres ya traducidos en el catálogo educacional (`hammerName`, `engulfingBullName`, etc.). Marubozu fallback a string estático.
+  - Inyectado en EducationPage.jsx tab `candlesticks` justo debajo de `CandleAnatomy`.
+- **i18n**: 9 keys × 8 idiomas = 72 strings nuevos (`livePatternTitle`, `livePatternIntro`, `livePatternScanBtn`, `livePatternScanning`, `livePatternNoResults`, `livePatternErrorFetch`, `livePatternStatsLine`, `livePatternPeriod`, `livePatternResults`).
+
+**Validación end-to-end:**
+- Curl backend: AAPL 3mo → 26 detecciones reales (bullish-engulfing 2026-04-15, hammer 2026-04-07 con math verificable: body=2.66, lower=7.80=2.93×body ≥ 1.8×body ✅). TSLA 6mo → 34 detecciones.
+- Screenshot ES: detector renderiza, ambos ticker scans funcionan, mini-SVGs aparecen junto a cada fila, badges tricolor correctos, OHLC inline verificable.
+- Premium-gated (la página `/education` ya requiere `is_premium`).
+- Lint clean.
+
+
+### Feb 2026 — Velas Japonesas: Anatomía + ilustraciones SVG en patrones ✅ `/app/frontend/src/components/education/CandleSVG.jsx` (~85 líneas) — vela japonesa pura SVG con `(o, h, l, c, width, height, showLabels)`. Body con stroke + rounded corners, wick con `strokeLinecap="round"`. Mapping 0..100 → SVG y axis invertido. Colores oficiales: bull `#22c55e` / bear `#ef4444`.
 - Nuevo `/app/frontend/src/components/education/CandlePatternFigure.jsx` (~80 líneas) — diccionario `PATTERN_BLUEPRINTS` con OHLC predefinidos para los 12 patrones: hammer, bullish-engulfing, morning-star, dragonfly-doji, three-white-soldiers, shooting-star, bearish-engulfing, evening-star, gravestone-doji, three-black-crows, doji, spinning-top. Cada vela **24×80 px** → 1-candle: 24×80, 2-candle: 56×80, 3-candle: 84×80 (compacto, no se excede).
 - Nuevo `/app/frontend/src/components/education/CandleAnatomy.jsx` (~90 líneas) — card "Anatomía de una vela japonesa" en el top del tab `candlesticks`: 2 velas etiquetadas (1 alcista + 1 bajista, 36×150 px) con O/H/L/C labels, leyenda inline (Mecha superior · Cuerpo · Mecha inferior) y footer OHLC compact.
 - `EducationPage.jsx` `PatternCard` modificado: ahora renderiza `<CandlePatternFigure patternId={pattern.id} />` a la derecha del título — la mini-ilustración carga automáticamente para cada uno de los 12 patrones existentes.
