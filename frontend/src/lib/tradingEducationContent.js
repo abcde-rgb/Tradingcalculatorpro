@@ -200,6 +200,54 @@ export const getChartPatterns = (t) => ({
       ],
       reliability: t('highReliability'),
       timeframes: ['4H', 'D', 'W']
+    },
+    {
+      id: 'asc-broadening-wedge',
+      name: t('expandingPatternsAscWedgeName'),
+      type: 'bearish',
+      description: t('expandingPatternsAscWedgeDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/z7egei96_CU%C3%91A%20DE%20EXPANSION%20ASCENDENTE.png',
+      howToTrade: [
+        t('htt_entry1ComprarEnRuptura_f5a96723').replace('Comprar', 'Vender'),
+        'Entry 2: confirmación con retest de la línea inferior',
+        t('htt_stopLossPorEncimaDel_76146771'),
+        t('htt_takeProfit1Y2_d37da2f4'),
+        t('htt_objetivoAlturaDelPatron_dc9c40b9')
+      ],
+      reliability: t('highReliability'),
+      timeframes: ['1H', '4H', 'D']
+    },
+    {
+      id: 'bear-broadening-bull-rev',
+      name: t('expandingPatternsBearRevName'),
+      type: 'bullish',
+      description: t('expandingPatternsBearRevDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/ce7dvho5_TRIANGULO%20SIMETRICO%20EXPANSIVO%20BAJISTA%28CAMBIO%20ALCISTA%29.png',
+      howToTrade: [
+        'Entry 1: comprar en ruptura de la línea superior',
+        'Entry 2: comprar en retest confirmado',
+        t('htt_stopLossPorDebajoDel_714cbb59'),
+        t('htt_takeProfit1Y2_d37da2f4'),
+        t('htt_objetivoAlturaDelPatron_dc9c40b9')
+      ],
+      reliability: t('highReliability'),
+      timeframes: ['1H', '4H', 'D']
+    },
+    {
+      id: 'bear-broadening-bear-rev',
+      name: t('expandingPatternsBearRevDownName'),
+      type: 'bearish',
+      description: t('expandingPatternsBearRevDownDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/a7rj6hlx_TRIANGULO%20SIMETRICO%20EXPANSIVO%20BAJISTA%28CAMBIO%20BAJISTA%29.png',
+      howToTrade: [
+        'Entry 1: vender en ruptura de la línea inferior',
+        'Entry 2: vender en retest confirmado',
+        t('htt_stopLossPorEncimaDel_76146771'),
+        t('htt_takeProfit1Y2_d37da2f4'),
+        t('htt_objetivoAlturaDelPatron_dc9c40b9')
+      ],
+      reliability: t('highReliability'),
+      timeframes: ['1H', '4H', 'D']
     }
   ],
   continuation: [
@@ -458,6 +506,38 @@ export const getChartPatterns = (t) => ({
       ],
       reliability: t('highReliability'),
       timeframes: ['4H', 'D', 'W']
+    },
+    {
+      id: 'bull-broadening-cont',
+      name: t('expandingPatternsBullContName'),
+      type: 'bullish',
+      description: t('expandingPatternsBullContDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/ozc52r6l_TRIANGULO%20SIMETRICO%20EXPANISVO%20ALCISTA%28CONTINUACCION%20ALCISTA%29.png',
+      howToTrade: [
+        'Entry 1: comprar en ruptura alcista de la línea superior',
+        'Entry 2: comprar en retest confirmado',
+        t('htt_stopLossPorDebajoDel_714cbb59'),
+        t('htt_takeProfit1Y2_d37da2f4'),
+        t('htt_objetivoAlturaDelPatron_dc9c40b9')
+      ],
+      reliability: t('highReliability'),
+      timeframes: ['1H', '4H', 'D']
+    },
+    {
+      id: 'bear-broadening-cont',
+      name: t('expandingPatternsBearContName'),
+      type: 'bearish',
+      description: t('expandingPatternsBearContDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/jix471rb_TRIANGULO%20SIMETRICO%20EXPANSIVO%20BAJISTA%28CONTINUACION%20BAJISTA%29.png',
+      howToTrade: [
+        'Entry 1: vender en ruptura bajista de la línea inferior',
+        'Entry 2: vender en retest confirmado',
+        t('htt_stopLossPorEncimaDel_76146771'),
+        t('htt_takeProfit1Y2_d37da2f4'),
+        t('htt_objetivoAlturaDelPatron_dc9c40b9')
+      ],
+      reliability: t('highReliability'),
+      timeframes: ['1H', '4H', 'D']
     }
   ]
 });

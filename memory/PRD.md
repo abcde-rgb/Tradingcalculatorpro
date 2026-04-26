@@ -289,10 +289,25 @@
 
 
 ### Feb 2026 — Patrones de Expansión Avanzados (Broadening) ✅
-**Feature solicitada por usuario** — añadir 5 patrones de gráficos avanzados (broadening / expanding triangles) al Education Center con sus diagramas educativos subidos.
+**Feature solicitada por usuario** — añadir 5 patrones de gráficos avanzados al Education Center con sus diagramas educativos subidos.
 
-**Frontend:**
-- Nuevo `/app/frontend/src/components/education/ExpandingPatternsSection.jsx` (~150 líneas):
+**Implementación correcta** (tras feedback del usuario "házlo igual que los otros"):
+- Los 5 patrones añadidos directamente al array `CHART_PATTERNS` en `/app/frontend/src/lib/tradingEducationContent.js` con la misma estructura `{id, name, type, description, image, howToTrade[], reliability, timeframes}` que los patrones existentes.
+  - `reversal[]`: 3 patrones añadidos → asc-broadening-wedge (bearish), bear-broadening-bull-rev (bullish), bear-broadening-bear-rev (bearish)
+  - `continuation[]`: 2 patrones añadidos → bull-broadening-cont (bullish), bear-broadening-cont (bearish)
+- **Renderizados con el mismo `<PatternCard>`** que los demás (mismo layout, mismo modal de detalle al hacer clic, mismo estilo).
+- Imágenes hosteadas en `customer-assets.emergentagent.com` (URLs subidas por el usuario).
+- `howToTrade[]` con 5 pasos por patrón (Entry 1 ruptura, Entry 2 retest, Stop Loss, Take Profit doble, Objetivo proyección de altura). Reusa keys i18n existentes (`htt_stopLossPorEncimaDel_76146771`, `htt_stopLossPorDebajoDel_714cbb59`, `htt_takeProfit1Y2_d37da2f4`, `htt_objetivoAlturaDelPatron_dc9c40b9`).
+
+**i18n**: 13 keys × 8 idiomas = 104 strings nuevos para nombres + descripciones (`expandingPatternsAscWedgeName/Desc`, `BullContName/Desc`, `BearRevName/Desc`, `BearContName/Desc`, `BearRevDownName/Desc`, etc.).
+
+**Validación end-to-end** (screenshot ES):
+- 27 pattern cards renderizando (22 originales + 5 nuevos).
+- Los 5 nuevos aparecen mezclados con los demás bajo "Patrones de Reversión" / "Patrones de Continuación", con el mismo estilo visual: título, bias badge, descripción, fiabilidad, sin diferencia visual respecto a los originales.
+- Click → mismo modal/dialog que los demás patrones (con howToTrade, reliability, timeframes).
+- Lint clean. Math regression intacto.
+
+
   - **5 patrones** con sus diagramas educativos PNG (URLs públicas en `customer-assets.emergentagent.com`):
     1. **Cuña de Expansión Ascendente** — bearish reversal
     2. **Triángulo Expansivo Alcista (Continuación)** — bullish continuation
