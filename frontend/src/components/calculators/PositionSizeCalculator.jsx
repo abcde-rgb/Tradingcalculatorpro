@@ -93,7 +93,6 @@ export const PositionSizeCalculator = () => {
           <UniversalAssetSearch
             value={asset}
             onChange={handleAssetChange}
-            categories={['crypto', 'commodities']}
             testId="position-asset-select"
           />
         </div>

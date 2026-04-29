@@ -80,7 +80,6 @@ export const SpotCalculator = () => {
           <UniversalAssetSearch
             value={asset}
             onChange={handleAssetChange}
-            categories={['crypto', 'commodities']}
             testId="spot-asset-select"
           />
         </div>

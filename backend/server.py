@@ -1526,6 +1526,55 @@ async def opt_get_stock(symbol: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _classify_symbol(sym: str) -> dict:
+    """Classify a yfinance symbol into a user-friendly category + clean label."""
+    s = sym.upper()
+    if s.startswith("^"):
+        index_names = {
+            "^GSPC": "S&P 500", "^DJI": "Dow Jones", "^IXIC": "Nasdaq Composite",
+            "^RUT": "Russell 2000", "^VIX": "VIX Volatility", "^FTSE": "FTSE 100",
+            "^GDAXI": "DAX", "^FCHI": "CAC 40", "^N225": "Nikkei 225",
+            "^HSI": "Hang Seng", "^STOXX50E": "Euro Stoxx 50", "^STI": "STI Singapore",
+        }
+        return {"category": "indices", "name": index_names.get(s, s)}
+    if s.endswith("=X"):
+        return {"category": "forex", "name": s.replace("=X", "")}
+    if s.endswith("=F"):
+        comm_names = {
+            "GC=F": "Gold", "SI=F": "Silver", "CL=F": "Crude Oil (WTI)",
+            "BZ=F": "Brent Crude", "NG=F": "Natural Gas", "HG=F": "Copper",
+            "PL=F": "Platinum", "PA=F": "Palladium", "ZC=F": "Corn",
+            "ZW=F": "Wheat", "ZS=F": "Soybeans", "KC=F": "Coffee",
+            "CC=F": "Cocoa", "SB=F": "Sugar", "CT=F": "Cotton",
+        }
+        return {"category": "commodities", "name": comm_names.get(s, s)}
+    if s.endswith("-USD"):
+        crypto_names = {
+            "BTC-USD": "Bitcoin", "ETH-USD": "Ethereum", "SOL-USD": "Solana",
+            "BNB-USD": "Binance Coin", "XRP-USD": "Ripple", "ADA-USD": "Cardano",
+            "DOGE-USD": "Dogecoin", "AVAX-USD": "Avalanche", "DOT-USD": "Polkadot",
+            "LINK-USD": "Chainlink", "LTC-USD": "Litecoin", "MATIC-USD": "Polygon",
+            "TRX-USD": "TRON", "ATOM-USD": "Cosmos", "NEAR-USD": "NEAR",
+            "APT-USD": "Aptos", "ARB-USD": "Arbitrum", "OP-USD": "Optimism",
+            "INJ-USD": "Injective", "SUI-USD": "Sui", "TIA-USD": "Celestia",
+        }
+        return {"category": "crypto", "name": crypto_names.get(s, s.replace("-USD", ""))}
+    etfs = {
+        "SPY", "QQQ", "IWM", "DIA", "VOO", "VTI", "VT", "VEA", "VWO", "EFA",
+        "EEM", "AGG", "BND", "TLT", "SHY", "IEF", "GLD", "SLV", "GDX", "GDXJ",
+        "USO", "UNG", "DBC", "DBA", "URA", "REMX", "ARKK", "ARKG", "ARKF",
+        "ARKW", "SOXL", "TQQQ", "SQQQ", "TMF", "TZA", "FAS", "FAZ", "UVXY",
+        "VXX", "SVXY", "XLF", "XLK", "XLE", "XLV", "XLY", "XLP", "XLI", "XLB",
+        "XLU", "XLRE", "XLC", "XBI", "SMH", "SOXX", "KWEB", "FXI", "EWZ", "EWJ",
+        "INDA", "MCHI", "EWG", "EWQ", "EWU", "TAN", "ICLN", "LIT", "JETS",
+        "HACK", "BOTZ", "CLOU", "FINX", "PAVE", "ITA", "XAR", "IBB", "IGV",
+        "VNQ", "VUG", "VTV", "VIG", "DVY", "SCHD", "MOAT", "QUAL", "MTUM",
+    }
+    if s in etfs:
+        return {"category": "etfs", "name": s}
+    return {"category": "stocks", "name": s}
+
+
 @api_router.get("/tickers/search")
 async def opt_search_tickers(q: str = ""):
     results = search_tickers(q)
@@ -1533,6 +1582,23 @@ async def opt_search_tickers(q: str = ""):
         "results": [
             {"symbol": sym, **get_stock_data(sym)}
             for sym in results[:15]
+        ]
+    }
+
+
+@api_router.get("/tickers/universal-search")
+async def universal_search_tickers(q: str = "", limit: int = 30):
+    """Lightweight universal search — returns categorized symbols WITHOUT live prices.
+
+    Used by the calculator UniversalAssetSearch component which has its own
+    crypto price store. Avoids the 5–15s latency of fetching yfinance per ticker.
+    """
+    capped_limit = max(1, min(50, limit))
+    results = search_tickers(q)[:capped_limit]
+    return {
+        "results": [
+            {"symbol": sym, **_classify_symbol(sym)}
+            for sym in results
         ]
     }
 

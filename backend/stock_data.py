@@ -118,31 +118,69 @@ def _get_fallback_stock_data(symbol: str) -> dict:
 
 
 def search_tickers(query: str) -> list:
-    """Search tickers - for now returns known tickers that match query."""
-    if not query:
-        # Return popular tickers
-        return ["AAPL", "TSLA", "MSFT", "SPY", "NVDA", "AMZN", "META", "GOOG", 
-                "NFLX", "AMD", "INTC", "BA", "DIS", "JPM", "V", "MA", "WMT", 
-                "COST", "HD", "QQQ"][:20]
-    
-    q = query.upper()
+    """Search tickers across stocks, ETFs, indices, commodities and crypto.
+
+    Returns up to 30 matching symbols. Empty query returns top 30 popular tickers.
+    """
+    # Comprehensive ticker universe — stocks + ETFs + indices/CFDs + commodities + crypto
     all_tickers = [
-        "AAPL", "TSLA", "MSFT", "SPY", "NVDA", "AMZN", "META", "GOOG", "GOOGL",
-        "NFLX", "AMD", "INTC", "BA", "DIS", "JPM", "V", "MA", "WMT", "COST", "HD",
-        "PG", "KO", "PEP", "JNJ", "UNH", "ABBV", "PFE", "MRK", "LLY", "XOM", "CVX",
-        "QQQ", "IWM", "GLD", "SLV", "TLT", "COIN", "MSTR", "PLTR", "CRM", "ORCL",
-        "UBER", "SNAP", "ROKU", "SQ", "PYPL", "RIVN", "LCID", "NIO", "BABA", "TSM",
-        "AVGO", "MU", "SMCI", "ARM", "SHOP", "NET", "SNOW", "DDOG", "ZS", "CRWD",
-        "PANW", "GS", "MS", "BAC", "WFC", "C", "F", "GM", "T", "VZ", "TMUS",
-        "DELL", "IBM", "ADBE", "NOW", "INTU", "AXP", "BRK.B", "UPS", "FDX",
-        "CAT", "DE", "RTX", "LMT", "GE", "ABNB", "BKNG", "MAR", "NKE", "SBUX",
-        "MCD", "CMG", "LULU", "TGT", "LOW", "EL", "SPOT", "RBLX", "U", "AI",
-        "SOFI", "HOOD",
+        # Mega/large-cap stocks
+        "AAPL", "MSFT", "NVDA", "GOOG", "GOOGL", "AMZN", "META", "TSLA", "BRK.B",
+        "AVGO", "LLY", "JPM", "V", "MA", "WMT", "XOM", "JNJ", "UNH", "PG", "HD",
+        "ORCL", "COST", "ABBV", "BAC", "KO", "PEP", "ADBE", "CVX", "MRK", "NFLX",
+        "CRM", "ACN", "TMO", "MCD", "CSCO", "PFE", "AMD", "DIS", "ABT", "DHR",
+        "WFC", "VZ", "INTU", "TXN", "QCOM", "IBM", "T", "NOW", "PM", "RTX",
+        "SPGI", "GS", "MS", "BA", "CAT", "DE", "AXP", "BLK", "AMGN", "ELV",
+        "ISRG", "PLTR", "UBER", "SHOP", "SNOW", "DDOG", "CRWD", "ZS", "PANW",
+        "NET", "MDB", "SQ", "PYPL", "COIN", "MSTR", "RBLX", "ROKU", "SNAP",
+        "PINS", "SPOT", "ABNB", "LYFT", "DOCU", "ZM", "TEAM", "OKTA", "TWLO",
+        "RIVN", "LCID", "NIO", "BABA", "TSM", "ASML", "SAP", "TM", "SONY",
+        "NKE", "SBUX", "CMG", "LULU", "TGT", "LOW", "EL", "MELI", "F", "GM",
+        "BIDU", "JD", "PDD", "BX", "KKR", "GE", "LMT", "NOC", "ADP", "INTC",
+        "MU", "SMCI", "ARM", "DELL", "HPE", "ANET", "SHEL", "BP", "OXY",
+        "PYPL", "AAL", "DAL", "UAL", "LUV", "FDX", "UPS", "ABNB", "BKNG", "MAR",
+        "MGM", "WYNN", "DKNG", "PENN", "F", "GM", "STLA", "TTE", "SIE",
+        # ETFs (broad market, sector, leveraged)
+        "SPY", "QQQ", "IWM", "DIA", "VOO", "VTI", "VT", "VEA", "VWO", "EFA",
+        "EEM", "AGG", "BND", "TLT", "SHY", "IEF", "GLD", "SLV", "GDX", "GDXJ",
+        "USO", "UNG", "DBC", "DBA", "URA", "REMX", "ARKK", "ARKG", "ARKF",
+        "ARKW", "SOXL", "TQQQ", "SQQQ", "TMF", "TZA", "FAS", "FAZ", "UVXY",
+        "VXX", "SVXY", "XLF", "XLK", "XLE", "XLV", "XLY", "XLP", "XLI", "XLB",
+        "XLU", "XLRE", "XLC", "XBI", "SMH", "SOXX", "KWEB", "FXI", "EWZ", "EWJ",
+        "INDA", "MCHI", "EWG", "EWQ", "EWU", "TAN", "ICLN", "LIT", "JETS",
+        "HACK", "BOTZ", "CLOU", "FINX", "PAVE", "ITA", "XAR", "IBB", "IGV",
+        "VNQ", "VUG", "VTV", "VIG", "DVY", "SCHD", "MOAT", "QUAL", "MTUM",
+        # Indices / CFDs (yfinance accepts ^ prefix; we expose user-friendly aliases)
+        "^GSPC", "^DJI", "^IXIC", "^RUT", "^VIX", "^FTSE", "^GDAXI", "^FCHI",
+        "^N225", "^HSI", "^STOXX50E", "^STI",
+        # Forex (yfinance "=X" syntax)
+        "EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X",
+        "NZDUSD=X", "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "USDMXN=X",
+        "USDZAR=X", "USDTRY=X", "USDCNH=X",
+        # Commodities (futures continuous)
+        "GC=F", "SI=F", "CL=F", "BZ=F", "NG=F", "HG=F", "PL=F", "PA=F",
+        "ZC=F", "ZW=F", "ZS=F", "KC=F", "CC=F", "SB=F", "CT=F",
+        # Crypto (yfinance "-USD" syntax)
+        "BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "XRP-USD", "ADA-USD",
+        "DOGE-USD", "AVAX-USD", "DOT-USD", "LINK-USD", "LTC-USD", "MATIC-USD",
+        "TRX-USD", "ATOM-USD", "NEAR-USD", "APT-USD", "ARB-USD", "OP-USD",
+        "INJ-USD", "SUI-USD", "TIA-USD",
     ]
-    
-    # Filter by query
-    results = [t for t in all_tickers if q in t]
-    return results[:20]
+    # de-dup while preserving order
+    seen = set()
+    universe = []
+    for s in all_tickers:
+        if s not in seen:
+            seen.add(s)
+            universe.append(s)
+
+    if not query:
+        return universe[:30]
+
+    q = query.upper().strip()
+    # Substring match on the symbol
+    matches = [t for t in universe if q in t.upper()]
+    return matches[:30]
 
 
 def generate_expirations():

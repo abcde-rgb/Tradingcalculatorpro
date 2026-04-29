@@ -80,7 +80,6 @@ export const TargetPriceCalculator = () => {
               <UniversalAssetSearch
                 value={symbol}
                 onChange={handleAssetChange}
-                categories={['crypto', 'commodities']}
                 testId="target-symbol-select"
               />
             </div>

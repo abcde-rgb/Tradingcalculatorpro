@@ -97,7 +97,6 @@ export const PercentageCalculator = () => {
               <UniversalAssetSearch
                 value={symbol}
                 onChange={handleAssetChange}
-                categories={['crypto', 'commodities']}
                 testId="symbol-select"
               />
             </div>

@@ -109,7 +109,6 @@ export const LeverageCalculator = () => {
           <UniversalAssetSearch
             value={asset}
             onChange={handleAssetChange}
-            categories={['crypto', 'commodities']}
             testId="leverage-asset-select"
           />
         </div>

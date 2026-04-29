@@ -28,6 +28,15 @@ export async function searchTickersAPI(query) {
   }
 }
 
+export async function universalSearchAPI(query, limit = 30) {
+  try {
+    const res = await api.get(`/tickers/universal-search`, { params: { q: query, limit } });
+    return res.data.results || [];
+  } catch (e) {
+    return [];
+  }
+}
+
 export async function fetchExpirations(symbol) {
   try {
     const res = await api.get(`/options/expirations/${symbol}`);

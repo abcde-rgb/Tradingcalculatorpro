@@ -1,13 +1,17 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   Search, X, Clock, Flame, ArrowUpRight, ArrowDownRight,
-  Bitcoin, Coins, DollarSign, LineChart, Layers,
+  Bitcoin, Coins, DollarSign, LineChart, Layers, Building2, BarChart3, Loader2,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { usePriceStore } from '@/lib/store';
 import { CRYPTO_LIST, COMMODITIES } from '@/lib/constants';
+import { universalSearchAPI } from '@/services/optionsApi';
 
-// Curated list of popular forex pairs (used by LotSizeCalculator).
+// ─────────────────────────────────────────────────────────────────────
+// Local curated catalogs (instant offline matches, no network call)
+// ─────────────────────────────────────────────────────────────────────
+
 const FOREX_LIST = [
   { id: 'EURUSD', symbol: 'EURUSD', name: 'EUR/USD' },
   { id: 'GBPUSD', symbol: 'GBPUSD', name: 'GBP/USD' },
@@ -19,33 +23,148 @@ const FOREX_LIST = [
   { id: 'EURGBP', symbol: 'EURGBP', name: 'EUR/GBP' },
   { id: 'EURJPY', symbol: 'EURJPY', name: 'EUR/JPY' },
   { id: 'GBPJPY', symbol: 'GBPJPY', name: 'GBP/JPY' },
+  { id: 'AUDJPY', symbol: 'AUDJPY', name: 'AUD/JPY' },
+  { id: 'USDMXN', symbol: 'USDMXN', name: 'USD/MXN' },
+  { id: 'USDZAR', symbol: 'USDZAR', name: 'USD/ZAR' },
+  { id: 'USDTRY', symbol: 'USDTRY', name: 'USD/TRY' },
+  { id: 'USDCNH', symbol: 'USDCNH', name: 'USD/CNH' },
 ];
 
-// Curated list of popular stocks for offline search (extended set covered by backend).
 const STOCKS_LIST = [
-  { id: 'AAPL', symbol: 'AAPL', name: 'Apple Inc.' },
-  { id: 'MSFT', symbol: 'MSFT', name: 'Microsoft' },
-  { id: 'NVDA', symbol: 'NVDA', name: 'NVIDIA' },
-  { id: 'TSLA', symbol: 'TSLA', name: 'Tesla' },
-  { id: 'AMZN', symbol: 'AMZN', name: 'Amazon' },
-  { id: 'META', symbol: 'META', name: 'Meta' },
-  { id: 'GOOG', symbol: 'GOOG', name: 'Alphabet' },
+  { id: 'AAPL',  symbol: 'AAPL',  name: 'Apple Inc.' },
+  { id: 'MSFT',  symbol: 'MSFT',  name: 'Microsoft' },
+  { id: 'NVDA',  symbol: 'NVDA',  name: 'NVIDIA' },
+  { id: 'TSLA',  symbol: 'TSLA',  name: 'Tesla' },
+  { id: 'AMZN',  symbol: 'AMZN',  name: 'Amazon' },
+  { id: 'META',  symbol: 'META',  name: 'Meta' },
+  { id: 'GOOG',  symbol: 'GOOG',  name: 'Alphabet C' },
+  { id: 'GOOGL', symbol: 'GOOGL', name: 'Alphabet A' },
+  { id: 'AVGO',  symbol: 'AVGO',  name: 'Broadcom' },
+  { id: 'BRK.B', symbol: 'BRK.B', name: 'Berkshire Hathaway' },
+  { id: 'LLY',   symbol: 'LLY',   name: 'Eli Lilly' },
+  { id: 'JPM',   symbol: 'JPM',   name: 'JPMorgan Chase' },
+  { id: 'V',     symbol: 'V',     name: 'Visa' },
+  { id: 'MA',    symbol: 'MA',    name: 'Mastercard' },
+  { id: 'WMT',   symbol: 'WMT',   name: 'Walmart' },
+  { id: 'XOM',   symbol: 'XOM',   name: 'ExxonMobil' },
+  { id: 'JNJ',   symbol: 'JNJ',   name: 'Johnson & Johnson' },
+  { id: 'UNH',   symbol: 'UNH',   name: 'UnitedHealth' },
+  { id: 'COST',  symbol: 'COST',  name: 'Costco' },
+  { id: 'NFLX',  symbol: 'NFLX',  name: 'Netflix' },
+  { id: 'CRM',   symbol: 'CRM',   name: 'Salesforce' },
+  { id: 'AMD',   symbol: 'AMD',   name: 'AMD' },
+  { id: 'COIN',  symbol: 'COIN',  name: 'Coinbase' },
+  { id: 'MSTR',  symbol: 'MSTR',  name: 'MicroStrategy' },
+  { id: 'PLTR',  symbol: 'PLTR',  name: 'Palantir' },
+  { id: 'UBER',  symbol: 'UBER',  name: 'Uber' },
+  { id: 'SHOP',  symbol: 'SHOP',  name: 'Shopify' },
+  { id: 'BABA',  symbol: 'BABA',  name: 'Alibaba' },
+  { id: 'TSM',   symbol: 'TSM',   name: 'TSMC' },
+  { id: 'ASML',  symbol: 'ASML',  name: 'ASML Holding' },
+  { id: 'ARM',   symbol: 'ARM',   name: 'Arm Holdings' },
+  { id: 'SMCI',  symbol: 'SMCI',  name: 'Super Micro' },
+  { id: 'INTC',  symbol: 'INTC',  name: 'Intel' },
+  { id: 'MU',    symbol: 'MU',    name: 'Micron' },
+  { id: 'QCOM',  symbol: 'QCOM',  name: 'Qualcomm' },
+  { id: 'BA',    symbol: 'BA',    name: 'Boeing' },
+  { id: 'NKE',   symbol: 'NKE',   name: 'Nike' },
+  { id: 'SBUX',  symbol: 'SBUX',  name: 'Starbucks' },
+  { id: 'DIS',   symbol: 'DIS',   name: 'Disney' },
+  { id: 'F',     symbol: 'F',     name: 'Ford' },
+  { id: 'GM',    symbol: 'GM',    name: 'General Motors' },
+  { id: 'RIVN',  symbol: 'RIVN',  name: 'Rivian' },
+  { id: 'LCID',  symbol: 'LCID',  name: 'Lucid' },
+  { id: 'NIO',   symbol: 'NIO',   name: 'NIO' },
+];
+
+const ETFS_LIST = [
   { id: 'SPY',  symbol: 'SPY',  name: 'S&P 500 ETF' },
   { id: 'QQQ',  symbol: 'QQQ',  name: 'Nasdaq-100 ETF' },
-  { id: 'COIN', symbol: 'COIN', name: 'Coinbase' },
-  { id: 'MSTR', symbol: 'MSTR', name: 'MicroStrategy' },
-  { id: 'AMD',  symbol: 'AMD',  name: 'AMD' },
+  { id: 'IWM',  symbol: 'IWM',  name: 'Russell 2000 ETF' },
+  { id: 'DIA',  symbol: 'DIA',  name: 'Dow Jones ETF' },
+  { id: 'VOO',  symbol: 'VOO',  name: 'Vanguard S&P 500' },
+  { id: 'VTI',  symbol: 'VTI',  name: 'Vanguard Total Market' },
+  { id: 'VT',   symbol: 'VT',   name: 'Vanguard Total World' },
+  { id: 'EFA',  symbol: 'EFA',  name: 'iShares MSCI EAFE' },
+  { id: 'EEM',  symbol: 'EEM',  name: 'iShares MSCI Emerging' },
+  { id: 'AGG',  symbol: 'AGG',  name: 'iShares US Aggregate Bond' },
+  { id: 'TLT',  symbol: 'TLT',  name: '20+ Year Treasury' },
+  { id: 'GLD',  symbol: 'GLD',  name: 'SPDR Gold Trust' },
+  { id: 'SLV',  symbol: 'SLV',  name: 'iShares Silver Trust' },
+  { id: 'USO',  symbol: 'USO',  name: 'US Oil Fund' },
+  { id: 'UNG',  symbol: 'UNG',  name: 'US Natural Gas' },
+  { id: 'ARKK', symbol: 'ARKK', name: 'ARK Innovation' },
+  { id: 'ARKG', symbol: 'ARKG', name: 'ARK Genomic' },
+  { id: 'ARKF', symbol: 'ARKF', name: 'ARK Fintech' },
+  { id: 'ARKW', symbol: 'ARKW', name: 'ARK Next Gen Internet' },
+  { id: 'TQQQ', symbol: 'TQQQ', name: 'ProShares 3x QQQ' },
+  { id: 'SQQQ', symbol: 'SQQQ', name: 'ProShares -3x QQQ' },
+  { id: 'SOXL', symbol: 'SOXL', name: 'Direxion 3x Semis' },
+  { id: 'UVXY', symbol: 'UVXY', name: 'ProShares 1.5x VIX' },
+  { id: 'VXX',  symbol: 'VXX',  name: 'iPath VIX Short-term' },
+  { id: 'XLF',  symbol: 'XLF',  name: 'Financial Select' },
+  { id: 'XLK',  symbol: 'XLK',  name: 'Technology Select' },
+  { id: 'XLE',  symbol: 'XLE',  name: 'Energy Select' },
+  { id: 'XLV',  symbol: 'XLV',  name: 'Health Care Select' },
+  { id: 'XLY',  symbol: 'XLY',  name: 'Cons. Discretionary' },
+  { id: 'XLI',  symbol: 'XLI',  name: 'Industrial Select' },
+  { id: 'XLU',  symbol: 'XLU',  name: 'Utilities Select' },
+  { id: 'SMH',  symbol: 'SMH',  name: 'Semiconductors' },
+  { id: 'SOXX', symbol: 'SOXX', name: 'iShares Semiconductors' },
+  { id: 'KWEB', symbol: 'KWEB', name: 'KraneShares China' },
+  { id: 'FXI',  symbol: 'FXI',  name: 'iShares China 50' },
+  { id: 'EWZ',  symbol: 'EWZ',  name: 'iShares MSCI Brazil' },
+  { id: 'EWJ',  symbol: 'EWJ',  name: 'iShares MSCI Japan' },
+  { id: 'TAN',  symbol: 'TAN',  name: 'Solar Energy' },
+  { id: 'ICLN', symbol: 'ICLN', name: 'Clean Energy' },
+  { id: 'IBB',  symbol: 'IBB',  name: 'iShares Biotech' },
+  { id: 'IGV',  symbol: 'IGV',  name: 'iShares Software' },
+  { id: 'VNQ',  symbol: 'VNQ',  name: 'Real Estate' },
+  { id: 'SCHD', symbol: 'SCHD', name: 'Schwab Dividend' },
+];
+
+const INDICES_LIST = [
+  { id: '^GSPC',     symbol: 'SPX',    name: 'S&P 500' },
+  { id: '^DJI',      symbol: 'DJI',    name: 'Dow Jones' },
+  { id: '^IXIC',     symbol: 'NDX',    name: 'Nasdaq Composite' },
+  { id: '^RUT',      symbol: 'RUT',    name: 'Russell 2000' },
+  { id: '^VIX',      symbol: 'VIX',    name: 'Volatility Index' },
+  { id: '^FTSE',     symbol: 'FTSE',   name: 'FTSE 100' },
+  { id: '^GDAXI',    symbol: 'DAX',    name: 'DAX 40 (Germany)' },
+  { id: '^FCHI',     symbol: 'CAC',    name: 'CAC 40 (France)' },
+  { id: '^N225',     symbol: 'N225',   name: 'Nikkei 225 (Japan)' },
+  { id: '^HSI',      symbol: 'HSI',    name: 'Hang Seng (HK)' },
+  { id: '^STOXX50E', symbol: 'SX5E',   name: 'Euro Stoxx 50' },
+];
+
+const COMMODITIES_FUTURES = [
+  { id: 'GC=F', symbol: 'XAUUSD', name: 'Gold' },
+  { id: 'SI=F', symbol: 'XAGUSD', name: 'Silver' },
+  { id: 'CL=F', symbol: 'WTI',    name: 'Crude Oil (WTI)' },
+  { id: 'BZ=F', symbol: 'BRENT',  name: 'Brent Crude' },
+  { id: 'NG=F', symbol: 'NATGAS', name: 'Natural Gas' },
+  { id: 'HG=F', symbol: 'COPPER', name: 'Copper' },
+  { id: 'PL=F', symbol: 'XPT',    name: 'Platinum' },
+  { id: 'PA=F', symbol: 'XPD',    name: 'Palladium' },
+  { id: 'ZC=F', symbol: 'CORN',   name: 'Corn' },
+  { id: 'ZW=F', symbol: 'WHEAT',  name: 'Wheat' },
+  { id: 'KC=F', symbol: 'COFFEE', name: 'Coffee' },
+  { id: 'CC=F', symbol: 'COCOA',  name: 'Cocoa' },
+  { id: 'SB=F', symbol: 'SUGAR',  name: 'Sugar' },
+  { id: 'CT=F', symbol: 'COTTON', name: 'Cotton' },
 ];
 
 const CATEGORY_META = {
   crypto:      { icon: Bitcoin,    label: 'Crypto',      color: 'text-[#f7931a]' },
-  stocks:      { icon: LineChart,  label: 'Stocks',      color: 'text-[#3b82f6]' },
+  stocks:      { icon: Building2,  label: 'Acciones',    color: 'text-[#3b82f6]' },
+  etfs:        { icon: LineChart,  label: 'ETFs',        color: 'text-[#a855f7]' },
+  indices:     { icon: BarChart3,  label: 'Índices',     color: 'text-[#06b6d4]' },
   forex:       { icon: DollarSign, label: 'Forex',       color: 'text-[#22c55e]' },
   commodities: { icon: Coins,      label: 'Commodities', color: 'text-[#eab308]' },
 };
 
 const RECENTS_KEY = 'universal_asset_recents';
-const TRENDING = ['bitcoin', 'ethereum', 'solana', 'AAPL', 'NVDA', 'TSLA', 'EURUSD', 'gold'];
+const TRENDING = ['bitcoin', 'ethereum', 'AAPL', 'NVDA', 'TSLA', 'SPY', 'QQQ', '^GSPC', 'EURUSD', 'GC=F'];
 
 const buildAssetIndex = (categories) => {
   const idx = [];
@@ -54,6 +173,7 @@ const buildAssetIndex = (categories) => {
   }
   if (categories.includes('commodities')) {
     COMMODITIES.forEach((c) => idx.push({ ...c, category: 'commodities' }));
+    COMMODITIES_FUTURES.forEach((c) => idx.push({ ...c, category: 'commodities' }));
   }
   if (categories.includes('forex')) {
     FOREX_LIST.forEach((c) => idx.push({ ...c, category: 'forex' }));
@@ -61,7 +181,19 @@ const buildAssetIndex = (categories) => {
   if (categories.includes('stocks')) {
     STOCKS_LIST.forEach((c) => idx.push({ ...c, category: 'stocks' }));
   }
-  return idx;
+  if (categories.includes('etfs')) {
+    ETFS_LIST.forEach((c) => idx.push({ ...c, category: 'etfs' }));
+  }
+  if (categories.includes('indices')) {
+    INDICES_LIST.forEach((c) => idx.push({ ...c, category: 'indices' }));
+  }
+  // de-dup by id
+  const seen = new Set();
+  return idx.filter((a) => {
+    if (seen.has(a.id)) return false;
+    seen.add(a.id);
+    return true;
+  });
 };
 
 const highlightMatch = (text, query) => {
@@ -78,20 +210,24 @@ const highlightMatch = (text, query) => {
 };
 
 /**
- * UniversalAssetSearch — professional asset selector usable across all calculators.
+ * UniversalAssetSearch — professional asset selector.
  *
- * @param {string}   value          - current asset id (e.g. "bitcoin", "EURUSD", "AAPL")
- * @param {function} onChange       - called with the full asset object {id, symbol, name, category, price?}
- * @param {string[]} [categories]   - which asset classes to include. Defaults to all.
- * @param {boolean}  [showCategories=true] - whether to render category filter chips
+ * Features:
+ * - Curated local catalog of crypto/stocks/ETFs/indices/forex/commodities
+ * - Live backend search (yfinance universe, ~250+ symbols) when user types
+ * - Category filter chips, recents, trending
+ * - Keyboard navigation (↑↓ Enter Esc)
+ *
+ * @param {string}   value          - current asset id (e.g. "bitcoin", "EURUSD", "AAPL", "^GSPC")
+ * @param {function} onChange       - called with the full asset object {id, symbol, name, category}
+ * @param {string[]} [categories]   - which asset classes to include. Defaults to ALL.
  * @param {string}   [placeholder]  - input placeholder
  * @param {string}   [testId]       - data-testid for the trigger
  */
 const UniversalAssetSearch = ({
   value,
   onChange,
-  categories = ['crypto', 'stocks', 'forex', 'commodities'],
-  showCategories = true,
+  categories = ['crypto', 'stocks', 'etfs', 'indices', 'forex', 'commodities'],
   placeholder,
   testId = 'universal-asset-search',
 }) => {
@@ -101,12 +237,15 @@ const UniversalAssetSearch = ({
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [remoteResults, setRemoteResults] = useState([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
   const [recents, setRecents] = useState(() => {
     try { return JSON.parse(localStorage.getItem(RECENTS_KEY) || '[]'); } catch { return []; }
   });
 
   const containerRef = useRef(null);
   const inputRef = useRef(null);
+  const debounceRef = useRef(null);
 
   const fullIndex = useMemo(() => buildAssetIndex(categories), [categories]);
 
@@ -132,16 +271,52 @@ const UniversalAssetSearch = ({
     return null;
   }, [prices]);
 
-  // Filter assets by query + active category.
+  // Debounced backend search
+  useEffect(() => {
+    if (!open) return;
+    const q = query.trim();
+    if (q.length < 1) { setRemoteResults([]); return; }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setRemoteLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await universalSearchAPI(q, 30);
+        // Filter by allowed categories
+        const filtered = (data || []).filter((r) => categories.includes(r.category));
+        // Map remote result shape into our asset shape
+        setRemoteResults(filtered.map((r) => ({
+          id: r.symbol,
+          symbol: r.symbol,
+          name: r.name || r.symbol,
+          category: r.category,
+          remote: true,
+        })));
+      } catch {
+        setRemoteResults([]);
+      }
+      setRemoteLoading(false);
+    }, 200);
+    return () => clearTimeout(debounceRef.current);
+  }, [query, open, categories]);
+
+  // Filter local + merge remote
   const filtered = useMemo(() => {
     const q = query.trim().toUpperCase();
     let pool = fullIndex;
     if (activeCategory !== 'all') pool = pool.filter((a) => a.category === activeCategory);
-    if (!q) return pool;
-    return pool.filter(
-      (a) => a.symbol.toUpperCase().includes(q) || (a.name || '').toUpperCase().includes(q)
-    );
-  }, [fullIndex, query, activeCategory]);
+    if (q) {
+      pool = pool.filter(
+        (a) => a.symbol.toUpperCase().includes(q) || (a.name || '').toUpperCase().includes(q)
+      );
+    }
+    // Merge backend results, dedup by id
+    const localIds = new Set(pool.map((a) => a.id));
+    const remoteFiltered = activeCategory === 'all'
+      ? remoteResults
+      : remoteResults.filter((r) => r.category === activeCategory);
+    const extras = remoteFiltered.filter((r) => !localIds.has(r.id));
+    return [...pool, ...extras];
+  }, [fullIndex, query, activeCategory, remoteResults]);
 
   // Group by category for display.
   const grouped = useMemo(() => {
@@ -170,7 +345,7 @@ const UniversalAssetSearch = ({
 
   const addRecent = useCallback((id) => {
     setRecents((prev) => {
-      const next = [id, ...prev.filter((s) => s !== id)].slice(0, 6);
+      const next = [id, ...prev.filter((s) => s !== id)].slice(0, 8);
       try { localStorage.setItem(RECENTS_KEY, JSON.stringify(next)); } catch { /* no-op */ }
       return next;
     });
@@ -246,6 +421,9 @@ const UniversalAssetSearch = ({
     .map((id) => fullIndex.find((a) => a.id === id || a.symbol === id))
     .filter(Boolean);
 
+  // Display order for category groups
+  const CAT_ORDER = ['crypto', 'stocks', 'etfs', 'indices', 'forex', 'commodities'];
+
   return (
     <div ref={containerRef} className="relative w-full" data-testid={`${testId}-open`}>
       {/* Search input */}
@@ -257,11 +435,12 @@ const UniversalAssetSearch = ({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder || 'Buscar ticker o nombre...'}
+          placeholder={placeholder || 'Buscar acción, ETF, índice, crypto, forex...'}
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
           autoComplete="off"
           spellCheck={false}
         />
+        {remoteLoading && <Loader2 className="w-3.5 h-3.5 text-primary animate-spin mr-1" />}
         {query && (
           <button
             type="button"
@@ -275,14 +454,14 @@ const UniversalAssetSearch = ({
       </div>
 
       {/* Dropdown panel */}
-      <div className="absolute top-full left-0 right-0 mt-1.5 bg-card border border-border rounded-lg shadow-xl shadow-black/50 z-50 max-h-[420px] flex flex-col overflow-hidden">
+      <div className="absolute top-full left-0 right-0 mt-1.5 bg-card border border-border rounded-lg shadow-xl shadow-black/50 z-50 max-h-[480px] flex flex-col overflow-hidden">
         {/* Category tabs */}
-        {showCategories && categories.length > 1 && (
-          <div className="flex items-center gap-1 px-2 pt-2 pb-1 border-b border-border">
+        {categories.length > 1 && (
+          <div className="flex items-center gap-1 px-2 pt-2 pb-1 border-b border-border overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveCategory('all')}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+              className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors flex-shrink-0 ${
                 activeCategory === 'all'
                   ? 'bg-primary/15 text-primary'
                   : 'text-muted-foreground hover:text-foreground'
@@ -290,7 +469,7 @@ const UniversalAssetSearch = ({
               data-testid="uas-tab-all"
             >
               <Layers className="w-3 h-3 inline mr-1" />
-              {t('uasAll') === 'uasAll' ? 'Todos' : t('uasAll')}
+              Todos
             </button>
             {categories.map((cat) => {
               const meta = CATEGORY_META[cat];
@@ -301,15 +480,15 @@ const UniversalAssetSearch = ({
                   key={cat}
                   type="button"
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center gap-1 flex-shrink-0 ${
                     activeCategory === cat
                       ? 'bg-primary/15 text-primary'
-                      : `text-muted-foreground hover:text-foreground`
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                   data-testid={`uas-tab-${cat}`}
                 >
                   <Ic className={`w-3 h-3 ${activeCategory === cat ? 'text-primary' : meta.color}`} />
-                  {t(`uasCat_${cat}`) === `uasCat_${cat}` ? meta.label : t(`uasCat_${cat}`)}
+                  {meta.label}
                 </button>
               );
             })}
@@ -322,7 +501,7 @@ const UniversalAssetSearch = ({
             <div className="flex items-center gap-1.5 mb-1.5">
               <Clock className="w-3 h-3 text-muted-foreground" />
               <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                {t('uasRecent') === 'uasRecent' ? 'Recientes' : t('uasRecent')}
+                Recientes
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -346,7 +525,7 @@ const UniversalAssetSearch = ({
             <div className="flex items-center gap-1.5 mb-1.5">
               <Flame className="w-3 h-3 text-[#f59e0b]" />
               <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                {t('uasTrending') === 'uasTrending' ? 'Trending' : t('uasTrending')}
+                Trending
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -366,7 +545,8 @@ const UniversalAssetSearch = ({
 
         {/* Results list */}
         <div className="flex-1 overflow-y-auto">
-          {Object.entries(grouped).map(([cat, items]) => {
+          {CAT_ORDER.filter((c) => grouped[c]).map((cat) => {
+            const items = grouped[cat];
             const meta = CATEGORY_META[cat];
             const Ic = meta?.icon || Search;
             return (
@@ -374,8 +554,9 @@ const UniversalAssetSearch = ({
                 <div className="px-3 pt-2 pb-1 flex items-center gap-1.5">
                   <Ic className={`w-3 h-3 ${meta?.color}`} />
                   <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
-                    {t(`uasCat_${cat}`) === `uasCat_${cat}` ? (meta?.label || cat) : t(`uasCat_${cat}`)}
+                    {meta?.label || cat}
                   </span>
+                  <span className="text-[9px] text-muted-foreground/60">({items.length})</span>
                   <div className="flex-1 h-px bg-border/60" />
                 </div>
                 {items.map((a) => {
@@ -397,11 +578,14 @@ const UniversalAssetSearch = ({
                       <div className={`w-7 h-7 rounded flex items-center justify-center text-[10px] font-black flex-shrink-0 ${
                         isActive ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
                       }`}>
-                        {a.symbol.slice(0, 2)}
+                        {a.symbol.replace(/[\^=\-USD]/g, '').slice(0, 2) || a.symbol.slice(0, 2)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-foreground text-xs">
+                        <div className="font-bold text-foreground text-xs flex items-center gap-1.5">
                           {highlightMatch(a.symbol, query)}
+                          {a.remote && (
+                            <span className="text-[8px] bg-primary/15 text-primary px-1 py-0.5 rounded font-mono">LIVE</span>
+                          )}
                         </div>
                         <div className="text-[10px] text-muted-foreground truncate">
                           {highlightMatch(a.name || '', query)}
@@ -429,10 +613,10 @@ const UniversalAssetSearch = ({
             );
           })}
 
-          {filtered.length === 0 && (
+          {filtered.length === 0 && !remoteLoading && (
             <div className="px-4 py-6 text-center">
               <p className="text-xs text-muted-foreground">
-                {(t('uasNoResults') === 'uasNoResults' ? 'Sin resultados para' : t('uasNoResults'))} "<span className="text-foreground font-bold">{query}</span>"
+                Sin resultados para "<span className="text-foreground font-bold">{query}</span>"
               </p>
             </div>
           )}
@@ -440,9 +624,10 @@ const UniversalAssetSearch = ({
 
         {/* Keyboard hint footer */}
         <div className="px-3 py-1.5 border-t border-border flex items-center gap-3 text-[9px] text-muted-foreground">
-          <span><kbd className="px-1 py-0.5 bg-muted rounded">↑↓</kbd> {t('uasNavigate') === 'uasNavigate' ? 'Navegar' : t('uasNavigate')}</span>
-          <span><kbd className="px-1 py-0.5 bg-muted rounded">Enter</kbd> {t('uasSelect') === 'uasSelect' ? 'Seleccionar' : t('uasSelect')}</span>
-          <span><kbd className="px-1 py-0.5 bg-muted rounded">Esc</kbd> {t('uasClose') === 'uasClose' ? 'Cerrar' : t('uasClose')}</span>
+          <span><kbd className="px-1 py-0.5 bg-muted rounded">↑↓</kbd> Navegar</span>
+          <span><kbd className="px-1 py-0.5 bg-muted rounded">Enter</kbd> Seleccionar</span>
+          <span><kbd className="px-1 py-0.5 bg-muted rounded">Esc</kbd> Cerrar</span>
+          <span className="ml-auto">{filtered.length} {filtered.length === 1 ? 'resultado' : 'resultados'}</span>
         </div>
       </div>
     </div>

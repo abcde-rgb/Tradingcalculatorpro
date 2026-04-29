@@ -107,7 +107,7 @@ export function LotSizeCalculator() {
             <UniversalAssetSearch
               value={selectedPair}
               onChange={(asset) => setSelectedPair(asset.symbol)}
-              categories={['forex', 'commodities']}
+              categories={['forex', 'commodities', 'indices', 'etfs', 'stocks']}
               testId="pair-select"
             />
           </div>
