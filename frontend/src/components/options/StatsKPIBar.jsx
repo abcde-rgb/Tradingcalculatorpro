@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  ArrowUpRight, DollarSign, Percent, Scale, Target,
+  ArrowUpRight, DollarSign, Layers, Minus, Percent, Plus, Scale, Target,
   TrendingDown, TrendingUp, Wallet,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
@@ -50,9 +50,24 @@ const StatsKPIBar = ({
   currentExp,
   commission,
   onCommissionChange,
+  contracts = 1,
+  onContractsChange,
 }) => {
   const { t } = useTranslation();
   const premium = parseFloat(stats.premium);
+
+  const handleContractsDelta = (delta) => {
+    if (!onContractsChange) return;
+    const next = Math.max(1, Math.min(1000, (parseInt(contracts, 10) || 1) + delta));
+    onContractsChange(next);
+  };
+
+  const handleContractsInput = (raw) => {
+    if (!onContractsChange) return;
+    const n = parseInt(raw, 10);
+    if (Number.isNaN(n)) return onContractsChange(1);
+    onContractsChange(Math.max(1, Math.min(1000, n)));
+  };
 
   return (
     <>
@@ -125,6 +140,46 @@ const StatsKPIBar = ({
             data-testid="commission-input"
           />
           <span className="text-muted-foreground">(−${stats.commissions || '0.00'})</span>
+        </div>
+        <span className="text-muted-foreground/40">·</span>
+        <div
+          className="flex items-center gap-1"
+          title={t('optContractsTooltip') || 'Number of contracts (1 contract = 100 shares)'}
+        >
+          <Layers className="w-3 h-3 text-[#38bdf8]" />
+          <span className="text-muted-foreground text-[10px] uppercase tracking-wider">
+            {t('optContracts') || 'Contratos'}
+          </span>
+          <button
+            type="button"
+            onClick={() => handleContractsDelta(-1)}
+            disabled={contracts <= 1}
+            className="w-6 h-6 flex items-center justify-center rounded bg-muted border border-border hover:border-primary/50 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            data-testid="contracts-decrement"
+            aria-label="Decrease contracts"
+          >
+            <Minus className="w-3 h-3" />
+          </button>
+          <input
+            type="number"
+            min={1}
+            max={1000}
+            step={1}
+            value={contracts}
+            onChange={(e) => handleContractsInput(e.target.value)}
+            className="w-12 bg-muted border border-border rounded px-1.5 py-0.5 text-[11px] font-mono text-center text-foreground focus:outline-none focus:border-primary"
+            data-testid="contracts-input"
+          />
+          <button
+            type="button"
+            onClick={() => handleContractsDelta(1)}
+            disabled={contracts >= 1000}
+            className="w-6 h-6 flex items-center justify-center rounded bg-muted border border-border hover:border-primary/50 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            data-testid="contracts-increment"
+            aria-label="Increase contracts"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
         </div>
         <span className="text-muted-foreground/40 hidden md:inline">·</span>
         <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">

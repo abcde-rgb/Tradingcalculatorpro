@@ -57,7 +57,7 @@ const CalculatorPage = () => {
   const [selectedStrategy, setSelectedStrategy] = useState(STRATEGIES[0]);
   const [selectedExpIdx, setSelectedExpIdx] = useState(3);
   const [selectedStrikeIdx, setSelectedStrikeIdx] = useState(15);
-  const [contracts] = useState(1);
+  const [contracts, setContracts] = useState(1);
   const [timeSlider, setTimeSlider] = useState(100);
   const [activeTab, setActiveTab] = useState('calculator');
   const [loading, setLoading] = useState(false);
@@ -211,7 +211,15 @@ const CalculatorPage = () => {
   }, [customLegs, currentExp, chain, stock]);
 
   // Active legs — always uses the Constructor.
-  const legs = customBuiltLegs;
+  // Apply the global "contracts" multiplier so premium / max loss / Greeks all scale together.
+  const legs = useMemo(
+    () =>
+      customBuiltLegs.map((l) => ({
+        ...l,
+        quantity: (l.quantity || 1) * contracts,
+      })),
+    [customBuiltLegs, contracts]
+  );
 
   // Auto-seed Constructor with the selected preset strategy's legs
   // (when empty + preset is built + ticker/strike/strategy changed).
@@ -442,6 +450,8 @@ const CalculatorPage = () => {
                 currentExp={currentExp}
                 commission={commission}
                 onCommissionChange={setCommission}
+                contracts={contracts}
+                onContractsChange={setContracts}
               />
 
               {compareMode && (
