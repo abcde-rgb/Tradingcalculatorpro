@@ -8,6 +8,7 @@ import { Scale, Calculator, Info, Trash2 } from 'lucide-react';
 import { useCalculatorStore } from '@/lib/store';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useTranslation } from '@/lib/i18n';
+import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
 
 const FOREX_PAIRS = [
   { symbol: 'EURUSD', pipValue: 0.0001, name: 'EUR/USD' },
@@ -103,18 +104,12 @@ export function LotSizeCalculator() {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-sm">{t('parDeDivisas_f0f7cd')}</Label>
-            <Select value={selectedPair} onValueChange={setSelectedPair}>
-              <SelectTrigger data-testid="pair-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FOREX_PAIRS.map(pair => (
-                  <SelectItem key={pair.symbol} value={pair.symbol}>
-                    {pair.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <UniversalAssetSearch
+              value={selectedPair}
+              onChange={(asset) => setSelectedPair(asset.symbol)}
+              categories={['forex', 'commodities']}
+              testId="pair-select"
+            />
           </div>
           <div className="space-y-2">
             <Label className="text-sm">{t('balanceDeCuenta_89aff2')}</Label>

@@ -6,29 +6,43 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { useAuthStore, useCalculatorStore } from '@/lib/store';
+import { useAuthStore, useCalculatorStore, usePriceStore } from '@/lib/store';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
 
 export const PositionSizeCalculator = () => {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const { saveCalculation } = useCalculatorStore();
+  const { prices } = usePriceStore();
   
   const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('position_size_calculator', {
     accountBalance: 10000,
     riskPercent: 2,
     entryPrice: 95000,
-    stopLoss: 94000
+    stopLoss: 94000,
+    asset: 'bitcoin',
   });
 
-  const { accountBalance, riskPercent, entryPrice, stopLoss } = persistedData;
+  const { accountBalance, riskPercent, entryPrice, stopLoss, asset = 'bitcoin' } = persistedData;
   const [result, setResult] = useState(null);
 
   const setAccountBalance = (v) => setPersistedData(prev => ({ ...prev, accountBalance: v }));
   const setRiskPercent    = (v) => setPersistedData(prev => ({ ...prev, riskPercent: Array.isArray(v) ? v[0] : v }));
   const setEntryPrice     = (v) => setPersistedData(prev => ({ ...prev, entryPrice: v }));
   const setStopLoss       = (v) => setPersistedData(prev => ({ ...prev, stopLoss: v }));
+  const setAsset          = (v) => setPersistedData(prev => ({ ...prev, asset: v }));
+
+  const handleAssetChange = (a) => {
+    setAsset(a.id);
+    const p = prices?.[a.id]?.usd;
+    if (p) {
+      setEntryPrice(p);
+      // Default SL at 1% below entry (a sensible starting point)
+      setStopLoss(p * 0.99);
+    }
+  };
 
   const calculate = () => {
     const balance = parseFloat(accountBalance);
@@ -74,6 +88,16 @@ export const PositionSizeCalculator = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('asset')}</Label>
+          <UniversalAssetSearch
+            value={asset}
+            onChange={handleAssetChange}
+            categories={['crypto', 'commodities']}
+            testId="position-asset-select"
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="space-y-2">

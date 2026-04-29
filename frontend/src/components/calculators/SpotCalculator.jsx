@@ -8,6 +8,7 @@ import { useAuthStore, useCalculatorStore, usePriceStore } from '@/lib/store';
 import { formatNumber, formatCurrency, formatPercentage } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
 
 export const SpotCalculator = () => {
   const { prices } = usePriceStore();
@@ -18,15 +19,23 @@ export const SpotCalculator = () => {
   const [persistedData, setPersistedData, clearPersistedData] = usePersistedState('spot_calculator', {
     investment: 1000,
     buyPrice: 95000,
-    sellPrice: ''
+    sellPrice: '',
+    asset: 'bitcoin',
   });
 
-  const { investment, buyPrice, sellPrice } = persistedData;
+  const { investment, buyPrice, sellPrice, asset = 'bitcoin' } = persistedData;
   const [result, setResult] = useState(null);
 
   const setInvestment = (v) => setPersistedData(prev => ({ ...prev, investment: v }));
   const setBuyPrice   = (v) => setPersistedData(prev => ({ ...prev, buyPrice: v }));
   const setSellPrice  = (v) => setPersistedData(prev => ({ ...prev, sellPrice: v }));
+  const setAsset      = (v) => setPersistedData(prev => ({ ...prev, asset: v }));
+
+  const handleAssetChange = (a) => {
+    setAsset(a.id);
+    const p = prices?.[a.id]?.usd;
+    if (p) setBuyPrice(p);
+  };
 
   const calculate = () => {
     if (!investment || !buyPrice || !sellPrice) return;
@@ -66,6 +75,16 @@ export const SpotCalculator = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('asset')}</Label>
+          <UniversalAssetSearch
+            value={asset}
+            onChange={handleAssetChange}
+            categories={['crypto', 'commodities']}
+            testId="spot-asset-select"
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="space-y-2">

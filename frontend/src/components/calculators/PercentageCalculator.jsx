@@ -10,6 +10,7 @@ import { formatNumber, formatPercentage } from '@/lib/utils';
 import { CRYPTO_LIST } from '@/lib/constants';
 import { useTranslation } from '@/lib/i18n';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import UniversalAssetSearch from '@/components/common/UniversalAssetSearch';
 
 export const PercentageCalculator = () => {
   const { prices } = usePriceStore();
@@ -37,6 +38,10 @@ export const PercentageCalculator = () => {
     setSymbol(newSymbol);
     const price = prices?.[newSymbol]?.usd || 0;
     if (price > 0) setCurrentPrice(price);
+  };
+
+  const handleAssetChange = (asset) => {
+    handleSymbolChange(asset.id);
   };
 
   const calculate = () => {
@@ -89,16 +94,12 @@ export const PercentageCalculator = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t('asset')}</Label>
-              <Select value={symbol} onValueChange={handleSymbolChange}>
-                <SelectTrigger className="bg-muted border-border" data-testid="symbol-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CRYPTO_LIST.map(crypto => (
-                    <SelectItem key={crypto.id} value={crypto.id}>{crypto.symbol}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <UniversalAssetSearch
+                value={symbol}
+                onChange={handleAssetChange}
+                categories={['crypto', 'commodities']}
+                testId="symbol-select"
+              />
             </div>
             
             <div className="space-y-2">
