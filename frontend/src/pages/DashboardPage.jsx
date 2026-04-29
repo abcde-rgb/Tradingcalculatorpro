@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { PriceTicker } from '@/components/dashboard/PriceTicker';
 import { TradingViewChart } from '@/components/charts/TradingViewChart';
 import { PercentageCalculator } from '@/components/calculators/PercentageCalculator';
 import { TargetPriceCalculator } from '@/components/calculators/TargetPriceCalculator';
@@ -166,9 +165,6 @@ export default function DashboardPage() {
               </Link>
             </div>
           </div>
-          
-          {/* Price Ticker */}
-          <PriceTicker />
           
           {/* Stats Row */}
           {isPremium && <JournalStats />}
