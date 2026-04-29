@@ -69,6 +69,17 @@ const StatsKPIBar = ({
     onContractsChange(Math.max(1, Math.min(1000, n)));
   };
 
+  const handleContractsKey = (e) => {
+    // Native number inputs already step by 1 on ArrowUp/Down,
+    // but Shift+Arrow gives a faster ±10 jump.
+    if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.shiftKey) {
+      e.preventDefault();
+      handleContractsDelta(e.key === 'ArrowUp' ? 10 : -10);
+    }
+  };
+
+  const PRESETS = [1, 5, 10, 25, 100];
+
   return (
     <>
       {/* 5 primary KPIs */}
@@ -167,8 +178,10 @@ const StatsKPIBar = ({
             step={1}
             value={contracts}
             onChange={(e) => handleContractsInput(e.target.value)}
+            onKeyDown={handleContractsKey}
             className="w-12 bg-muted border border-border rounded px-1.5 py-0.5 text-[11px] font-mono text-center text-foreground focus:outline-none focus:border-primary"
             data-testid="contracts-input"
+            title={t('optContractsKbdHint') || '↑/↓ = ±1 · Shift+↑/↓ = ±10'}
           />
           <button
             type="button"
@@ -180,6 +193,25 @@ const StatsKPIBar = ({
           >
             <Plus className="w-3 h-3" />
           </button>
+          {/* Quick presets — 1 / 5 / 10 / 25 / 100 */}
+          <div className="flex items-center gap-0.5 ml-1" data-testid="contracts-presets">
+            {PRESETS.map((n) => (
+              <button
+                key={`preset-${n}`}
+                type="button"
+                onClick={() => onContractsChange && onContractsChange(n)}
+                className={`min-w-[22px] h-5 px-1 rounded text-[10px] font-mono font-semibold transition-colors ${
+                  contracts === n
+                    ? 'bg-[#38bdf8]/20 border border-[#38bdf8]/50 text-[#38bdf8]'
+                    : 'bg-muted/60 border border-border text-muted-foreground hover:text-foreground hover:border-[#38bdf8]/40'
+                }`}
+                data-testid={`contracts-preset-${n}`}
+                aria-label={`Set contracts to ${n}`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
         <span className="text-muted-foreground/40 hidden md:inline">·</span>
         <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
