@@ -116,6 +116,7 @@ export const getChartPatterns = (t) => ({
       name: t('headShouldersName'),
       type: 'bearish',
       description: t('headShouldersDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/9wfzko6e_HOMBRO%20CABEZA%20HOMBRO.png',
       howToTrade: [
         t('htt_identificarLaTendenciaAlcist_af7998c2'),
         t('htt_esperarFormacionCompletaDelP_133fd32f'),
@@ -131,6 +132,7 @@ export const getChartPatterns = (t) => ({
       name: t('invHeadShouldersName'),
       type: 'bullish',
       description: t('invHeadShouldersDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/2ygvtz2y_HOMBRO%20CABEZA%20HOMBRO%20INVERTIDO.png',
       howToTrade: [
         t('htt_identificarLaTendenciaBajist_4fb6db68'),
         t('htt_esperarFormacionCompletaDelP_133fd32f'),
@@ -161,6 +163,7 @@ export const getChartPatterns = (t) => ({
       name: t('doubleBottomName'),
       type: 'bullish',
       description: t('doubleBottomDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/bvkk52gf_DOBLE%20SUELO.png',
       howToTrade: [
         t('htt_identificarDosMinimosSimilar_aacf8393'),
         t('htt_confirmarConVolumenCreciente_8bf6da85'),
@@ -248,9 +251,41 @@ export const getChartPatterns = (t) => ({
       ],
       reliability: t('highReliability'),
       timeframes: ['1H', '4H', 'D']
+    },
+    {
+      id: 'v-bottom-reversal',
+      name: 'Suelo en V (Cambio Alcista)',
+      type: 'bullish',
+      description: 'Patrón de reversión brusca: tras una caída sostenida el precio forma un mínimo agudo en V y rebota con fuerza. Confirma cambio de tendencia bajista a alcista.',
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/m4gllqw8_SUELO%20EN%20V%28CAMBIO%20ALCISTA%29.png',
+      howToTrade: [
+        'Entry 1: comprar al romper al alza la línea de resistencia previa al V',
+        'Entry 2: comprar en el retest del soporte recién creado',
+        'Stop Loss: por debajo del mínimo del V',
+        'Take Profit 1 y 2: distancia equivalente a la profundidad del V proyectada al alza',
+        'Confirmación: vela alcista con volumen creciente al romper resistencia'
+      ],
+      reliability: t('mediumReliability') + '-' + t('highReliability'),
+      timeframes: ['1H', '4H', 'D']
     }
   ],
   continuation: [
+    {
+      id: 'v-bottom-continuation',
+      name: 'Suelo en V (Continuación Alcista)',
+      type: 'bullish',
+      description: 'Patrón de continuación dentro de tendencia alcista: el precio realiza una pequeña corrección en forma de V y reanuda el movimiento alcista al superar el último máximo. Útil para añadir posiciones en tendencia.',
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/n7t7zeai_SUELO%20EN%20V%28CONTINUACCION%20ALCISTA%29.png',
+      howToTrade: [
+        'Entry 1: comprar al romper al alza el último máximo previo al V',
+        'Entry 2: comprar en el retest de ese máximo (ahora soporte)',
+        'Stop Loss: por debajo del mínimo del V',
+        'Take Profit 1 y 2: proyectar la distancia del swing previo al V',
+        'Confirmación: alineación con la tendencia alcista mayor (EMA50 al alza)'
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['1H', '4H', 'D']
+    },
     {
       id: 'ascending-triangle',
       name: t('ascTriangleName'),
