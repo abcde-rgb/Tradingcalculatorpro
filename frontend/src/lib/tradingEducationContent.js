@@ -267,6 +267,201 @@ export const getChartPatterns = (t) => ({
       ],
       reliability: t('mediumReliability') + '-' + t('highReliability'),
       timeframes: ['1H', '4H', 'D']
+    },
+    {
+      id: 'rising-wedge',
+      name: t('risingWedgeName'),
+      type: 'bearish',
+      description: t('risingWedgeDesc'),
+      howToTrade: [
+        t('risingWedgeHTT_1'),
+        t('risingWedgeHTT_2'),
+        t('risingWedgeHTT_3'),
+        t('risingWedgeHTT_4'),
+        t('risingWedgeHTT_5'),
+      ],
+      reliability: t('highReliability'),
+      timeframes: ['1H', '4H', 'D']
+    },
+    {
+      id: 'falling-wedge',
+      name: t('fallingWedgeName'),
+      type: 'bullish',
+      description: t('fallingWedgeDesc'),
+      howToTrade: [
+        t('fallingWedgeHTT_1'),
+        t('fallingWedgeHTT_2'),
+        t('fallingWedgeHTT_3'),
+        t('fallingWedgeHTT_4'),
+        t('fallingWedgeHTT_5'),
+      ],
+      reliability: t('highReliability'),
+      timeframes: ['1H', '4H', 'D']
+    },
+    {
+      id: 'desc-broadening-wedge',
+      name: t('descBroadeningWedgeName'),
+      type: 'bullish',
+      description: t('descBroadeningWedgeDesc'),
+      howToTrade: [
+        t('descBroadeningWedgeHTT_1'),
+        t('descBroadeningWedgeHTT_2'),
+        t('descBroadeningWedgeHTT_3'),
+        t('descBroadeningWedgeHTT_4'),
+        t('descBroadeningWedgeHTT_5'),
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['1H', '4H', 'D']
+    },
+    {
+      id: 'bullish-diamond',
+      name: t('bullishDiamondName'),
+      type: 'bullish',
+      description: t('bullishDiamondDesc'),
+      howToTrade: [
+        t('bullishDiamondHTT_1'),
+        t('bullishDiamondHTT_2'),
+        t('bullishDiamondHTT_3'),
+        t('bullishDiamondHTT_4'),
+        t('bullishDiamondHTT_5'),
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['4H', 'D', 'W']
+    },
+    {
+      id: 'bearish-diamond',
+      name: t('bearishDiamondName'),
+      type: 'bearish',
+      description: t('bearishDiamondDesc'),
+      howToTrade: [
+        t('bearishDiamondHTT_1'),
+        t('bearishDiamondHTT_2'),
+        t('bearishDiamondHTT_3'),
+        t('bearishDiamondHTT_4'),
+        t('bearishDiamondHTT_5'),
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['4H', 'D', 'W']
+    },
+    {
+      id: 'v-top',
+      name: t('vTopName'),
+      type: 'bearish',
+      description: t('vTopDesc'),
+      howToTrade: [
+        t('vTopHTT_1'),
+        t('vTopHTT_2'),
+        t('vTopHTT_3'),
+        t('vTopHTT_4'),
+        t('vTopHTT_5'),
+      ],
+      reliability: t('mediumReliability') + '-' + t('highReliability'),
+      timeframes: ['1H', '4H', 'D']
+    },
+    {
+      id: 'saucer',
+      name: t('saucerName'),
+      type: 'bullish',
+      description: t('saucerDesc'),
+      howToTrade: [
+        t('saucerHTT_1'),
+        t('saucerHTT_2'),
+        t('saucerHTT_3'),
+        t('saucerHTT_4'),
+        t('saucerHTT_5'),
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['D', 'W']
+    },
+    {
+      id: 'rounded-top',
+      name: t('roundedTopName'),
+      type: 'bearish',
+      description: t('roundedTopDesc'),
+      howToTrade: [
+        t('roundedTopHTT_1'),
+        t('roundedTopHTT_2'),
+        t('roundedTopHTT_3'),
+        t('roundedTopHTT_4'),
+        t('roundedTopHTT_5'),
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['D', 'W']
+    },
+    {
+      id: 'rounded-bottom',
+      name: t('roundedBottomName'),
+      type: 'bullish',
+      description: t('roundedBottomDesc'),
+      howToTrade: [
+        t('roundedBottomHTT_1'),
+        t('roundedBottomHTT_2'),
+        t('roundedBottomHTT_3'),
+        t('roundedBottomHTT_4'),
+        t('roundedBottomHTT_5'),
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['D', 'W']
+    },
+    {
+      id: 'symmetric-broadening-bull',
+      name: t('symmetricBroadeningBullName'),
+      type: 'bullish',
+      description: t('symmetricBroadeningBullDesc'),
+      howToTrade: [
+        t('symmetricBroadeningBullHTT_1'),
+        t('symmetricBroadeningBullHTT_2'),
+        t('symmetricBroadeningBullHTT_3'),
+        t('symmetricBroadeningBullHTT_4'),
+        t('symmetricBroadeningBullHTT_5'),
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['4H', 'D']
+    },
+    {
+      id: 'symmetric-broadening-bear',
+      name: t('symmetricBroadeningBearName'),
+      type: 'bearish',
+      description: t('symmetricBroadeningBearDesc'),
+      howToTrade: [
+        t('symmetricBroadeningBearHTT_1'),
+        t('symmetricBroadeningBearHTT_2'),
+        t('symmetricBroadeningBearHTT_3'),
+        t('symmetricBroadeningBearHTT_4'),
+        t('symmetricBroadeningBearHTT_5'),
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['4H', 'D']
+    },
+    {
+      id: 'right-angle-asc-broadening',
+      name: t('rightAngleAscBroadeningName'),
+      type: 'bearish',
+      description: t('rightAngleAscBroadeningDesc'),
+      howToTrade: [
+        t('rightAngleAscBroadeningHTT_1'),
+        t('rightAngleAscBroadeningHTT_2'),
+        t('rightAngleAscBroadeningHTT_3'),
+        t('rightAngleAscBroadeningHTT_4'),
+        t('rightAngleAscBroadeningHTT_5'),
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['4H', 'D']
+    },
+    {
+      id: 'right-angle-desc-broadening',
+      name: t('rightAngleDescBroadeningName'),
+      type: 'bullish',
+      description: t('rightAngleDescBroadeningDesc'),
+      howToTrade: [
+        t('rightAngleDescBroadeningHTT_1'),
+        t('rightAngleDescBroadeningHTT_2'),
+        t('rightAngleDescBroadeningHTT_3'),
+        t('rightAngleDescBroadeningHTT_4'),
+        t('rightAngleDescBroadeningHTT_5'),
+      ],
+      reliability: t('mediumReliability'),
+      timeframes: ['4H', 'D']
     }
   ],
   continuation: [
