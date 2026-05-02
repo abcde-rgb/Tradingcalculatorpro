@@ -254,16 +254,16 @@ export const getChartPatterns = (t) => ({
     },
     {
       id: 'v-bottom-reversal',
-      name: 'Suelo en V (Cambio Alcista)',
+      name: t('vBottomReversalName'),
       type: 'bullish',
-      description: 'Patrón de reversión brusca: tras una caída sostenida el precio forma un mínimo agudo en V y rebota con fuerza. Confirma cambio de tendencia bajista a alcista.',
+      description: t('vBottomReversalDesc'),
       image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/m4gllqw8_SUELO%20EN%20V%28CAMBIO%20ALCISTA%29.png',
       howToTrade: [
-        'Entry 1: comprar al romper al alza la línea de resistencia previa al V',
-        'Entry 2: comprar en el retest del soporte recién creado',
-        'Stop Loss: por debajo del mínimo del V',
-        'Take Profit 1 y 2: distancia equivalente a la profundidad del V proyectada al alza',
-        'Confirmación: vela alcista con volumen creciente al romper resistencia'
+        t('vBottomReversalHTT_1'),
+        t('vBottomReversalHTT_2'),
+        t('vBottomReversalHTT_3'),
+        t('vBottomReversalHTT_4'),
+        t('vBottomReversalHTT_5'),
       ],
       reliability: t('mediumReliability') + '-' + t('highReliability'),
       timeframes: ['1H', '4H', 'D']
@@ -272,16 +272,16 @@ export const getChartPatterns = (t) => ({
   continuation: [
     {
       id: 'v-bottom-continuation',
-      name: 'Suelo en V (Continuación Alcista)',
+      name: t('vBottomContinuationName'),
       type: 'bullish',
-      description: 'Patrón de continuación dentro de tendencia alcista: el precio realiza una pequeña corrección en forma de V y reanuda el movimiento alcista al superar el último máximo. Útil para añadir posiciones en tendencia.',
+      description: t('vBottomContinuationDesc'),
       image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/n7t7zeai_SUELO%20EN%20V%28CONTINUACCION%20ALCISTA%29.png',
       howToTrade: [
-        'Entry 1: comprar al romper al alza el último máximo previo al V',
-        'Entry 2: comprar en el retest de ese máximo (ahora soporte)',
-        'Stop Loss: por debajo del mínimo del V',
-        'Take Profit 1 y 2: proyectar la distancia del swing previo al V',
-        'Confirmación: alineación con la tendencia alcista mayor (EMA50 al alza)'
+        t('vBottomContinuationHTT_1'),
+        t('vBottomContinuationHTT_2'),
+        t('vBottomContinuationHTT_3'),
+        t('vBottomContinuationHTT_4'),
+        t('vBottomContinuationHTT_5'),
       ],
       reliability: t('mediumReliability'),
       timeframes: ['1H', '4H', 'D']
