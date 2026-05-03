@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   TrendingUp, TrendingDown, Activity, Target, AlertTriangle,
   CheckCircle2, Calendar, Layers, BarChart3,
 } from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
+} from 'recharts';
 import { useTranslation } from '@/lib/i18n';
 import { fetchAnalytics } from '@/services/performanceApi';
 
@@ -59,32 +62,57 @@ const Bar = ({ label, n, total, pnl }) => {
 };
 
 const EquityCurve = ({ data }) => {
-  if (!data || data.length < 2) {
-    return null;
-  }
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const W = 600, H = 100;
-  const points = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * W;
-      const y = H - ((v - min) / range) * H;
-      return `${x},${y}`;
-    })
-    .join(' ');
+  // Convert to recharts series once (hooks must run unconditionally)
+  const series = useMemo(
+    () => (data || []).map((v, i) => ({ x: i, balance: Number(v) })),
+    [data],
+  );
+  if (!data || data.length < 2) return null;
   const start = data[0];
   const end = data[data.length - 1];
   const positive = end >= start;
+  const color = positive ? '#22c55e' : '#ef4444';
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-24">
-      <polyline
-        fill="none"
-        stroke={positive ? '#22c55e' : '#ef4444'}
-        strokeWidth="2"
-        points={points}
-      />
-    </svg>
+    <div className="w-full h-40">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={series} margin={{ top: 6, right: 12, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor={color} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.35} vertical={false} />
+          <XAxis dataKey="x" hide />
+          <YAxis
+            domain={['dataMin', 'dataMax']}
+            tickFormatter={(v) => `$${Math.round(v)}`}
+            width={56}
+            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <ReferenceLine y={start} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+          <Tooltip
+            contentStyle={{
+              background: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 8,
+              fontSize: 11,
+            }}
+            formatter={(v) => [`$${Number(v).toFixed(2)}`, 'Balance']}
+            labelFormatter={(l) => `#${l}`}
+          />
+          <Area
+            type="monotone"
+            dataKey="balance"
+            stroke={color}
+            strokeWidth={2}
+            fill="url(#equityFill)"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 };
 

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 import { listTrades, deleteTrade } from '@/services/performanceApi';
 import TradeFormModal from './TradeFormModal';
+import TradeImportExport from './TradeImportExport';
 import { toast } from 'sonner';
 
 const STATUS_LABELS = {
@@ -73,14 +74,20 @@ export default function TradeJournal({ refreshKey, onChange }) {
           <h2 className="font-unbounded text-xl font-bold">{t('tradeJournal')}</h2>
           <span className="text-xs text-muted-foreground">({trades.length})</span>
         </div>
-        <Button
-          onClick={() => { setEditingTrade(null); setModalOpen(true); }}
-          className="gap-2"
-          data-testid="trade-journal-add"
-        >
-          <Plus className="w-4 h-4" />
-          {t('newTrade')}
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <TradeImportExport
+            trades={trades}
+            onImported={() => { load(); onChange?.(); }}
+          />
+          <Button
+            onClick={() => { setEditingTrade(null); setModalOpen(true); }}
+            className="gap-2"
+            data-testid="trade-journal-add"
+          >
+            <Plus className="w-4 h-4" />
+            {t('newTrade')}
+          </Button>
+        </div>
       </div>
 
       {loading ? (

@@ -2365,6 +2365,43 @@ async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_user)
     return enriched
 
 
+class BulkTradesIn(BaseModel):
+    """Payload for bulk importing trades (CSV import)."""
+    trades: List[TradeIn]
+
+
+@api_router.post("/performance/trades/bulk")
+async def perf_bulk_create_trades(
+    payload: BulkTradesIn,
+    user: dict = Depends(require_user),
+):
+    """Import multiple trades at once. Returns imported count + any rejected rows.
+
+    Each row is enriched and saved individually so a single bad row doesn't
+    block the rest of the import.
+    """
+    user_id = user["id"]
+    imported, failed = [], []
+    # Fetch once; don't re-fetch inside the loop.
+    prev = await trades_for_user(db, user_id, limit=100)
+    for i, payload_item in enumerate(payload.trades):
+        try:
+            doc = make_trade_doc(payload_item.model_dump(), user_id)
+            enriched = _enrich_trade(doc, prev_trades=prev)
+            to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
+            await db.trades.insert_one(to_store)
+            imported.append(enriched)
+            # Append to prev so revenge-trade detection sees the just-imported row
+            prev.append(enriched)
+        except Exception as exc:  # noqa: BLE001 — surface per-row failure
+            failed.append({"row": i + 1, "error": str(exc)})
+    return {
+        "imported": len(imported),
+        "failed": failed,
+        "trades": imported,
+    }
+
+
 @api_router.get("/performance/trades")
 async def perf_list_trades(
     user: dict = Depends(require_user),

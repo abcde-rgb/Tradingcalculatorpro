@@ -63,3 +63,8 @@ export async function fetchAnalytics() {
   const { data } = await client.get('/performance/analytics');
   return data;
 }
+
+export async function bulkCreateTrades(trades) {
+  const { data } = await client.post('/performance/trades/bulk', { trades });
+  return data;
+}
