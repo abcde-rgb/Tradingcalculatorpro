@@ -178,7 +178,59 @@ def search_tickers(query: str) -> list:
         return universe[:30]
 
     q = query.upper().strip()
-    # Substring match on the symbol
+
+    # Symbol aliases — when the user types a common short form, map it to
+    # the canonical Yahoo Finance symbol so the right asset is found.
+    ALIASES = {
+        # Indices
+        "SPX": "^GSPC", "SP500": "^GSPC", "SP": "^GSPC",
+        "NDX": "^IXIC", "NASDAQ": "^IXIC", "NAS100": "^IXIC",
+        "DOW": "^DJI", "DJIA": "^DJI",
+        "RUT": "^RUT", "RUSSELL": "^RUT",
+        "VIX": "^VIX",
+        "FTSE": "^FTSE", "FTSE100": "^FTSE",
+        "DAX": "^GDAXI", "DAX40": "^GDAXI", "GER40": "^GDAXI",
+        "CAC": "^FCHI", "CAC40": "^FCHI",
+        "NIKKEI": "^N225", "JP225": "^N225",
+        "HSI": "^HSI", "HK50": "^HSI",
+        "SX5E": "^STOXX50E", "EUSTX50": "^STOXX50E",
+        # Commodities
+        "XAUUSD": "GC=F", "XAU": "GC=F", "GOLD": "GC=F",
+        "XAGUSD": "SI=F", "XAG": "SI=F", "SILVER": "SI=F",
+        "WTI": "CL=F", "OIL": "CL=F", "USOIL": "CL=F",
+        "BRENT": "BZ=F", "UKOIL": "BZ=F",
+        "NATGAS": "NG=F", "GAS": "NG=F",
+        "COPPER": "HG=F",
+        "XPT": "PL=F", "PLATINUM": "PL=F",
+        "XPD": "PA=F", "PALLADIUM": "PA=F",
+        # Crypto (allow plain symbol → yahoo "-USD")
+        "BTC": "BTC-USD", "BTCUSD": "BTC-USD",
+        "ETH": "ETH-USD", "ETHUSD": "ETH-USD",
+        "SOL": "SOL-USD",
+        "BNB": "BNB-USD",
+        "XRP": "XRP-USD",
+        "ADA": "ADA-USD",
+        "DOGE": "DOGE-USD",
+        "AVAX": "AVAX-USD",
+        "DOT": "DOT-USD",
+        "LINK": "LINK-USD",
+        "LTC": "LTC-USD",
+        "MATIC": "MATIC-USD",
+        # Forex (allow "EURUSD" → "EURUSD=X")
+        "EURUSD": "EURUSD=X", "GBPUSD": "GBPUSD=X", "USDJPY": "USDJPY=X",
+        "USDCHF": "USDCHF=X", "AUDUSD": "AUDUSD=X", "USDCAD": "USDCAD=X",
+        "NZDUSD": "NZDUSD=X", "EURGBP": "EURGBP=X", "EURJPY": "EURJPY=X",
+        "GBPJPY": "GBPJPY=X",
+    }
+
+    # Direct alias hit returns the canonical symbol first.
+    if q in ALIASES:
+        canonical = ALIASES[q]
+        # Combine: canonical first, then any other substring matches.
+        rest = [t for t in universe if q in t.upper() and t != canonical]
+        return [canonical] + rest[:29]
+
+    # Substring match on the symbol (original behavior).
     matches = [t for t in universe if q in t.upper()]
     return matches[:30]
 

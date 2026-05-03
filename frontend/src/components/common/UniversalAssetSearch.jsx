@@ -247,7 +247,14 @@ const UniversalAssetSearch = ({
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
 
-  const fullIndex = useMemo(() => buildAssetIndex(categories), [categories]);
+  // Stabilize categories: parents pass an inline array literal each render,
+  // creating a new array reference every time → would cause buildAssetIndex
+  // to recompute and the debounced fetch effect to re-fire infinitely.
+  // Memoize on the JOINED string so referential equality holds across renders.
+  const categoriesKey = categories.join(',');
+  const stableCategories = useMemo(() => categories, [categoriesKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fullIndex = useMemo(() => buildAssetIndex(stableCategories), [stableCategories]);
 
   // Find the currently selected asset to render in the trigger.
   const selected = useMemo(
@@ -281,9 +288,7 @@ const UniversalAssetSearch = ({
     debounceRef.current = setTimeout(async () => {
       try {
         const data = await universalSearchAPI(q, 30);
-        // Filter by allowed categories
-        const filtered = (data || []).filter((r) => categories.includes(r.category));
-        // Map remote result shape into our asset shape
+        const filtered = (data || []).filter((r) => stableCategories.includes(r.category));
         setRemoteResults(filtered.map((r) => ({
           id: r.symbol,
           symbol: r.symbol,
@@ -297,7 +302,7 @@ const UniversalAssetSearch = ({
       setRemoteLoading(false);
     }, 200);
     return () => clearTimeout(debounceRef.current);
-  }, [query, open, categories]);
+  }, [query, open, stableCategories]);
 
   // Filter local + merge remote
   const filtered = useMemo(() => {
@@ -456,7 +461,7 @@ const UniversalAssetSearch = ({
       {/* Dropdown panel */}
       <div className="absolute top-full left-0 right-0 mt-1.5 bg-card border border-border rounded-lg shadow-xl shadow-black/50 z-50 max-h-[480px] flex flex-col overflow-hidden">
         {/* Category tabs */}
-        {categories.length > 1 && (
+        {stableCategories.length > 1 && (
           <div className="flex items-center gap-1 px-2 pt-2 pb-1 border-b border-border overflow-x-auto">
             <button
               type="button"
@@ -471,7 +476,7 @@ const UniversalAssetSearch = ({
               <Layers className="w-3 h-3 inline mr-1" />
               Todos
             </button>
-            {categories.map((cat) => {
+            {stableCategories.map((cat) => {
               const meta = CATEGORY_META[cat];
               if (!meta) return null;
               const Ic = meta.icon;
@@ -613,10 +618,18 @@ const UniversalAssetSearch = ({
             );
           })}
 
-          {filtered.length === 0 && !remoteLoading && (
-            <div className="px-4 py-6 text-center">
+          {/* Empty state: visible when no local + no remote results */}
+          {filtered.length === 0 && !remoteLoading && query.trim().length > 0 && (
+            <div
+              className="px-4 py-8 text-center"
+              data-testid={`${testId}-empty`}
+            >
+              <Search className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
               <p className="text-xs text-muted-foreground">
                 Sin resultados para "<span className="text-foreground font-bold">{query}</span>"
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">
+                Prueba con otro símbolo o cambia de categoría
               </p>
             </div>
           )}
