@@ -351,6 +351,7 @@ export const getChartPatterns = (t) => ({
       name: t('vTopName'),
       type: 'bearish',
       description: t('vTopDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/enj4wnk0_TECHO%20EN%20V.png',
       howToTrade: [
         t('vTopHTT_1'),
         t('vTopHTT_2'),
