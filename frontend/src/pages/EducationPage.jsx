@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
+import { useSEO } from '@/hooks/useSEO';
 import { getTradingRules, getRiskManagementConcepts, getChartPatterns, getCandlestickPatterns, getDowTheory, getTradingPsychology, getCapitalManagement, getTradingStrategies, getProbabilityStatistics } from '@/lib/tradingEducationContent';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
@@ -296,6 +297,12 @@ export default function EducationPage() {
   
   const isPremium = useIsPremium();
   const { isAuthenticated } = useAuthStore();
+
+  useSEO({
+    title: 'Centro de Aprendizaje — 42+ Patrones Gráficos y 27 Velas Japonesas',
+    description: 'Curso completo y gratuito: Reglas de Trading, Teoría de Dow, Psicología, Gestión de Capital, 42+ patrones gráficos (HCH, Triángulos, Cuñas, Diamantes) y 27 patrones de velas con detector en vivo.',
+    canonicalPath: '/education',
+  });
   
   // ✅ Get ALL translated content dynamically based on current language
   const TRADING_RULES = getTradingRules(t);

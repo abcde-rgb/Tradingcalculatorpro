@@ -7,6 +7,7 @@ import CalculatorPage from '@/components/options/CalculatorPage';
 import { useIsPremium } from '@/lib/premium';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
+import { useSEO } from '@/hooks/useSEO';
 
 /**
  * OptionsPage — integrates the full OPTIONS Calculator as a sub-section
@@ -16,6 +17,12 @@ export default function OptionsPage() {
   const isPremium = useIsPremium();
   const { isAuthenticated } = useAuthStore();
   const { t } = useTranslation();
+
+  useSEO({
+    title: 'Suite de Opciones — Black-Scholes, Greeks y Strategy Optimizer',
+    description: 'Calculadora profesional de opciones con Black-Scholes, Greeks (Delta, Gamma, Theta, Vega), payoff diagrams, Strategy Optimizer y datos en vivo de Yahoo Finance.',
+    canonicalPath: '/options',
+  });
 
   // Premium Gate - Block non-authenticated OR non-premium users
   if (!isPremium) {

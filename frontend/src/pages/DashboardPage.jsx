@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthStore, usePriceStore } from '@/lib/store';
 import { useIsPremium } from '@/lib/premium';
 import { useTranslation } from '@/lib/i18n';
+import { useSEO } from '@/hooks/useSEO';
 import { 
   Calculator, Target, Gauge, Wallet, FlaskConical, 
   Ruler, BookOpen, Scale, TrendingUp, DollarSign, BarChart3, Dice1, Hexagon
@@ -36,6 +37,12 @@ export default function DashboardPage() {
   const isPremium = useIsPremium();
   const [activeTab, setActiveTab] = useState('percentage');
   const [searchParams] = useSearchParams();
+
+  useSEO({
+    title: 'Dashboard — Calculadoras de Apalancamiento, Posición y Más',
+    description: '8 calculadoras profesionales de trading: apalancamiento, tamaño de posición, Spot, Lotaje, Fibonacci, Monte Carlo, Simulador Pro y porcentaje. Buscador universal con 250+ activos.',
+    canonicalPath: '/dashboard',
+  });
 
   // Allow deep-linking to a calculator from outside (e.g. /dashboard?tab=leverage).
   useEffect(() => {

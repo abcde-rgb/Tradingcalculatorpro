@@ -2,61 +2,115 @@
 <html lang="es">
     <head>
         <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
-        
-        <!-- SEO Meta Tags -->
-        <title>Trading Calculator PRO - Calculadoras y Simuladores de Trading Profesional</title>
-        <meta name="description" content="Herramienta profesional para traders: calculadoras de riesgo, simuladores Monte Carlo y Pro, análisis de Fibonacci, patrones de trading. Optimiza tu trading con herramientas avanzadas." />
-        <meta name="keywords" content="trading calculator, calculadora trading, simulador trading, monte carlo trading, fibonacci trading, análisis técnico, gestión de riesgo, apalancamiento, position size, risk management, trading tools, crypto trading" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="theme-color" content="#0a0a0a" />
+        <meta name="color-scheme" content="dark light" />
+
+        <!-- ─────────── Primary SEO ─────────── -->
+        <title>Trading Calculator PRO — Calculadoras, Opciones y Patrones de Trading | 8 Idiomas</title>
+        <meta
+            name="description"
+            content="Plataforma profesional para traders: calculadora de apalancamiento, position size, opciones (Black-Scholes + Greeks), simulador Monte Carlo, 42+ patrones gráficos y velas japonesas. Gratis. 8 idiomas."
+        />
+        <meta
+            name="keywords"
+            content="trading calculator, calculadora trading, simulador opciones, black scholes, greeks calculator, options strategy optimizer, monte carlo trading, fibonacci trading, position size calculator, gestión de riesgo, apalancamiento, patrones gráficos, hombro cabeza hombro, doble suelo, doji, martillo, vela japonesa, day trading, swing trading, crypto trading, forex trading, ETFs, CFDs, indices"
+        />
         <meta name="author" content="Trading Calculator PRO" />
-        <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://tradingcalculatorpro.com" />
-        
-        <!-- Open Graph Meta Tags (Facebook, LinkedIn) -->
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <meta name="googlebot" content="index, follow" />
+        <meta name="bingbot" content="index, follow" />
+        <link rel="canonical" href="https://tradingcalculatorpro.com/" />
+
+        <!-- ─────────── Multilingual hreflang ─────────── -->
+        <link rel="alternate" hreflang="es" href="https://tradingcalculatorpro.com/" />
+        <link rel="alternate" hreflang="en" href="https://tradingcalculatorpro.com/?lang=en" />
+        <link rel="alternate" hreflang="de" href="https://tradingcalculatorpro.com/?lang=de" />
+        <link rel="alternate" hreflang="fr" href="https://tradingcalculatorpro.com/?lang=fr" />
+        <link rel="alternate" hreflang="ru" href="https://tradingcalculatorpro.com/?lang=ru" />
+        <link rel="alternate" hreflang="zh" href="https://tradingcalculatorpro.com/?lang=zh" />
+        <link rel="alternate" hreflang="ja" href="https://tradingcalculatorpro.com/?lang=ja" />
+        <link rel="alternate" hreflang="ar" href="https://tradingcalculatorpro.com/?lang=ar" />
+        <link rel="alternate" hreflang="x-default" href="https://tradingcalculatorpro.com/" />
+
+        <!-- ─────────── Open Graph (Facebook, LinkedIn, WhatsApp) ─────────── -->
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://tradingcalculatorpro.com" />
-        <meta property="og:title" content="Trading Calculator PRO - Herramientas Profesionales para Traders" />
-        <meta property="og:description" content="Calculadoras avanzadas, simuladores profesionales y herramientas de análisis técnico. Mejora tus decisiones de trading con nuestra plataforma completa." />
+        <meta property="og:url" content="https://tradingcalculatorpro.com/" />
+        <meta property="og:title" content="Trading Calculator PRO — Calculadoras, Opciones y Patrones de Trading" />
+        <meta
+            property="og:description"
+            content="Calculadoras profesionales, simulador de opciones con Black-Scholes y Greeks, Monte Carlo, 42+ patrones de gráficos y velas japonesas. Gratis. 8 idiomas."
+        />
         <meta property="og:image" content="https://tradingcalculatorpro.com/og-image.jpg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Trading Calculator PRO — Dashboard con calculadoras, opciones y patrones" />
         <meta property="og:site_name" content="Trading Calculator PRO" />
         <meta property="og:locale" content="es_ES" />
-        
-        <!-- Twitter Card Meta Tags -->
+        <meta property="og:locale:alternate" content="en_US" />
+        <meta property="og:locale:alternate" content="de_DE" />
+        <meta property="og:locale:alternate" content="fr_FR" />
+        <meta property="og:locale:alternate" content="ru_RU" />
+        <meta property="og:locale:alternate" content="zh_CN" />
+        <meta property="og:locale:alternate" content="ja_JP" />
+        <meta property="og:locale:alternate" content="ar_SA" />
+
+        <!-- ─────────── Twitter / X Card ─────────── -->
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:url" content="https://tradingcalculatorpro.com" />
-        <meta name="twitter:title" content="Trading Calculator PRO - Herramientas Profesionales" />
-        <meta name="twitter:description" content="Calculadoras y simuladores avanzados para trading profesional. Monte Carlo, Fibonacci, gestión de riesgo y más." />
+        <meta name="twitter:url" content="https://tradingcalculatorpro.com/" />
+        <meta name="twitter:title" content="Trading Calculator PRO — Calculadoras de Trading Profesional" />
+        <meta
+            name="twitter:description"
+            content="Calculadoras, simulador de opciones (Black-Scholes), Monte Carlo, 42+ patrones gráficos y velas. Gratis. 8 idiomas."
+        />
         <meta name="twitter:image" content="https://tradingcalculatorpro.com/twitter-image.jpg" />
+        <meta name="twitter:image:alt" content="Trading Calculator PRO Dashboard" />
         <meta name="twitter:creator" content="@TradingCalcPro" />
-        
-        <!-- Additional SEO -->
+        <meta name="twitter:site" content="@TradingCalcPro" />
+
+        <!-- ─────────── Mobile / PWA ─────────── -->
         <meta name="application-name" content="Trading Calculator PRO" />
         <meta name="apple-mobile-web-app-title" content="TradingCalc PRO" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="format-detection" content="telephone=no" />
-        
+
+        <!-- ─────────── Performance hints ─────────── -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
-        
-        <!-- JSON-LD Structured Data for Rich Snippets -->
+        <link rel="dns-prefetch" href="https://customer-assets.emergentagent.com" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
+
+        <!-- ─────────── JSON-LD: WebApplication ─────────── -->
         <script type="application/ld+json">
         {
           "@context": "https://schema.org",
           "@type": "WebApplication",
           "name": "Trading Calculator PRO",
-          "description": "Plataforma profesional de calculadoras y simuladores para trading con herramientas avanzadas de análisis técnico y gestión de riesgo.",
-          "url": "https://tradingcalculatorpro.com",
+          "alternateName": "TradingCalc PRO",
+          "description": "Plataforma profesional con calculadoras de trading, simulador de opciones (Black-Scholes), Monte Carlo, 42+ patrones gráficos y velas japonesas en 8 idiomas.",
+          "url": "https://tradingcalculatorpro.com/",
           "applicationCategory": "FinanceApplication",
-          "operatingSystem": "Web Browser",
-          "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD",
-            "availability": "https://schema.org/InStock"
-          },
+          "applicationSubCategory": "TradingTools",
+          "operatingSystem": "Web Browser, iOS, Android",
+          "inLanguage": ["es", "en", "de", "fr", "ru", "zh", "ja", "ar"],
+          "offers": [
+            {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "name": "Free Plan",
+              "availability": "https://schema.org/InStock"
+            },
+            {
+              "@type": "Offer",
+              "price": "9.99",
+              "priceCurrency": "USD",
+              "name": "Premium Plan",
+              "availability": "https://schema.org/InStock"
+            }
+          ],
           "aggregateRating": {
             "@type": "AggregateRating",
             "ratingValue": "4.8",
@@ -65,24 +119,182 @@
             "worstRating": "1"
           },
           "featureList": [
-            "Calculadora de porcentaje y apalancamiento",
-            "Simulador Monte Carlo",
-            "Simulador Pro con múltiples fases",
+            "Calculadora de porcentaje y precio objetivo",
+            "Calculadora de apalancamiento (0x-100x)",
+            "Calculadora de tamaño de posición",
+            "Calculadora Spot",
+            "Calculadora de Lotaje (Forex)",
             "Calculadora de Fibonacci",
-            "Análisis de patrones de trading",
-            "Gestión de riesgo avanzada",
-            "Centro educativo con 23 patrones técnicos"
+            "Simulador Monte Carlo",
+            "Simulador Pro multi-fase",
+            "Suite de Opciones (Black-Scholes)",
+            "Greeks: Delta, Gamma, Theta, Vega, Rho",
+            "Strategy Optimizer estilo OptionStrat",
+            "Detector en vivo de patrones de velas",
+            "42+ patrones gráficos con guías operativas",
+            "27 patrones de velas japonesas con SVG",
+            "Centro educativo (Reglas, Dow, Psicología, Capital, Estrategias)",
+            "Buscador universal de activos (Crypto, Acciones, ETFs, Índices, Forex, Commodities)",
+            "AI Trade Coach con GPT-4",
+            "Multilingüe (8 idiomas)"
           ],
-          "browserRequirements": "Requires JavaScript. Requires HTML5."
+          "browserRequirements": "Requires JavaScript. Requires HTML5.",
+          "screenshot": "https://tradingcalculatorpro.com/og-image.jpg"
         }
         </script>
-        
+
+        <!-- ─────────── JSON-LD: WebSite + SiteSearch ─────────── -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "Trading Calculator PRO",
+          "url": "https://tradingcalculatorpro.com/",
+          "description": "Calculadoras y herramientas profesionales para traders.",
+          "inLanguage": ["es", "en", "de", "fr", "ru", "zh", "ja", "ar"],
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://tradingcalculatorpro.com/education?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
+        </script>
+
+        <!-- ─────────── JSON-LD: Organization ─────────── -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Trading Calculator PRO",
+          "url": "https://tradingcalculatorpro.com/",
+          "logo": "https://tradingcalculatorpro.com/logo.png",
+          "sameAs": [
+            "https://twitter.com/TradingCalcPro",
+            "https://www.linkedin.com/company/tradingcalculatorpro",
+            "https://www.youtube.com/@tradingcalculatorpro"
+          ],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "Customer Support",
+            "email": "support@tradingcalculatorpro.com",
+            "availableLanguage": ["Spanish", "English", "German", "French", "Russian", "Chinese", "Japanese", "Arabic"]
+          }
+        }
+        </script>
+
+        <!-- ─────────── JSON-LD: FAQ (rich snippet) ─────────── -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "¿Trading Calculator PRO es gratis?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Sí, todas las calculadoras básicas son gratuitas. El plan Premium ($9.99/mes) desbloquea opciones avanzadas, AI Trade Coach, Strategy Optimizer y más."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Qué tipos de cálculos puedo hacer?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Incluye calculadoras de porcentaje, precio objetivo, apalancamiento, tamaño de posición, Spot, Lotaje Forex, Fibonacci, Monte Carlo, Simulador Pro y suite completa de opciones con Black-Scholes y Greeks."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Qué activos soporta el buscador?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Más de 250 activos: criptomonedas (BTC, ETH, SOL...), acciones (AAPL, NVDA, TSLA...), ETFs (SPY, QQQ, ARKK...), índices (S&P 500, NASDAQ, DAX, Nikkei), forex (EUR/USD, GBP/USD...) y commodities (oro, plata, petróleo)."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Cuántos patrones de trading incluye el centro educativo?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "42+ patrones gráficos clásicos (Hombro-Cabeza-Hombro, Triángulos, Cuñas, Diamantes, Doble Suelo/Techo, Ensanchamientos...) y 12+ patrones de velas japonesas (Doji, Martillo, Estrella, Envolventes, Tres Cuervos...)."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿En qué idiomas está disponible?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "8 idiomas: español, inglés, alemán, francés, ruso, chino, japonés y árabe."
+              }
+            }
+          ]
+        }
+        </script>
+
+        <!-- ─────────── JSON-LD: Course (Education Center) ─────────── -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "Course",
+          "name": "Centro de Aprendizaje de Trading — Trading Calculator PRO",
+          "description": "Curso gratuito completo: Reglas de Trading, Teoría de Dow, Psicología, Gestión de Capital, Estrategias, Probabilidad y Estadística, 42+ Patrones Gráficos y 27 Patrones de Velas con detector en vivo.",
+          "provider": {
+            "@type": "Organization",
+            "name": "Trading Calculator PRO",
+            "sameAs": "https://tradingcalculatorpro.com/"
+          },
+          "url": "https://tradingcalculatorpro.com/education",
+          "educationalLevel": "Beginner to Advanced",
+          "inLanguage": ["es", "en", "de", "fr", "ru", "zh", "ja", "ar"],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "category": "Free"
+          },
+          "hasCourseInstance": {
+            "@type": "CourseInstance",
+            "courseMode": "online",
+            "courseWorkload": "PT10H"
+          }
+        }
+        </script>
+
+        <!-- ─────────── JSON-LD: BreadcrumbList ─────────── -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Inicio",      "item": "https://tradingcalculatorpro.com/" },
+            { "@type": "ListItem", "position": 2, "name": "Dashboard",   "item": "https://tradingcalculatorpro.com/dashboard" },
+            { "@type": "ListItem", "position": 3, "name": "Opciones",    "item": "https://tradingcalculatorpro.com/options" },
+            { "@type": "ListItem", "position": 4, "name": "Aprendizaje", "item": "https://tradingcalculatorpro.com/education" },
+            { "@type": "ListItem", "position": 5, "name": "Precios",     "item": "https://tradingcalculatorpro.com/pricing" }
+          ]
+        }
+        </script>
+
         <!-- Emergent Scripts -->
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
     </head>
     <body>
-        <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicación de trading profesional.</noscript>
+        <noscript>
+            <h1>Trading Calculator PRO — Calculadoras y Simuladores de Trading Profesional</h1>
+            <p>Necesitas habilitar JavaScript para usar nuestra plataforma de trading.</p>
+            <p>Trading Calculator PRO ofrece calculadoras de apalancamiento, tamaño de posición, opciones (Black-Scholes), Monte Carlo, Fibonacci, y un centro educativo con 42+ patrones gráficos y 27 patrones de velas japonesas en 8 idiomas.</p>
+            <ul>
+                <li><a href="/dashboard">Dashboard con calculadoras</a></li>
+                <li><a href="/options">Suite de Opciones</a></li>
+                <li><a href="/education">Centro de Aprendizaje</a></li>
+                <li><a href="/pricing">Precios</a></li>
+            </ul>
+        </noscript>
         <div id="root"></div>
         <a
             id="emergent-badge"
@@ -193,7 +405,7 @@
             })(document, window.posthog || []);
             posthog.init("phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs", {
                 api_host: "https://us.i.posthog.com",
-                person_profiles: "identified_only", // or 'always' to create profiles for anonymous users as well,
+                person_profiles: "identified_only",
                 session_recording: {
                     recordCrossOriginIframes: true,
                     capturePerformance: false,

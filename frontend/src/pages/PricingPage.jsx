@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
+import { useSEO } from '@/hooks/useSEO';
 import { toast } from 'sonner';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -49,6 +50,12 @@ export default function PricingPage() {
   const [selectedPlan, setSelectedPlan] = useState(searchParams.get('plan') || 'annual');
   const [selectedPayment, setSelectedPayment] = useState('card');
   const [isLoading, setIsLoading] = useState(false);
+
+  useSEO({
+    title: 'Precios — Plan Free y Premium para Traders Profesionales',
+    description: 'Plan gratuito con calculadoras básicas y plan Premium ($9.99/mes) con Suite de Opciones avanzada, AI Trade Coach, Strategy Optimizer y centro educativo completo.',
+    canonicalPath: '/pricing',
+  });
 
   useEffect(() => {
     const urlPlan = searchParams.get('plan');
