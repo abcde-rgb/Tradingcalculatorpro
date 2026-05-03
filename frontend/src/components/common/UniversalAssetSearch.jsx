@@ -314,13 +314,34 @@ const UniversalAssetSearch = ({
         (a) => a.symbol.toUpperCase().includes(q) || (a.name || '').toUpperCase().includes(q)
       );
     }
-    // Merge backend results, dedup by id
-    const localIds = new Set(pool.map((a) => a.id));
+    // Merge backend results, dedup by id+symbol
+    const localKeys = new Set();
+    pool.forEach((a) => { localKeys.add(a.id); localKeys.add(a.symbol); });
     const remoteFiltered = activeCategory === 'all'
       ? remoteResults
       : remoteResults.filter((r) => r.category === activeCategory);
-    const extras = remoteFiltered.filter((r) => !localIds.has(r.id));
-    return [...pool, ...extras];
+    const extras = remoteFiltered.filter((r) => !localKeys.has(r.id) && !localKeys.has(r.symbol));
+
+    // For exact-symbol queries (<= 8 chars), promote any result whose symbol
+    // matches the query EXACTLY to the top — this gives canonical aliases
+    // from the backend (BTC, NDX, XAUUSD, GOLD, DAX...) priority over local
+    // substring matches.
+    const merged = [...pool, ...extras];
+    if (q && q.length <= 8) {
+      merged.sort((a, b) => {
+        const aExact = a.symbol.toUpperCase() === q || a.id.toUpperCase() === q;
+        const bExact = b.symbol.toUpperCase() === q || b.id.toUpperCase() === q;
+        if (aExact && !bExact) return -1;
+        if (bExact && !aExact) return 1;
+        // Then prefer symbols that START with the query.
+        const aStarts = a.symbol.toUpperCase().startsWith(q);
+        const bStarts = b.symbol.toUpperCase().startsWith(q);
+        if (aStarts && !bStarts) return -1;
+        if (bStarts && !aStarts) return 1;
+        return 0;
+      });
+    }
+    return merged;
   }, [fullIndex, query, activeCategory, remoteResults]);
 
   // Group by category for display.
