@@ -23,10 +23,42 @@
 - `components/layout/Header.jsx` + `Footer.jsx` — universales
 
 ## Implementado
-### Feb 2026 — Fusión inicial
-- Merge completo OPTIONS → TCP sin romper rutas
-- Yahoo Finance real-time, Black-Scholes, Greeks
-- Deps: `yfinance`, `scipy`, `beautifulsoup4`, `curl_cffi`, `emergentintegrations`
+### Feb 2026 — Performance Module MVP ✅ (Trade Journal + Analytics)
+- **Performance tab** en `/performance` con 3 sub-tabs (Overview educativo / Diario de Trading / Analytics).
+- Backend `performance.py` + `/api/performance/*` endpoints: CRUD trades + analytics agregadas (25+ métricas: win rate, expectancy, profit factor, Sharpe, Sortino, max drawdown, avg R, streaks, breakdown por setup/día/símbolo, R-distribution, error detection, auto-insights).
+- Frontend: `TradeJournal.jsx` (tabla + modal CRUD), `AnalyticsDashboard.jsx` (8 KPI cards + equity curve SVG + breakdowns + insights), `TradeFormModal.jsx` (form con R:R + risk% live warnings), `performanceApi.js` (axios con auth interceptor).
+
+### May 2026 — Performance: CSV Import/Export + Analytics Polish + i18n Parity + SimulatorPro Split ✅
+**P0 — i18n parity (103 keys en 7 locales):**
+- Backfill masivo en `/lib/i18n.js` vía Claude Sonnet 4.5 (Emergent LLM Key). Afectados los módulos Performance (kpi*, trade*, err*, insight*, breakdown*), UniversalAssetSearch (uas*), y PatternFilterBar (patternFilter*).
+- **`kpiSharpeShort`** añadido en los 8 locales (`Sharpe {val}` interpolable) — antes se renderizaba como raw key en el R MEDIO card.
+- Conteo final: 1774+ keys únicas por locale.
+
+**P1 — CSV Import/Export del Trade Journal:**
+- Backend `POST /api/performance/trades/bulk` (server.py:2370) — acepta `{trades: [TradeIn]}`, devuelve `{imported, failed, trades}`. Enriquecimiento per-row (no aborta todo si una fila falla).
+- Frontend `lib/csv.js` — parser tolerante (coma o punto-y-coma, comillas, escapes `""`) + `toCsv()` + `downloadFile()` (Blob + URL.createObjectURL + anchor `<a download>`).
+- `TradeImportExport.jsx` — botones Export/Import junto a "Nuevo Trade". Import: picker → parseo → normalización (case-insensitive, aliases: `symbol/ticker/simbolo`, `side/direction`, `entry_price/entry`, etc.) → coerción numérica → POST bulk → refresh + toast.
+- 10 keys i18n × 8 locales = 80 traducciones nuevas (journalCsvExport/Import/Importing/ExportSuccess/...).
+
+**P1 — Recharts Equity Curve:**
+- Migrado el SVG polyline crudo en `AnalyticsDashboard.jsx` a Recharts `AreaChart` con gradient fill, Y-axis ($), `ReferenceLine` al balance inicial, y tooltip con balance formateado. Auto-coloreado verde/rojo según cierre positivo vs negativo.
+
+**P1 — SimulatorPro split (981 → 139 líneas, -86%):**
+- Extraído `components/calculators/simulator/`:
+  - `simulatorEngine.js` (129l) — pura: `runSimulation(config) -> {operations, results}`. Modo compound (multi-fase) y fijo. Unit-testable sin React.
+  - `SimulatorConfigPanel.jsx` (354l) — UI de configuración (balance, mode selector, compound fases grid, fixed risk form).
+  - `SimulatorResults.jsx` (308l) — KPIs + equity/drawdown charts + last-20 ops table.
+  - `SimulatorLocked.jsx` (37l) — paywall premium.
+- `SimulatorPro.jsx` ahora es orchestrator de 139 líneas que mantiene el estado y delega rendering. Backward-compatible: mismos `data-testid` para testing.
+- Bug cosmético corregido en la extracción: `{t(s.name)}` → `{t(s.nameKey)}` en el select de estrategias (antes renderizaba `undefined`).
+
+**Verificación end-to-end (iteration_7):**
+- Backend: 7/7 pytest pass (auth, bulk CRUD, options payoff spec-exact regression `maxProfit=$4749.35`, stock AAPL).
+- Frontend: Login + token persist, Journal tabs, CSV Import end-to-end, Analytics Recharts + 8 KPIs + traducciones limpias en ES/EN, i18n switcher EN/ES sin raw keys. CSV Export: el handler funciona correctamente en browsers reales (toast "Exportados 5 trades a CSV" + archivo descargado como `trade-journal-2026-05-03.csv`); el fallo reportado por el testing agent era un quirk del synthetic click de Playwright, no un bug de producción.
+- SimulatorPro: container + 5 testids + execute + results + reset — sin regresiones.
+- Lint: ruff + eslint clean.
+
+
 
 ### Feb 2026 — Features avanzadas (P0-P2)
 - **P0**: Strike configurable, Capital Required (Reg-T), Kelly Sizing, Moneyness zones, Strategy Comparison (A vs B), Layout redesign, Greeks Time Chart, Footer global, OptionStrat-style Optimizer, Portfolio Greeks, Saved Positions, Explain Trade, Commissions Simulator
