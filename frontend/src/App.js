@@ -10,6 +10,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import EducationPage from "@/pages/EducationPage";
 import SubscriptionPage from "@/pages/SubscriptionPage";
 import OptionsPage from "@/pages/OptionsPage";
+import PerformancePage from "@/pages/PerformancePage";
 import { LoginPage, RegisterPage } from "@/pages/AuthPages";
 import { PaymentSuccessPage, PaymentCancelPage } from "@/pages/PaymentPages";
 
@@ -25,6 +26,7 @@ function App() {
           <Route path="/education" element={<EducationPage />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/options" element={<OptionsPage />} />
+          <Route path="/performance" element={<PerformancePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/payment/success" element={<PaymentSuccessPage />} />
