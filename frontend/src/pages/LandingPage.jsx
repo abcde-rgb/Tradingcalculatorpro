@@ -6,7 +6,8 @@ import {
   CandlestickChart, History, Bell, BookOpen, Wallet, Target, 
   Scale, FlaskConical, BarChart3, Globe, Moon, Sun, 
   LineChart, PieChart, DollarSign, Percent, Users, Award,
-  ChevronRight, Play, Star, Briefcase, GraduationCap, ChevronDown
+  ChevronRight, Play, Star, Briefcase, GraduationCap, ChevronDown,
+  Sigma, MessageSquare, Sparkles, Clock, Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -30,11 +31,13 @@ const TRANSITION_STAGGER_MD = { delay: 0.1 };
 // Features will use t() in component  
 const featuresData = [
   { icon: Calculator, key: 'professionalCalculators', color: 'bg-green-500/10 text-green-500' },
+  { icon: Sigma, key: 'optionsSuite', color: 'bg-orange-500/10 text-orange-500' },
   { icon: CandlestickChart, key: 'tradingViewCharts', color: 'bg-blue-500/10 text-blue-500' },
   { icon: BookOpen, key: 'tradingJournal', color: 'bg-purple-500/10 text-purple-500' },
   { icon: PieChart, key: 'portfolioManagement', color: 'bg-yellow-500/10 text-yellow-500' },
   { icon: Bell, key: 'emailAlerts', color: 'bg-red-500/10 text-red-500' },
   { icon: FlaskConical, key: 'monteCarloSimulator', color: 'bg-cyan-500/10 text-cyan-500' },
+  { icon: GraduationCap, key: 'educationCenter', color: 'bg-pink-500/10 text-pink-500' },
 ];
 
 // Asset types will use t() in component
@@ -55,6 +58,15 @@ const calculatorsData = [
   { key: 'fibonacciCalculator' },
   { key: 'targetPriceCalculator' },
   { key: 'percentRequiredCalculator' },
+  { key: 'optionsCalculator' },
+  { key: 'monteCarloCalculator' },
+  { key: 'simulatorProCalculator' },
+];
+
+// Coming soon — features being built (no dates promised, just teaser)
+const comingSoonData = [
+  { icon: MessageSquare, key: 'comingSoonForum' },
+  { icon: Briefcase, key: 'comingSoonPortfolios' },
 ];
 
 // Discipline features will use t() in component
@@ -155,21 +167,27 @@ export default function LandingPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
               {[
-                { value: '10K+', labelKey: 'activeTraders', delay: 0.2 },
-                { value: '1M+', labelKey: 'calculationsPerformed', delay: 0.3 },
-                { value: '50+', labelKey: 'supportedAssets', delay: 0.4 },
-                { value: '99.9%', labelKey: 'uptime', delay: 0.5 }
-              ].map((stat) => (
-                <motion.div
-                  key={stat.labelKey}
-                  {...MOTION_FADE_UP}
-                  transition={{ delay: stat.delay }}
-                  className="text-center"
-                >
-                  <div className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">{t(stat.labelKey)}</div>
-                </motion.div>
-              ))}
+                { value: '24/7', labelKey: 'statsAvailable',  delay: 0.2, icon: Clock },
+                { value: '250+', labelKey: 'statsAssets',     delay: 0.3, icon: Layers },
+                { value: '8',    labelKey: 'statsLanguages',  delay: 0.4, icon: Globe },
+                { value: '99.9%',labelKey: 'statsUptime',     delay: 0.5, icon: Zap },
+              ].map((stat) => {
+                const Ic = stat.icon;
+                return (
+                  <motion.div
+                    key={stat.labelKey}
+                    {...MOTION_FADE_UP}
+                    transition={{ delay: stat.delay }}
+                    className="text-center"
+                  >
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <Ic className="w-5 h-5 text-primary" />
+                      <div className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">{t(stat.labelKey)}</div>
+                  </motion.div>
+                );
+              })}
             </div>
           </motion.div>
         </div>
@@ -261,6 +279,59 @@ export default function LandingPage() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Coming Soon — Roadmap teaser */}
+      <section className="py-20 px-4 bg-gradient-to-b from-background via-background to-card/30 relative overflow-hidden">
+        {/* Subtle bg pattern */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+          backgroundImage: 'radial-gradient(circle at 30% 50%, currentColor 1px, transparent 1px)',
+          backgroundSize: '32px 32px'
+        }} />
+        <div className="max-w-7xl mx-auto relative">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full bg-primary/10 border border-primary/30">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-primary">
+                {t('comingSoonBadge')}
+              </span>
+            </div>
+            <h2 className="font-unbounded text-3xl md:text-4xl font-bold mb-4">{t('comingSoonTitle')}</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {t('comingSoonDesc')}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {comingSoonData.map((item) => {
+              const Ic = item.icon;
+              return (
+                <motion.div
+                  key={item.key}
+                  {...MOTION_FADE_UP_VIEW}
+                  transition={TRANSITION_STAGGER_MD}
+                  className="relative p-6 rounded-xl bg-card border border-border hover:border-primary/40 transition-all group overflow-hidden"
+                >
+                  {/* Soon badge */}
+                  <div className="absolute top-4 right-4 px-2 py-0.5 rounded bg-primary/10 border border-primary/30">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-primary">
+                      {t('comingSoonBadgeShort')}
+                    </span>
+                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                    <Ic className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="font-bold text-xl mb-2">{t(item.key)}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{t(`${item.key}Desc`)}</p>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground mt-8 italic">
+            {t('comingSoonFooter')}
+          </p>
         </div>
       </section>
 
