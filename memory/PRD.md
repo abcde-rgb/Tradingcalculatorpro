@@ -434,5 +434,47 @@
 - Excel RTD Add-in / API pública B2B
 - Gating premium por feature
 
+## 🔌 Integraciones externas PENDIENTES (esperando credenciales del usuario)
+
+> Todas estas integraciones están planificadas y se activarán cuando el usuario
+> proporcione sus credenciales / API keys. Hasta entonces no se implementan
+> para evitar placeholders en producción.
+
+### Analytics & SEO
+- **Google Analytics 4** — Esperando `G-XXXXXXXXXX` (Measurement ID).
+  Acción usuario: crear propiedad en https://analytics.google.com
+- **Google Search Console** — Meta tag listo en `index.html`, esperando código `google-site-verification`.
+  Acción usuario: verificar dominio en https://search.google.com/search-console
+- **Google Tag Manager** (opcional) — Esperando `GTM-XXXXXXX`.
+  Acción usuario: crear contenedor en https://tagmanager.google.com
+- **Bing Webmaster Tools** — Meta tag `msvalidate.01` listo.
+  Acción usuario: verificar en https://www.bing.com/webmasters
+- **Yandex Webmaster** — Meta tag `yandex-verification` listo.
+
+### Pagos
+- **Stripe** — base ya integrada. Falta probar con keys reales del usuario.
+  Acción usuario: dar `STRIPE_SECRET_KEY` y `STRIPE_PUBLISHABLE_KEY` (modo prod).
+- **PayPal** — pendiente integración. Necesario `CLIENT_ID` + `CLIENT_SECRET`.
+  Acción usuario: crear app en https://developer.paypal.com
+- **Coinbase Commerce** (pagos crypto) — pendiente integración. Necesario `API_KEY`.
+  Acción usuario: alta en https://commerce.coinbase.com
+
+### Credibilidad / Reseñas
+- **Trustpilot** — widget para LandingPage. Necesario business URL slug.
+  Acción usuario: crear cuenta en https://business.trustpilot.com
+- **Microsoft Clarity** (heatmaps + grabaciones) — opcional, project ID.
+  Acción usuario: alta en https://clarity.microsoft.com
+- **Cloudflare** (CDN + WAF) — guía manual. Solo requiere cambiar nameservers.
+
+### Datos de mercado (mejoras opcionales sobre yfinance)
+- **FRED** — tipo libre de riesgo real para Black-Scholes. Free key.
+- **Frankfurter** — tasas forex BCE. Sin key.
+- **CryptoPanic** — feed de noticias crypto. Free key.
+- **Finnhub / TwelveData** — earnings calendar real, OHLCV histórico.
+
+### Branding / Compartir
+- **Imagen `og-image.jpg` real (1200×630)** — falta crear el archivo en `/public`.
+  Actualmente `index.html` apunta a `/og-image.jpg` que no existe.
+
 ## Credenciales
 - Demo user TCP: `demo@btccalc.pro` / `1234` (lifetime premium)
