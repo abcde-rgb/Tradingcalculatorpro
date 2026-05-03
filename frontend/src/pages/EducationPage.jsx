@@ -289,6 +289,8 @@ export default function EducationPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [patternQuery, setPatternQuery] = useState('');
   const [patternTypeFilter, setPatternTypeFilter] = useState('all');
+  const [candleQuery, setCandleQuery] = useState('');
+  const [candleTypeFilter, setCandleTypeFilter] = useState('all');
   const { t } = useTranslation();
   
   const isPremium = useIsPremium();
@@ -1198,56 +1200,168 @@ export default function EducationPage() {
               {/* Live pattern detector — scans real Yahoo Finance OHLC */}
               <LivePatternDetector />
 
-              {/* Bullish */}
-              <div>
-                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-green-500" />
-                  {t('bullishPatterns')}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {CANDLESTICK_PATTERNS.bullish.map(pattern => (
-                    <PatternCard
-                      key={pattern.id}
-                      pattern={pattern}
-                      onClick={setSelectedPattern}
-                    />
-                  ))}
-                </div>
-              </div>
+              {/* Quick search + type filter */}
+              {(() => {
+                const q = candleQuery.trim().toLowerCase();
+                const matches = (p) => {
+                  if (candleTypeFilter !== 'all') {
+                    const wantType = candleTypeFilter === 'bullish' ? 'bullish'
+                                    : candleTypeFilter === 'bearish' ? 'bearish'
+                                    : 'neutral';
+                    if (p.type !== wantType) return false;
+                  }
+                  if (!q) return true;
+                  return (
+                    (p.name || '').toLowerCase().includes(q) ||
+                    (p.description || '').toLowerCase().includes(q)
+                  );
+                };
+                const totalAll = CANDLESTICK_PATTERNS.bullish.length
+                              + CANDLESTICK_PATTERNS.bearish.length
+                              + CANDLESTICK_PATTERNS.neutral.length;
+                const totalShown = CANDLESTICK_PATTERNS.bullish.filter(matches).length
+                                + CANDLESTICK_PATTERNS.bearish.filter(matches).length
+                                + CANDLESTICK_PATTERNS.neutral.filter(matches).length;
+                return (
+                  <div className="bg-card border border-border rounded-lg p-4 space-y-3" data-testid="candles-search-bar">
+                    <div className="relative flex items-center bg-muted border border-border rounded-md px-3 py-2 focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15 transition-all">
+                      <Search className="w-4 h-4 text-muted-foreground mr-2 flex-shrink-0" />
+                      <input
+                        type="text"
+                        value={candleQuery}
+                        onChange={(e) => setCandleQuery(e.target.value)}
+                        placeholder={t('patternsSearchPlaceholder')}
+                        className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                        autoComplete="off"
+                        spellCheck={false}
+                        data-testid="candles-search-input"
+                      />
+                      {candleQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setCandleQuery('')}
+                          className="p-0.5 rounded hover:bg-border transition-colors"
+                          aria-label="Clear"
+                          data-testid="candles-search-clear"
+                        >
+                          <X className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center flex-wrap gap-1.5">
+                      <Filter className="w-3.5 h-3.5 text-muted-foreground mr-1" />
+                      {[
+                        { id: 'all',     label: t('patternFilterAll'),     color: 'text-foreground' },
+                        { id: 'bullish', label: t('patternFilterBullish'), color: 'text-[#22c55e]', icon: TrendingUp },
+                        { id: 'bearish', label: t('patternFilterBearish'), color: 'text-[#ef4444]', icon: TrendingDown },
+                        { id: 'neutral', label: t('patternFilterNeutral'), color: 'text-[#eab308]', icon: AlertTriangle },
+                      ].map((opt) => {
+                        const Ic = opt.icon;
+                        const active = candleTypeFilter === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setCandleTypeFilter(opt.id)}
+                            className={`px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider transition-colors flex items-center gap-1 ${
+                              active
+                                ? 'bg-primary/15 text-primary border border-primary/30'
+                                : 'bg-muted text-muted-foreground hover:text-foreground border border-border'
+                            }`}
+                            data-testid={`candles-filter-${opt.id}`}
+                          >
+                            {Ic && <Ic className={`w-3 h-3 ${active ? 'text-primary' : opt.color}`} />}
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                      <span className="ml-auto text-[11px] text-muted-foreground" data-testid="candles-results-count">
+                        {totalShown} / {totalAll} {totalShown === 1 ? t('patternsResultSingular') : t('patternsResultPlural')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
 
-              {/* Bearish */}
-              <div>
-                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <TrendingDown className="w-5 h-5 text-red-500" />
-                  {t('bearishPatterns')}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {CANDLESTICK_PATTERNS.bearish.map(pattern => (
-                    <PatternCard
-                      key={pattern.id}
-                      pattern={pattern}
-                      onClick={setSelectedPattern}
-                    />
-                  ))}
-                </div>
-              </div>
+              {(() => {
+                const q = candleQuery.trim().toLowerCase();
+                const matches = (p) => {
+                  if (candleTypeFilter !== 'all') {
+                    const wantType = candleTypeFilter === 'bullish' ? 'bullish'
+                                    : candleTypeFilter === 'bearish' ? 'bearish'
+                                    : 'neutral';
+                    if (p.type !== wantType) return false;
+                  }
+                  if (!q) return true;
+                  return (
+                    (p.name || '').toLowerCase().includes(q) ||
+                    (p.description || '').toLowerCase().includes(q)
+                  );
+                };
+                const bull = CANDLESTICK_PATTERNS.bullish.filter(matches);
+                const bear = CANDLESTICK_PATTERNS.bearish.filter(matches);
+                const neut = CANDLESTICK_PATTERNS.neutral.filter(matches);
+                if (bull.length === 0 && bear.length === 0 && neut.length === 0) {
+                  return (
+                    <div className="text-center py-12 text-muted-foreground" data-testid="candles-empty">
+                      <p className="text-sm">
+                        {t('patternsNoResults')} {candleQuery && <>"<span className="text-foreground font-bold">{candleQuery}</span>"</>}
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <>
+                    {/* Bullish */}
+                    {bull.length > 0 && (
+                      <div>
+                        <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-green-500" />
+                          {t('bullishPatterns')}
+                          <span className="text-xs text-muted-foreground font-normal ml-1">({bull.length})</span>
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {bull.map(pattern => (
+                            <PatternCard key={pattern.id} pattern={pattern} onClick={setSelectedPattern} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-              {/* Neutral */}
-              <div>
-                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                  {t('indecisionPatterns')}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {CANDLESTICK_PATTERNS.neutral.map(pattern => (
-                    <PatternCard
-                      key={pattern.id}
-                      pattern={pattern}
-                      onClick={setSelectedPattern}
-                    />
-                  ))}
-                </div>
-              </div>
+                    {/* Bearish */}
+                    {bear.length > 0 && (
+                      <div>
+                        <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                          <TrendingDown className="w-5 h-5 text-red-500" />
+                          {t('bearishPatterns')}
+                          <span className="text-xs text-muted-foreground font-normal ml-1">({bear.length})</span>
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {bear.map(pattern => (
+                            <PatternCard key={pattern.id} pattern={pattern} onClick={setSelectedPattern} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Neutral */}
+                    {neut.length > 0 && (
+                      <div>
+                        <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                          <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                          {t('indecisionPatterns')}
+                          <span className="text-xs text-muted-foreground font-normal ml-1">({neut.length})</span>
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {neut.map(pattern => (
+                            <PatternCard key={pattern.id} pattern={pattern} onClick={setSelectedPattern} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </TabsContent>
 
             {/* Risk Management */}
