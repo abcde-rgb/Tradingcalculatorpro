@@ -148,6 +148,7 @@ export const getChartPatterns = (t) => ({
       name: t('doubleTopName'),
       type: 'bearish',
       description: t('doubleTopDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/raa08hc3_DOBLE%20TECHO.png',
       howToTrade: [
         t('htt_identificarDosMaximosSimilar_8da8788c'),
         t('htt_confirmarConVolumenDecrecien_e341216e'),
@@ -318,6 +319,7 @@ export const getChartPatterns = (t) => ({
       name: t('bullishDiamondName'),
       type: 'bullish',
       description: t('bullishDiamondDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/vgzdj1ay_DIAMANTE%20ALCISTA.png',
       howToTrade: [
         t('bullishDiamondHTT_1'),
         t('bullishDiamondHTT_2'),
@@ -333,6 +335,7 @@ export const getChartPatterns = (t) => ({
       name: t('bearishDiamondName'),
       type: 'bearish',
       description: t('bearishDiamondDesc'),
+      image: 'https://customer-assets.emergentagent.com/job_unified-site-1/artifacts/qf6raoaj_DIAMANTE%20BAJISTA.png',
       howToTrade: [
         t('bearishDiamondHTT_1'),
         t('bearishDiamondHTT_2'),
