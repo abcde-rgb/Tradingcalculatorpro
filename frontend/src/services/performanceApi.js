@@ -16,6 +16,20 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
+// On 401, clear auth state silently — avoids stale-token toast loops.
+// Pages already render <AuthRequired /> when !isAuthenticated.
+client.interceptors.response.use(
+  (r) => r,
+  (err) => {
+    if (err?.response?.status === 401) {
+      try {
+        useAuthStore.getState().logout?.();
+      } catch { /* no-op */ }
+    }
+    return Promise.reject(err);
+  },
+);
+
 /**
  * Performance / Trade Journal API client. All endpoints require auth.
  */

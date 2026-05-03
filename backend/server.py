@@ -1866,7 +1866,7 @@ class SavePositionRequest(BaseModel):
 @api_router.post("/options/positions/save")
 async def save_position(req: SavePositionRequest, user=Depends(get_current_user)):
     if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+        raise HTTPException(status_code=401, detail="Se requiere autenticación")
     position = {
         "id": str(uuid.uuid4()),
         "user_id": user["id"],
@@ -1884,7 +1884,7 @@ async def save_position(req: SavePositionRequest, user=Depends(get_current_user)
 @api_router.get("/options/positions")
 async def list_positions(user=Depends(get_current_user)):
     if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+        raise HTTPException(status_code=401, detail="Se requiere autenticación")
     cursor = db.saved_positions.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1)
     positions = await cursor.to_list(length=100)
     return {"positions": positions}
@@ -1893,7 +1893,7 @@ async def list_positions(user=Depends(get_current_user)):
 @api_router.delete("/options/positions/{position_id}")
 async def delete_position(position_id: str, user=Depends(get_current_user)):
     if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+        raise HTTPException(status_code=401, detail="Se requiere autenticación")
     result = await db.saved_positions.delete_one({"id": position_id, "user_id": user["id"]})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Position not found")
@@ -1904,7 +1904,7 @@ async def delete_position(position_id: str, user=Depends(get_current_user)):
 async def portfolio_greeks(user=Depends(get_current_user)):
     """Aggregate Greeks across ALL saved positions using current spot prices."""
     if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+        raise HTTPException(status_code=401, detail="Se requiere autenticación")
     cursor = db.saved_positions.find({"user_id": user["id"]}, {"_id": 0})
     positions = await cursor.to_list(length=100)
     agg = {"delta": 0.0, "gamma": 0.0, "theta": 0.0, "vega": 0.0, "rho": 0.0}
@@ -2354,9 +2354,7 @@ def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None) -> dict
 
 
 @api_router.post("/performance/trades")
-async def perf_create_trade(payload: TradeIn, user=Depends(get_current_user)):
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+async def perf_create_trade(payload: TradeIn, user: dict = Depends(require_user)):
     user_id = user["id"]
     prev = await trades_for_user(db, user_id, limit=50)
     doc = make_trade_doc(payload.model_dump(), user_id)
@@ -2369,13 +2367,11 @@ async def perf_create_trade(payload: TradeIn, user=Depends(get_current_user)):
 
 @api_router.get("/performance/trades")
 async def perf_list_trades(
-    user=Depends(get_current_user),
+    user: dict = Depends(require_user),
     limit: int = 100,
     status: Optional[str] = None,
     symbol: Optional[str] = None,
 ):
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
     query: Dict[str, Any] = {"user_id": user["id"]}
     if status:
         query["status"] = status
@@ -2394,9 +2390,7 @@ async def perf_list_trades(
 
 
 @api_router.get("/performance/trades/{trade_id}")
-async def perf_get_trade(trade_id: str, user=Depends(get_current_user)):
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+async def perf_get_trade(trade_id: str, user: dict = Depends(require_user)):
     t = await db.trades.find_one(
         {"id": trade_id, "user_id": user["id"]},
         {"_id": 0},
@@ -2408,9 +2402,7 @@ async def perf_get_trade(trade_id: str, user=Depends(get_current_user)):
 
 
 @api_router.put("/performance/trades/{trade_id}")
-async def perf_update_trade(trade_id: str, payload: TradeIn, user=Depends(get_current_user)):
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+async def perf_update_trade(trade_id: str, payload: TradeIn, user: dict = Depends(require_user)):
     existing = await db.trades.find_one(
         {"id": trade_id, "user_id": user["id"]},
         {"_id": 0},
@@ -2437,10 +2429,8 @@ async def perf_update_trade(trade_id: str, payload: TradeIn, user=Depends(get_cu
     return enriched
 
 
-@api_router.delete("/trades/{trade_id}")
-async def delete_trade(trade_id: str, user=Depends(get_current_user)):
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+@api_router.delete("/performance/trades/{trade_id}")
+async def perf_delete_trade(trade_id: str, user: dict = Depends(require_user)):
     res = await db.trades.delete_one({"id": trade_id, "user_id": user["id"]})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Trade not found")
@@ -2448,9 +2438,7 @@ async def delete_trade(trade_id: str, user=Depends(get_current_user)):
 
 
 @api_router.get("/performance/analytics")
-async def performance_analytics(user=Depends(get_current_user)):
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+async def performance_analytics(user: dict = Depends(require_user)):
     rows = await trades_for_user(db, user["id"], limit=1000)
     # Re-enrich to get fresh errors and pnl
     enriched: List[dict] = []

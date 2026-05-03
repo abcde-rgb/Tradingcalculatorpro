@@ -32,7 +32,11 @@ export default function TradeJournal({ refreshKey, onChange }) {
       const data = await listTrades({ limit: 200 });
       setTrades(data.trades || []);
     } catch (e) {
-      toast.error(e?.response?.data?.detail || 'Error');
+      // 401 handled globally by axios interceptor (clears auth);
+      // skip toast to avoid noisy "Se requiere autenticación" loops.
+      if (e?.response?.status !== 401) {
+        toast.error(e?.response?.data?.detail || 'Error');
+      }
     } finally {
       setLoading(false);
     }
