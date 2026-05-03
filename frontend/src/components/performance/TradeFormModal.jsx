@@ -1,0 +1,313 @@
+import React, { useState } from 'react';
+import { X, Save, Plus, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { useTranslation } from '@/lib/i18n';
+import { createTrade, updateTrade } from '@/services/performanceApi';
+import { toast } from 'sonner';
+
+const SIDES = [
+  { id: 'long',  labelKey: 'tradeFormSideLong',  color: 'bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/40' },
+  { id: 'short', labelKey: 'tradeFormSideShort', color: 'bg-[#ef4444]/15 text-[#ef4444] border-[#ef4444]/40' },
+];
+
+const STATUS_OPTIONS = [
+  { id: 'open',    labelKey: 'tradeStatusOpen' },
+  { id: 'closed',  labelKey: 'tradeStatusClosed' },
+  { id: 'sl_hit',  labelKey: 'tradeStatusSLHit' },
+  { id: 'tp_hit',  labelKey: 'tradeStatusTPHit' },
+];
+
+/**
+ * TradeFormModal — create or edit a trade.
+ *
+ * Shows live R:R + risk-% as the user types, so they self-check before saving.
+ * The backend re-validates and returns auto-detected errors.
+ */
+const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
+  const { t } = useTranslation();
+  const isEdit = Boolean(initialTrade?.id);
+  const [saving, setSaving] = useState(false);
+
+  const [form, setForm] = useState(() => initialTrade || {
+    symbol: '',
+    side: 'long',
+    setup: '',
+    entry_price: '',
+    exit_price: '',
+    sl: '',
+    tp: '',
+    quantity: '',
+    account_balance: 10000,
+    fees: 0,
+    status: 'open',
+    emotion: 3,
+    notes: '',
+  });
+
+  const set = (k) => (e) => {
+    const v = e?.target ? e.target.value : e;
+    setForm((p) => ({ ...p, [k]: v }));
+  };
+
+  // Live derived metrics — instant feedback
+  const entry = parseFloat(form.entry_price) || 0;
+  const sl = parseFloat(form.sl) || 0;
+  const tp = parseFloat(form.tp) || 0;
+  const qty = parseFloat(form.quantity) || 0;
+  const balance = parseFloat(form.account_balance) || 0;
+
+  const liveRisk = entry && sl ? Math.abs(entry - sl) * qty : 0;
+  const liveReward = entry && tp ? Math.abs(tp - entry) * qty : 0;
+  const liveRR = liveRisk > 0 ? (liveReward / liveRisk).toFixed(2) : '—';
+  const liveRiskPct = balance > 0 ? ((liveRisk / balance) * 100).toFixed(2) : '—';
+
+  const rrWarn = liveRR !== '—' && parseFloat(liveRR) < 1.5;
+  const riskWarn = liveRiskPct !== '—' && parseFloat(liveRiskPct) > 2;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.symbol || !form.entry_price || !form.quantity) {
+      toast.error(t('tradeFormMissingRequired'));
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        symbol: form.symbol,
+        side: form.side,
+        setup: form.setup || '',
+        entry_price: Number(form.entry_price),
+        exit_price: form.exit_price !== '' ? Number(form.exit_price) : null,
+        sl: form.sl !== '' ? Number(form.sl) : null,
+        tp: form.tp !== '' ? Number(form.tp) : null,
+        quantity: Number(form.quantity),
+        account_balance: Number(form.account_balance) || 0,
+        fees: Number(form.fees) || 0,
+        status: form.status,
+        emotion: form.emotion ? Number(form.emotion) : null,
+        notes: form.notes || '',
+      };
+      const saved = isEdit
+        ? await updateTrade(initialTrade.id, payload)
+        : await createTrade(payload);
+      toast.success(isEdit ? t('tradeUpdated') : t('tradeCreated'));
+      onSaved?.(saved);
+      onClose?.();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || t('tradeSaveError'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto" data-testid="trade-form-modal">
+      <div className="w-full max-w-3xl my-8 bg-card border border-border rounded-2xl shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <h2 className="font-unbounded text-xl font-bold flex items-center gap-2">
+            <Plus className="w-5 h-5 text-primary" />
+            {isEdit ? t('editTrade') : t('newTrade')}
+          </h2>
+          <button onClick={onClose} className="p-2 rounded hover:bg-muted">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          {/* Row 1: Symbol + Side + Setup */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeSymbol')} *
+              </Label>
+              <Input value={form.symbol} onChange={set('symbol')} placeholder="AAPL" className="mt-1 uppercase" data-testid="trade-symbol" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeSide')} *
+              </Label>
+              <div className="mt-1 flex gap-1.5">
+                {SIDES.map((s) => (
+                  <button
+                    type="button"
+                    key={s.id}
+                    onClick={() => set('side')(s.id)}
+                    className={`flex-1 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wider border transition-all ${
+                      form.side === s.id ? s.color : 'border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                    data-testid={`trade-side-${s.id}`}
+                  >
+                    {t(s.labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeSetup')}
+              </Label>
+              <Input value={form.setup} onChange={set('setup')} placeholder={t('tradeSetupExample')} className="mt-1" data-testid="trade-setup" />
+            </div>
+          </div>
+
+          {/* Row 2: Entry / SL / TP / Exit */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeEntry')} *
+              </Label>
+              <Input type="number" step="any" value={form.entry_price} onChange={set('entry_price')} className="mt-1" data-testid="trade-entry" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeSL')}
+              </Label>
+              <Input type="number" step="any" value={form.sl} onChange={set('sl')} className="mt-1" data-testid="trade-sl" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeTP')}
+              </Label>
+              <Input type="number" step="any" value={form.tp} onChange={set('tp')} className="mt-1" data-testid="trade-tp" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeExit')}
+              </Label>
+              <Input type="number" step="any" value={form.exit_price} onChange={set('exit_price')} className="mt-1" data-testid="trade-exit" />
+            </div>
+          </div>
+
+          {/* Row 3: Quantity / Balance / Fees / Status */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeQuantity')} *
+              </Label>
+              <Input type="number" step="any" value={form.quantity} onChange={set('quantity')} className="mt-1" data-testid="trade-quantity" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeBalance')}
+              </Label>
+              <Input type="number" step="any" value={form.account_balance} onChange={set('account_balance')} className="mt-1" data-testid="trade-balance" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeFees')}
+              </Label>
+              <Input type="number" step="any" value={form.fees} onChange={set('fees')} className="mt-1" data-testid="trade-fees" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeStatus')}
+              </Label>
+              <select
+                value={form.status}
+                onChange={(e) => set('status')(e.target.value)}
+                className="mt-1 w-full bg-muted border border-border rounded-md px-3 py-2 text-sm"
+                data-testid="trade-status"
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s.id} value={s.id}>{t(s.labelKey)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Live derived metrics — visible self-check */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 rounded-xl bg-muted/40 border border-border" data-testid="trade-live-metrics">
+            <div>
+              <div className="text-[10px] text-muted-foreground uppercase">{t('tradeRiskUSD')}</div>
+              <div className="text-base font-bold font-mono">${liveRisk.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground uppercase">{t('tradeRewardUSD')}</div>
+              <div className="text-base font-bold font-mono">${liveReward.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground uppercase">{t('tradeRR')}</div>
+              <div className={`text-base font-bold font-mono ${rrWarn ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>
+                {liveRR !== '—' ? `1:${liveRR}` : '—'}
+              </div>
+              {rrWarn && (
+                <div className="text-[9px] text-[#ef4444] flex items-center gap-1 mt-0.5">
+                  <AlertCircle className="w-3 h-3" />{t('tradeWarnLowRR')}
+                </div>
+              )}
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground uppercase">{t('tradeRiskPct')}</div>
+              <div className={`text-base font-bold font-mono ${riskWarn ? 'text-[#ef4444]' : 'text-foreground'}`}>
+                {liveRiskPct === '—' ? '—' : `${liveRiskPct}%`}
+              </div>
+              {riskWarn && (
+                <div className="text-[9px] text-[#ef4444] flex items-center gap-1 mt-0.5">
+                  <AlertCircle className="w-3 h-3" />{t('tradeWarnOversize')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Emotion & notes */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeEmotion')}
+              </Label>
+              <div className="mt-1 flex gap-1">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    type="button"
+                    key={n}
+                    onClick={() => set('emotion')(n)}
+                    className={`flex-1 h-9 rounded-md text-xs font-bold border transition-all ${
+                      Number(form.emotion) === n
+                        ? 'bg-primary/15 text-primary border-primary/40'
+                        : 'bg-muted border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                    data-testid={`trade-emotion-${n}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-1">{t('tradeEmotionHint')}</div>
+            </div>
+            <div className="md:col-span-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                {t('tradeNotes')}
+              </Label>
+              <textarea
+                value={form.notes}
+                onChange={set('notes')}
+                rows={3}
+                className="mt-1 w-full bg-muted border border-border rounded-md px-3 py-2 text-sm resize-none"
+                placeholder={t('tradeNotesPlaceholder')}
+                data-testid="trade-notes"
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-2 border-t border-border">
+            <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+              {t('cancel')}
+            </Button>
+            <Button type="submit" disabled={saving} className="gap-2" data-testid="trade-save">
+              <Save className="w-4 h-4" />
+              {saving ? t('saving') : (isEdit ? t('saveChanges') : t('createTrade'))}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default TradeFormModal;

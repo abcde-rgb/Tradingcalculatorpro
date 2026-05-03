@@ -32,6 +32,14 @@ from stock_data import (
     get_available_expirations,
 )
 from candle_patterns import detect_all_patterns, PATTERN_META
+from performance import (
+    compute_trade_pnl,
+    detect_errors,
+    compute_analytics,
+    generate_insights,
+    trades_for_user,
+    make_trade_doc,
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -484,7 +492,7 @@ async def update_trade(trade_id: str, updates: dict, user: dict = Depends(requir
     return {"message": "Trade actualizado"}
 
 @api_router.delete("/journal/trades/{trade_id}")
-async def delete_trade(trade_id: str, user: dict = Depends(require_user)):
+async def journal_delete_trade(trade_id: str, user: dict = Depends(require_user)):
     result = await db.trades.delete_one({"id": trade_id, "user_id": user["id"]})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Trade no encontrado")
@@ -2310,6 +2318,151 @@ async def education_pattern_scan(
     except Exception as e:
         logging.error(f"Pattern scan error for {sym}: {e}")
         return {"symbol": sym, "error": str(e), "detections": []}
+
+
+# ============================================================
+# PERFORMANCE — Trade Journal & Analytics
+# ============================================================
+
+class TradeIn(BaseModel):
+    """Payload for creating/updating a trade."""
+    symbol: str
+    side: str = Field(..., pattern="^(long|short)$")
+    setup: Optional[str] = ""
+    entry_price: float
+    exit_price: Optional[float] = None
+    sl: Optional[float] = None
+    tp: Optional[float] = None
+    quantity: float
+    entry_date: Optional[str] = None
+    exit_date: Optional[str] = None
+    status: Optional[str] = None  # open | closed | sl_hit | tp_hit
+    account_balance: Optional[float] = 0
+    fees: Optional[float] = 0
+    notes: Optional[str] = ""
+    tags: Optional[List[str]] = []
+    emotion: Optional[int] = None  # 1..5
+    screenshot_urls: Optional[List[str]] = []
+
+
+def _enrich_trade(trade: dict, prev_trades: Optional[List[dict]] = None) -> dict:
+    """Compute pnl + errors. Output is JSON-safe (no _id)."""
+    enriched = compute_trade_pnl(trade)
+    enriched["errors"] = detect_errors(enriched, prev_trades=prev_trades)
+    enriched.pop("_id", None)
+    return enriched
+
+
+@api_router.post("/performance/trades")
+async def perf_create_trade(payload: TradeIn, user=Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    user_id = user["id"]
+    prev = await trades_for_user(db, user_id, limit=50)
+    doc = make_trade_doc(payload.model_dump(), user_id)
+    enriched = _enrich_trade(doc, prev_trades=prev)
+    # Strip computed read-only fields before persisting (keep stored doc minimal)
+    to_store = {k: v for k, v in enriched.items() if k not in ("_id",)}
+    await db.trades.insert_one(to_store)
+    return enriched
+
+
+@api_router.get("/performance/trades")
+async def perf_list_trades(
+    user=Depends(get_current_user),
+    limit: int = 100,
+    status: Optional[str] = None,
+    symbol: Optional[str] = None,
+):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    query: Dict[str, Any] = {"user_id": user["id"]}
+    if status:
+        query["status"] = status
+    if symbol:
+        query["symbol"] = symbol.upper()
+    cursor = db.trades.find(query, {"_id": 0}).sort("entry_date", -1).limit(limit)
+    rows = await cursor.to_list(length=limit)
+    # Re-enrich on each fetch so updates to detection rules apply retroactively
+    enriched_rows = []
+    seen: List[dict] = []
+    for t in reversed(rows):  # chronological order for prev_trades context
+        enriched_rows.append(_enrich_trade(t, prev_trades=list(seen)))
+        seen.append(enriched_rows[-1])
+    enriched_rows.reverse()
+    return {"trades": enriched_rows, "count": len(enriched_rows)}
+
+
+@api_router.get("/performance/trades/{trade_id}")
+async def perf_get_trade(trade_id: str, user=Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    t = await db.trades.find_one(
+        {"id": trade_id, "user_id": user["id"]},
+        {"_id": 0},
+    )
+    if not t:
+        raise HTTPException(status_code=404, detail="Trade not found")
+    prev = await trades_for_user(db, user["id"], limit=50)
+    return _enrich_trade(t, prev_trades=prev)
+
+
+@api_router.put("/performance/trades/{trade_id}")
+async def perf_update_trade(trade_id: str, payload: TradeIn, user=Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    existing = await db.trades.find_one(
+        {"id": trade_id, "user_id": user["id"]},
+        {"_id": 0},
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Trade not found")
+
+    updates = payload.model_dump(exclude_unset=True)
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    # If exit_price now set and status omitted, mark closed
+    if updates.get("exit_price") is not None and not updates.get("status"):
+        updates["status"] = "closed"
+
+    merged = {**existing, **updates}
+    prev = [t for t in await trades_for_user(db, user["id"], limit=50)
+            if t.get("id") != trade_id]
+    enriched = _enrich_trade(merged, prev_trades=prev)
+    enriched.pop("_id", None)
+
+    await db.trades.update_one(
+        {"id": trade_id, "user_id": user["id"]},
+        {"$set": enriched},
+    )
+    return enriched
+
+
+@api_router.delete("/trades/{trade_id}")
+async def delete_trade(trade_id: str, user=Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    res = await db.trades.delete_one({"id": trade_id, "user_id": user["id"]})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Trade not found")
+    return {"ok": True}
+
+
+@api_router.get("/performance/analytics")
+async def performance_analytics(user=Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    rows = await trades_for_user(db, user["id"], limit=1000)
+    # Re-enrich to get fresh errors and pnl
+    enriched: List[dict] = []
+    seen: List[dict] = []
+    for t in reversed(rows):
+        e = _enrich_trade(t, prev_trades=list(seen))
+        enriched.append(e)
+        seen.append(e)
+    enriched.reverse()
+    analytics = compute_analytics(enriched)
+    insights = generate_insights(analytics)
+    return {"analytics": analytics, "insights": insights}
 
 
 # Include router and setup middleware

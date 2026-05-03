@@ -5,11 +5,16 @@ import {
   Sparkles, Eye, Repeat, FileText, ChevronRight, Lock, Mail,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
+import { useAuthStore } from '@/lib/store';
+import TradeJournal from '@/components/performance/TradeJournal';
+import AnalyticsDashboard from '@/components/performance/AnalyticsDashboard';
 
 // Animation tokens (reused from LandingPage style)
 const FADE_UP = {
@@ -20,6 +25,10 @@ const FADE_UP = {
 
 export default function PerformancePage() {
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuthStore();
+  const [tab, setTab] = useState(isAuthenticated ? 'journal' : 'overview');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const onChange = () => setRefreshKey((k) => k + 1);
 
   useSEO({
     title: 'Performance — Estadísticas, Diario y Backtesting para Traders',
@@ -107,12 +116,52 @@ export default function PerformancePage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
+      {/* Tab navigation — sticky-ish under header */}
+      <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-16 z-30">
+        <div className="max-w-6xl mx-auto px-4 py-3">
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList data-testid="performance-tabs">
+              <TabsTrigger value="overview" data-testid="perftab-overview">
+                <BookOpen className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabOverview')}
+              </TabsTrigger>
+              <TabsTrigger value="journal" data-testid="perftab-journal">
+                <BookOpen className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabJournal')}
+              </TabsTrigger>
+              <TabsTrigger value="analytics" data-testid="perftab-analytics">
+                <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> {t('perfTabAnalytics')}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </div>
+
+      <Tabs value={tab} onValueChange={setTab} className="flex-1">
+        {/* Journal tab */}
+        <TabsContent value="journal" className="px-4 py-8 max-w-6xl mx-auto w-full">
+          {!isAuthenticated ? (
+            <AuthRequired t={t} />
+          ) : (
+            <TradeJournal refreshKey={refreshKey} onChange={onChange} />
+          )}
+        </TabsContent>
+
+        {/* Analytics tab */}
+        <TabsContent value="analytics" className="px-4 py-8 max-w-6xl mx-auto w-full">
+          {!isAuthenticated ? (
+            <AuthRequired t={t} />
+          ) : (
+            <AnalyticsDashboard refreshKey={refreshKey} />
+          )}
+        </TabsContent>
+
+        {/* Overview tab — the original educational content */}
+        <TabsContent value="overview">
+
       {/* ─── Hero — punchy headline + 4 demolishing stats ─── */}
       <section className="relative pt-24 pb-16 px-4 overflow-hidden">
         {/* Subtle red→orange gradient suggesting urgency */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#ef4444]/5 via-transparent to-transparent pointer-events-none" />
-        <div
-          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
           style={{
             backgroundImage: 'radial-gradient(circle at 50% 30%, currentColor 1px, transparent 1px)',
             backgroundSize: '24px 24px',
@@ -325,8 +374,26 @@ export default function PerformancePage() {
           </div>
         </div>
       </section>
+        </TabsContent>
+      </Tabs>
 
       <Footer />
     </div>
   );
 }
+
+const AuthRequired = ({ t }) => (
+  <div className="text-center py-16 bg-card border border-dashed border-border rounded-xl max-w-xl mx-auto">
+    <Lock className="w-10 h-10 text-muted-foreground/40 mx-auto mb-4" />
+    <h3 className="font-bold text-lg mb-2">{t('perfAuthRequiredTitle')}</h3>
+    <p className="text-sm text-muted-foreground mb-6">{t('perfAuthRequiredDesc')}</p>
+    <div className="flex justify-center gap-2">
+      <Link to="/login">
+        <Button variant="outline">{t('login')}</Button>
+      </Link>
+      <Link to="/register">
+        <Button>{t('register')}</Button>
+      </Link>
+    </div>
+  </div>
+);
