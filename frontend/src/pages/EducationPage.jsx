@@ -287,6 +287,8 @@ export default function EducationPage() {
   const [expandedRules, setExpandedRules] = useState(new Set([1, 2, 3]));
   const [selectedPattern, setSelectedPattern] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [patternQuery, setPatternQuery] = useState('');
+  const [patternTypeFilter, setPatternTypeFilter] = useState('all');
   const { t } = useTranslation();
   
   const isPremium = useIsPremium();
@@ -1041,40 +1043,151 @@ export default function EducationPage() {
 
             {/* Chart Patterns */}
             <TabsContent value="chart-patterns" className="space-y-8">
-              {/* Reversal Patterns */}
-              <div>
-                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <TrendingDown className="w-5 h-5 text-red-500" />
-                  <TrendingUp className="w-5 h-5 text-green-500" />
-                  {t('reversalPatterns')}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {CHART_PATTERNS.reversal.map(pattern => (
-                    <PatternCard
-                      key={pattern.id}
-                      pattern={pattern}
-                      onClick={setSelectedPattern}
-                    />
-                  ))}
-                </div>
-              </div>
+              {/* Quick search + type filter */}
+              {(() => {
+                const q = patternQuery.trim().toLowerCase();
+                const filterFn = (p) => {
+                  if (patternTypeFilter !== 'all' && p.type !== patternTypeFilter) return false;
+                  if (!q) return true;
+                  return (
+                    (p.name || '').toLowerCase().includes(q) ||
+                    (p.description || '').toLowerCase().includes(q)
+                  );
+                };
+                const reversal = CHART_PATTERNS.reversal.filter(filterFn);
+                const continuation = CHART_PATTERNS.continuation.filter(filterFn);
+                const totalShown = reversal.length + continuation.length;
+                const totalAll = CHART_PATTERNS.reversal.length + CHART_PATTERNS.continuation.length;
+                return (
+                  <div className="bg-card border border-border rounded-lg p-4 space-y-3" data-testid="patterns-search-bar">
+                    {/* Search input */}
+                    <div className="relative flex items-center bg-muted border border-border rounded-md px-3 py-2 focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15 transition-all">
+                      <Search className="w-4 h-4 text-muted-foreground mr-2 flex-shrink-0" />
+                      <input
+                        type="text"
+                        value={patternQuery}
+                        onChange={(e) => setPatternQuery(e.target.value)}
+                        placeholder={t('patternsSearchPlaceholder')}
+                        className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                        autoComplete="off"
+                        spellCheck={false}
+                        data-testid="patterns-search-input"
+                      />
+                      {patternQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setPatternQuery('')}
+                          className="p-0.5 rounded hover:bg-border transition-colors"
+                          aria-label="Clear"
+                          data-testid="patterns-search-clear"
+                        >
+                          <X className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
+                    {/* Type filter chips */}
+                    <div className="flex items-center flex-wrap gap-1.5">
+                      <Filter className="w-3.5 h-3.5 text-muted-foreground mr-1" />
+                      {[
+                        { id: 'all',     label: t('patternFilterAll'),     color: 'text-foreground' },
+                        { id: 'bullish', label: t('patternFilterBullish'), color: 'text-[#22c55e]', icon: TrendingUp },
+                        { id: 'bearish', label: t('patternFilterBearish'), color: 'text-[#ef4444]', icon: TrendingDown },
+                        { id: 'neutral', label: t('patternFilterNeutral'), color: 'text-[#eab308]' },
+                      ].map((opt) => {
+                        const Ic = opt.icon;
+                        const active = patternTypeFilter === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setPatternTypeFilter(opt.id)}
+                            className={`px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider transition-colors flex items-center gap-1 ${
+                              active
+                                ? 'bg-primary/15 text-primary border border-primary/30'
+                                : 'bg-muted text-muted-foreground hover:text-foreground border border-border'
+                            }`}
+                            data-testid={`patterns-filter-${opt.id}`}
+                          >
+                            {Ic && <Ic className={`w-3 h-3 ${active ? 'text-primary' : opt.color}`} />}
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                      <span className="ml-auto text-[11px] text-muted-foreground" data-testid="patterns-results-count">
+                        {totalShown} / {totalAll} {totalShown === 1 ? t('patternsResultSingular') : t('patternsResultPlural')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
 
-              {/* Continuation Patterns */}
-              <div>
-                <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
-                  <ChevronRight className="w-5 h-5 text-blue-500" />
-                  {t('continuationPatterns')}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {CHART_PATTERNS.continuation.map(pattern => (
-                    <PatternCard
-                      key={pattern.id}
-                      pattern={pattern}
-                      onClick={setSelectedPattern}
-                    />
-                  ))}
-                </div>
-              </div>
+              {/* Filtered patterns */}
+              {(() => {
+                const q = patternQuery.trim().toLowerCase();
+                const filterFn = (p) => {
+                  if (patternTypeFilter !== 'all' && p.type !== patternTypeFilter) return false;
+                  if (!q) return true;
+                  return (
+                    (p.name || '').toLowerCase().includes(q) ||
+                    (p.description || '').toLowerCase().includes(q)
+                  );
+                };
+                const reversal = CHART_PATTERNS.reversal.filter(filterFn);
+                const continuation = CHART_PATTERNS.continuation.filter(filterFn);
+                if (reversal.length === 0 && continuation.length === 0) {
+                  return (
+                    <div className="text-center py-12 text-muted-foreground" data-testid="patterns-empty">
+                      <p className="text-sm">
+                        {t('patternsNoResults')} {patternQuery && <>"<span className="text-foreground font-bold">{patternQuery}</span>"</>}
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <>
+                    {/* Reversal Patterns */}
+                    {reversal.length > 0 && (
+                      <div>
+                        <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                          <TrendingDown className="w-5 h-5 text-red-500" />
+                          <TrendingUp className="w-5 h-5 text-green-500" />
+                          {t('reversalPatterns')}
+                          <span className="text-xs text-muted-foreground font-normal ml-1">({reversal.length})</span>
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {reversal.map(pattern => (
+                            <PatternCard
+                              key={pattern.id}
+                              pattern={pattern}
+                              onClick={setSelectedPattern}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Continuation Patterns */}
+                    {continuation.length > 0 && (
+                      <div>
+                        <h2 className="font-unbounded text-xl font-bold mb-4 flex items-center gap-2">
+                          <ChevronRight className="w-5 h-5 text-blue-500" />
+                          {t('continuationPatterns')}
+                          <span className="text-xs text-muted-foreground font-normal ml-1">({continuation.length})</span>
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {continuation.map(pattern => (
+                            <PatternCard
+                              key={pattern.id}
+                              pattern={pattern}
+                              onClick={setSelectedPattern}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </TabsContent>
 
             {/* Candlestick Patterns */}
