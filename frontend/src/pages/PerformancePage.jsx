@@ -136,8 +136,8 @@ export default function PerformancePage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="flex-1">
-        {/* Journal tab */}
-        <TabsContent value="journal" className="px-4 py-8 max-w-6xl mx-auto w-full">
+        {/* Journal tab — pt-24 clears fixed header (h-16) + sticky tab bar (~58px) */}
+        <TabsContent value="journal" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
           {!isAuthenticated ? (
             <AuthRequired t={t} />
           ) : (
@@ -146,7 +146,7 @@ export default function PerformancePage() {
         </TabsContent>
 
         {/* Analytics tab */}
-        <TabsContent value="analytics" className="px-4 py-8 max-w-6xl mx-auto w-full">
+        <TabsContent value="analytics" className="px-4 pt-24 pb-12 max-w-6xl mx-auto w-full">
           {!isAuthenticated ? (
             <AuthRequired t={t} />
           ) : (
