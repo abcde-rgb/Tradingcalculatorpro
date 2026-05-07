@@ -31,8 +31,8 @@ export default function PerformancePage() {
   const onChange = () => setRefreshKey((k) => k + 1);
 
   useSEO({
-    title: 'Performance — Estadísticas, Diario y Backtesting para Traders',
-    description: 'Por qué el 90% de traders pierde y cómo formar parte del 10% que mide. Próximamente: diario de trading, backtesting con data real, replay y 40+ métricas profesionales.',
+    titleKey: 'seoPerformanceTitle',
+    descriptionKey: 'seoPerformanceDesc',
     canonicalPath: '/performance',
   });
 

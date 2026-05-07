@@ -19,8 +19,8 @@ export default function OptionsPage() {
   const { t } = useTranslation();
 
   useSEO({
-    title: 'Suite de Opciones — Black-Scholes, Greeks y Strategy Optimizer',
-    description: 'Calculadora profesional de opciones con Black-Scholes, Greeks (Delta, Gamma, Theta, Vega), payoff diagrams, Strategy Optimizer y datos en vivo de Yahoo Finance.',
+    titleKey: 'seoOptionsTitle',
+    descriptionKey: 'seoOptionsDesc',
     canonicalPath: '/options',
   });
 

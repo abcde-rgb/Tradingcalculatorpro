@@ -299,8 +299,8 @@ export default function EducationPage() {
   const { isAuthenticated } = useAuthStore();
 
   useSEO({
-    title: 'Centro de Aprendizaje — 42+ Patrones Gráficos y 27 Velas Japonesas',
-    description: 'Curso completo y gratuito: Reglas de Trading, Teoría de Dow, Psicología, Gestión de Capital, 42+ patrones gráficos (HCH, Triángulos, Cuñas, Diamantes) y 27 patrones de velas con detector en vivo.',
+    titleKey: 'seoEducationTitle',
+    descriptionKey: 'seoEducationDesc',
     canonicalPath: '/education',
   });
   

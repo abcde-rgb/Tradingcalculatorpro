@@ -39,8 +39,8 @@ export default function DashboardPage() {
   const [searchParams] = useSearchParams();
 
   useSEO({
-    title: 'Dashboard — Calculadoras de Apalancamiento, Posición y Más',
-    description: '8 calculadoras profesionales de trading: apalancamiento, tamaño de posición, Spot, Lotaje, Fibonacci, Monte Carlo, Simulador Pro y porcentaje. Buscador universal con 250+ activos.',
+    titleKey: 'seoDashboardTitle',
+    descriptionKey: 'seoDashboardDesc',
     canonicalPath: '/dashboard',
   });
 

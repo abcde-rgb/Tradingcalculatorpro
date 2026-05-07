@@ -23,7 +23,31 @@
 - `components/layout/Header.jsx` + `Footer.jsx` — universales
 
 ## Implementado
-### Feb 2026 — Performance Module MVP ✅ (Trade Journal + Analytics)
+### May 2026 — SEO Multi-idioma Dinámico (8 locales) ✅
+**Aplicado tras análisis de SEO competitivo de un experto externo:**
+
+- **`useSEO` reescrito i18n-aware** (`/src/hooks/useSEO.js`):
+  - Lee `locale` directamente de `useTranslation()` y mapea a `og:locale` (es_ES, en_US, de_DE, fr_FR, ru_RU, zh_CN, ja_JP, ar_SA), `<html lang>` BCP-47, y `dir` (ltr/rtl).
+  - Acepta `titleKey` / `descriptionKey` (o `title` / `description` planos) para resolver via `t()` automáticamente.
+  - **Inyecta hreflang dinámico por ruta**: cada página (/, /dashboard, /options, /performance, /education, /pricing) genera 9 `<link rel="alternate">` apuntando al path actual con `?lang=xx`, más `x-default` → ES.
+  - Limpia los hreflang estáticos del index.html para evitar conflictos cuando el usuario está en una ruta interna.
+
+- **Claves SEO traducidas en los 8 idiomas** (lib/i18n.js): 12 keys × 8 locales = 96 nuevas entradas (`seoLandingTitle`, `seoLandingDesc`, `seoDashboardTitle/Desc`, `seoOptionsTitle/Desc`, `seoPerformanceTitle/Desc`, `seoEducationTitle/Desc`, `seoPricingTitle/Desc`).
+
+- **Migración de las 6 páginas con SEO** (`LandingPage`, `DashboardPage`, `OptionsPage`, `PerformancePage`, `PricingPage`, `EducationPage`): de hardcoded ES a `titleKey`/`descriptionKey`. Antes Google veía siempre `og:locale=es_ES` y title español aunque el usuario estuviera en EN; ahora cada locale tiene su título/descripción/og:locale correctos.
+
+- **`sitemap.xml` actualizado**: hreflang en TODAS las rutas indexables (/, /dashboard, /options, /performance, /education, /pricing) con los 8 idiomas + x-default. Antes solo home y education tenían hreflang.
+
+- **`index.html`**: códigos de verificación `REEMPLAZA_*` comentados (los placeholders vacíos pueden invalidar verificación cuando Google los detecta).
+
+**Verificación E2E (browser):**
+- ES: `<html lang="es" dir="ltr">`, og:locale=es_ES, title "Calculadoras y Simuladores de Trading Profesional | TCP" ✅
+- EN: `<html lang="en" dir="ltr">`, og:locale=en_US, title "Professional Trading Calculators & Simulators | TCP" ✅
+- AR: `<html lang="ar" dir="rtl">`, og:locale=ar_SA, title "حاسبات ومحاكيات تداول احترافية | TCP", layout completamente reflejado RTL ✅
+- /options en AR: hreflangs siguen el path → `/options`, `/options?lang=en`, etc. canonical = `/options` ✅
+- 9 hreflang links generados dinámicamente en cada navegación (8 locales + x-default) ✅
+
+
 - **Performance tab** en `/performance` con 3 sub-tabs (Overview educativo / Diario de Trading / Analytics).
 - Backend `performance.py` + `/api/performance/*` endpoints: CRUD trades + analytics agregadas (25+ métricas: win rate, expectancy, profit factor, Sharpe, Sortino, max drawdown, avg R, streaks, breakdown por setup/día/símbolo, R-distribution, error detection, auto-insights).
 - Frontend: `TradeJournal.jsx` (tabla + modal CRUD), `AnalyticsDashboard.jsx` (8 KPI cards + equity curve SVG + breakdowns + insights), `TradeFormModal.jsx` (form con R:R + risk% live warnings), `performanceApi.js` (axios con auth interceptor).

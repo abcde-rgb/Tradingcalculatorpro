@@ -109,8 +109,8 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
 
   useSEO({
-    title: 'Calculadoras y Simuladores de Trading Profesional',
-    description: 'Plataforma profesional con calculadoras de apalancamiento, posición, opciones (Black-Scholes), Monte Carlo, 42+ patrones gráficos y velas en 8 idiomas. Gratis.',
+    titleKey: 'seoLandingTitle',
+    descriptionKey: 'seoLandingDesc',
     canonicalPath: '/',
   });
 

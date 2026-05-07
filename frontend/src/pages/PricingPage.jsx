@@ -52,8 +52,8 @@ export default function PricingPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useSEO({
-    title: 'Precios — Plan Free y Premium para Traders Profesionales',
-    description: 'Plan gratuito con calculadoras básicas y plan Premium ($9.99/mes) con Suite de Opciones avanzada, AI Trade Coach, Strategy Optimizer y centro educativo completo.',
+    titleKey: 'seoPricingTitle',
+    descriptionKey: 'seoPricingDesc',
     canonicalPath: '/pricing',
   });
 
