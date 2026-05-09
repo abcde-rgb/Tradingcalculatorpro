@@ -209,7 +209,7 @@ def check_premium(user: dict) -> bool:
 
 @app.on_event("startup")
 async def startup_event():
-    """Create demo user on startup if it doesn't exist"""
+    """Create demo user on startup if it doesn't exist; ensure admin flag."""
     existing = await db.users.find_one({"email": DEMO_EMAIL})
     if not existing:
         demo_user = {
@@ -220,10 +220,24 @@ async def startup_event():
             "subscription_plan": "lifetime",
             "subscription_end": None,
             "is_premium": True,
+            "is_admin": True,
+            "auth_provider": "password",
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(demo_user)
-        logging.info("Demo user created: demo@btccalc.pro / 1234")
+        logging.info("Demo user created: demo@btccalc.pro / 1234 (admin)")
+    else:
+        # Idempotent self-heal: ensure demo always has admin + lifetime premium.
+        patch: Dict[str, Any] = {}
+        if not existing.get("is_admin"):
+            patch["is_admin"] = True
+        if existing.get("subscription_plan") != "lifetime":
+            patch["subscription_plan"] = "lifetime"
+        if not existing.get("auth_provider"):
+            patch["auth_provider"] = "password"
+        if patch:
+            await db.users.update_one({"email": DEMO_EMAIL}, {"$set": patch})
+            logging.info("Demo user patched: %s", patch)
 
 # ============= AUTH ROUTES =============
 
@@ -2757,6 +2771,261 @@ async def admin_promote_user(payload: AdminPromoteRequest, admin: dict = Depends
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return {"email": payload.email, "is_admin": payload.is_admin}
+
+
+# ============= ADMIN — REAL USER CRUD =============
+
+class AdminUserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    subscription_plan: Optional[str] = None       # monthly|quarterly|annual|lifetime|None
+    is_premium: bool = False
+    is_admin: bool = False
+    subscription_end: Optional[str] = None        # ISO date string
+
+
+class AdminUserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    subscription_plan: Optional[str] = None       # use empty string "" or "none" to clear
+    is_premium: Optional[bool] = None
+    is_admin: Optional[bool] = None
+    subscription_end: Optional[str] = None
+    subscription_status: Optional[str] = None     # active|canceled|past_due|expired|None
+    preferred_locale: Optional[str] = None
+
+
+class AdminPasswordReset(BaseModel):
+    new_password: str
+
+
+def _normalize_plan(plan: Optional[str]) -> Optional[str]:
+    """Convert UI-friendly empty/none to actual MongoDB value."""
+    if plan in (None, "", "none", "free"):
+        return None
+    if plan not in SUBSCRIPTION_PLANS:
+        raise HTTPException(status_code=400, detail=f"Plan inválido: {plan}")
+    return plan
+
+
+def _compute_subscription_end(plan: Optional[str], explicit_end: Optional[str]) -> Optional[str]:
+    """If admin sets a plan but no end-date, derive a reasonable end-of-period."""
+    if explicit_end:
+        return explicit_end
+    if plan is None:
+        return None
+    if plan == "lifetime":
+        return None
+    days = SUBSCRIPTION_PLANS.get(plan, {}).get("days", 30)
+    return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+
+
+@api_router.post("/admin/users", response_model=dict)
+async def admin_create_user(payload: AdminUserCreate, admin: dict = Depends(require_admin)):
+    """Create a new user from the admin panel (full control over plan / premium / admin)."""
+    email_lc = payload.email.lower()
+    existing = await db.users.find_one({"email": email_lc})
+    if existing:
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+    if len(payload.password) < 4:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 4 caracteres")
+
+    plan = _normalize_plan(payload.subscription_plan)
+    sub_end = _compute_subscription_end(plan, payload.subscription_end)
+    user_id = str(uuid.uuid4())
+    user = {
+        "id": user_id,
+        "email": email_lc,
+        "password": hash_password(payload.password),
+        "name": payload.name,
+        "subscription_plan": plan,
+        "subscription_end": sub_end,
+        "subscription_status": "active" if plan else None,
+        "is_premium": bool(payload.is_premium or plan == "lifetime"),
+        "is_admin": bool(payload.is_admin),
+        "auth_provider": "password",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by_admin": admin.get("email"),
+    }
+    await db.users.insert_one(user)
+    return {"ok": True, "user": _serialize_admin_user(user)}
+
+
+@api_router.patch("/admin/users/{user_id}")
+async def admin_update_user(user_id: str, payload: AdminUserUpdate, admin: dict = Depends(require_admin)):
+    """Update editable fields of a user."""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    updates: Dict[str, Any] = {}
+
+    if payload.name is not None:
+        updates["name"] = payload.name
+
+    if payload.email is not None:
+        new_email = payload.email.lower()
+        if new_email != user["email"]:
+            clash = await db.users.find_one({"email": new_email, "id": {"$ne": user_id}})
+            if clash:
+                raise HTTPException(status_code=400, detail="Ese email ya está en uso por otro usuario")
+            updates["email"] = new_email
+
+    if payload.subscription_plan is not None:
+        plan = _normalize_plan(payload.subscription_plan)
+        updates["subscription_plan"] = plan
+        # Derive end-date if plan changed and admin didn't pass an explicit one.
+        if payload.subscription_end is None:
+            updates["subscription_end"] = _compute_subscription_end(plan, None)
+
+    if payload.subscription_end is not None:
+        updates["subscription_end"] = payload.subscription_end or None
+
+    if payload.subscription_status is not None:
+        updates["subscription_status"] = payload.subscription_status or None
+
+    if payload.is_premium is not None:
+        updates["is_premium"] = bool(payload.is_premium)
+
+    if payload.is_admin is not None:
+        updates["is_admin"] = bool(payload.is_admin)
+
+    if payload.preferred_locale is not None:
+        updates["preferred_locale"] = payload.preferred_locale or None
+
+    if not updates:
+        return {"ok": True, "user": _serialize_admin_user(user), "message": "Sin cambios"}
+
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    updates["updated_by_admin"] = admin.get("email")
+
+    await db.users.update_one({"id": user_id}, {"$set": updates})
+    fresh = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    return {"ok": True, "user": _serialize_admin_user(fresh)}
+
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, admin: dict = Depends(require_admin)):
+    """Hard-delete a user. Self-delete and demo-delete are blocked for safety."""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user["id"] == admin["id"]:
+        raise HTTPException(status_code=400, detail="No puedes borrarte a ti mismo")
+    if user.get("email") == DEMO_EMAIL:
+        raise HTTPException(status_code=400, detail="No se puede borrar el usuario demo")
+
+    await db.users.delete_one({"id": user_id})
+    # Best-effort cascade (ignore if collections don't exist)
+    for coll in ("calculations", "trades", "journal_entries", "alerts", "transactions"):
+        try:
+            await db[coll].delete_many({"user_id": user_id})
+        except Exception:
+            pass
+    return {"ok": True, "deleted_id": user_id, "email": user.get("email")}
+
+
+@api_router.post("/admin/users/{user_id}/reset-password")
+async def admin_reset_password(user_id: str, payload: AdminPasswordReset, admin: dict = Depends(require_admin)):
+    """Force-set a new password for any user."""
+    if len(payload.new_password) < 4:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 4 caracteres")
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "password": hash_password(payload.new_password),
+            "auth_provider": "password",
+            "password_reset_at": datetime.now(timezone.utc).isoformat(),
+            "password_reset_by": admin.get("email"),
+        }},
+    )
+    return {"ok": True, "email": user.get("email")}
+
+
+# ============= ADMIN — APP SETTINGS (Google APIs etc.) =============
+# Stored in `app_settings` collection as a single doc with `_id: "global"`.
+# Admin can edit; the public projection (non-secret keys only) is read by the
+# SPA at boot to dynamically load GA4/GTM/AdSense/Bing/GSC scripts WITHOUT
+# rebuilding the frontend.
+
+PUBLIC_SETTING_KEYS = (
+    "ga4_measurement_id",
+    "gtm_id",
+    "gsc_verification",
+    "adsense_publisher_id",
+    "bing_verification",
+    "google_client_id",        # OAuth client id is meant to be public
+)
+
+ADMIN_SETTING_KEYS = PUBLIC_SETTING_KEYS  # No private fields yet (secrets stay in env)
+
+
+class AdminSettingsUpdate(BaseModel):
+    ga4_measurement_id: Optional[str] = None
+    gtm_id: Optional[str] = None
+    gsc_verification: Optional[str] = None
+    adsense_publisher_id: Optional[str] = None
+    bing_verification: Optional[str] = None
+    google_client_id: Optional[str] = None
+
+
+async def _load_settings_doc() -> Dict[str, Any]:
+    doc = await db.app_settings.find_one({"_id": "global"}) or {}
+    doc.pop("_id", None)
+    return doc
+
+
+@api_router.get("/admin/settings")
+async def admin_get_settings(admin: dict = Depends(require_admin)):
+    """Full settings doc (admin-only)."""
+    doc = await _load_settings_doc()
+    # Prefer DB value, fall back to env so admin sees what's *actually* active.
+    env_fallbacks = {
+        "ga4_measurement_id":   os.environ.get("REACT_APP_GA4_MEASUREMENT_ID", ""),
+        "gtm_id":               os.environ.get("REACT_APP_GTM_ID", ""),
+        "gsc_verification":     os.environ.get("REACT_APP_GSC_VERIFICATION", ""),
+        "adsense_publisher_id": os.environ.get("REACT_APP_ADSENSE_PUBLISHER_ID", ""),
+        "bing_verification":    os.environ.get("REACT_APP_BING_VERIFICATION", ""),
+        "google_client_id":     os.environ.get("GOOGLE_CLIENT_ID", ""),
+    }
+    out = {k: doc.get(k) or env_fallbacks.get(k, "") for k in ADMIN_SETTING_KEYS}
+    out["updated_at"] = doc.get("updated_at")
+    out["updated_by"] = doc.get("updated_by")
+    return out
+
+
+@api_router.put("/admin/settings")
+async def admin_update_settings(payload: AdminSettingsUpdate, admin: dict = Depends(require_admin)):
+    """Upsert global app settings. Only fields explicitly sent are updated."""
+    incoming = payload.model_dump(exclude_unset=True)
+    # Trim whitespace, store None when empty so DB doesn't keep stale strings.
+    cleaned: Dict[str, Any] = {}
+    for k, v in incoming.items():
+        if isinstance(v, str):
+            v = v.strip()
+        cleaned[k] = v or None
+    cleaned["updated_at"] = datetime.now(timezone.utc).isoformat()
+    cleaned["updated_by"] = admin.get("email")
+
+    await db.app_settings.update_one(
+        {"_id": "global"},
+        {"$set": cleaned},
+        upsert=True,
+    )
+    return await admin_get_settings(admin)
+
+
+@api_router.get("/public/settings")
+async def public_settings():
+    """Non-sensitive subset, readable by anyone (frontend boot uses this)."""
+    doc = await _load_settings_doc()
+    return {
+        k: doc.get(k) or "" for k in PUBLIC_SETTING_KEYS
+    }
 
 
 # Include router and setup middleware

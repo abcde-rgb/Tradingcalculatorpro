@@ -1,27 +1,49 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 /**
  * Loads ALL conditional Google integrations the SPA might need:
  *
- *  - Google Analytics 4 (gtag.js)        → REACT_APP_GA4_MEASUREMENT_ID
- *  - Google Tag Manager                  → REACT_APP_GTM_ID
- *  - Google AdSense (auto-ads)           → REACT_APP_ADSENSE_PUBLISHER_ID
- *  - Search Console verification meta    → REACT_APP_GSC_VERIFICATION
- *  - Bing Webmaster verification meta    → REACT_APP_BING_VERIFICATION
+ *  - Google Analytics 4 (gtag.js)        → ga4_measurement_id
+ *  - Google Tag Manager                  → gtm_id
+ *  - Google AdSense (auto-ads)           → adsense_publisher_id
+ *  - Search Console verification meta    → gsc_verification
+ *  - Bing Webmaster verification meta    → bing_verification
  *
- * Every integration is GUARDED by its env var — if the key is missing the
- * corresponding tag is simply not injected, so the app stays clean until
- * the user fills the keys in `frontend/.env`.
+ * Resolution order per key:
+ *   1. Value saved in DB via /admin/settings (read from /api/public/settings)
+ *   2. Fallback to build-time env var (REACT_APP_*)
+ *
+ * That means the admin can flip any integration on/off from the /admin panel
+ * without rebuilding the frontend, but the env vars still work as a safety net.
  *
  * Renders nothing visually; mounted once near the App root.
  */
 export default function GoogleIntegrations() {
+  const [remote, setRemote] = useState(null);
+
+  // Pull dynamic settings once on mount.
   useEffect(() => {
-    const ga    = process.env.REACT_APP_GA4_MEASUREMENT_ID;
-    const gtm   = process.env.REACT_APP_GTM_ID;
-    const ads   = process.env.REACT_APP_ADSENSE_PUBLISHER_ID;
-    const gsc   = process.env.REACT_APP_GSC_VERIFICATION;
-    const bing  = process.env.REACT_APP_BING_VERIFICATION;
+    let cancelled = false;
+    fetch(`${API}/public/settings`)
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((data) => { if (!cancelled) setRemote(data || {}); })
+      .catch(() => { if (!cancelled) setRemote({}); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (remote === null) return;  // wait for the fetch to settle (success OR fail)
+
+    const pick = (dbKey, envKey) =>
+      (remote && remote[dbKey]) || process.env[envKey] || '';
+
+    const ga    = pick('ga4_measurement_id',   'REACT_APP_GA4_MEASUREMENT_ID');
+    const gtm   = pick('gtm_id',               'REACT_APP_GTM_ID');
+    const ads   = pick('adsense_publisher_id', 'REACT_APP_ADSENSE_PUBLISHER_ID');
+    const gsc   = pick('gsc_verification',     'REACT_APP_GSC_VERIFICATION');
+    const bing  = pick('bing_verification',    'REACT_APP_BING_VERIFICATION');
 
     // ───────── Google Analytics 4 ─────────
     if (ga && !document.getElementById('ga4-loader')) {
@@ -86,7 +108,7 @@ export default function GoogleIntegrations() {
       m.content = bing;
       document.head.appendChild(m);
     }
-  }, []);
+  }, [remote]);
 
   return null;
 }

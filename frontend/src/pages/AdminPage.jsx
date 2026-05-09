@@ -3,12 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
   Shield, ShieldOff, RefreshCw, Mail, Globe2, Calendar,
-  Plug, Check, X,
+  Plug, Check, X, Plus, Pencil, Trash2, KeyRound, Save, Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
@@ -18,10 +24,20 @@ import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+const PLAN_OPTIONS = [
+  { value: 'none',      label: 'Free' },
+  { value: 'monthly',   label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'annual',    label: 'Annual' },
+  { value: 'lifetime',  label: 'Lifetime' },
+];
+
 /**
- * /admin — gated by `is_admin === true`. Shows global metrics, a filterable
- * users table, CSV export and an inline "promote / demote" toggle for
- * admin rights.
+ * /admin — gated by `is_admin === true`.
+ * Provides:
+ *   - Global metrics + filters + CSV export
+ *   - Google integrations editor (GA4, GTM, GSC, AdSense, Bing) saved to DB
+ *   - Full user CRUD: create, edit, delete, reset password, promote/demote
  */
 export default function AdminPage() {
   const { t } = useTranslation();
@@ -39,7 +55,13 @@ export default function AdminPage() {
   const [q, setQ] = useState('');
   const [plan, setPlan] = useState('all');
   const [provider, setProvider] = useState('all');
-  const [locale, setLocaleFilter] = useState('all');
+  const [locale] = useState('all');
+
+  // Modals
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [resetting, setResetting] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const headers = useMemo(
     () => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }),
@@ -120,6 +142,22 @@ export default function AdminPage() {
     }
   };
 
+  const deleteUser = async (u) => {
+    try {
+      const res = await fetch(`${API}/admin/users/${u.id}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'delete failed');
+      toast.success(`Usuario ${u.email} eliminado`);
+      setConfirmDelete(null);
+      loadAll();
+    } catch (err) {
+      toast.error(err.message || 'Error eliminando usuario');
+    }
+  };
+
   if (!isAuthenticated || !user?.is_admin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -150,8 +188,11 @@ export default function AdminPage() {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               {t('adminRefresh')}
             </Button>
-            <Button onClick={handleExportCsv} className="gap-2" data-testid="admin-export-csv">
+            <Button onClick={handleExportCsv} variant="outline" className="gap-2" data-testid="admin-export-csv">
               <Download className="w-4 h-4" /> {t('adminExportCsv')}
+            </Button>
+            <Button onClick={() => setCreateOpen(true)} className="gap-2" data-testid="admin-new-user">
+              <Plus className="w-4 h-4" /> Nuevo usuario
             </Button>
           </div>
         </div>
@@ -159,32 +200,22 @@ export default function AdminPage() {
         {/* Metrics grid */}
         {metrics && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <MetricCard
-              icon={Users} label={t('adminMetricUsers')}
-              value={metrics.total_users} testId="metric-total-users"
-            />
-            <MetricCard
-              icon={Crown} label={t('adminMetricPremium')}
-              value={metrics.premium_users} valueClass="text-primary" testId="metric-premium"
-            />
-            <MetricCard
-              icon={DollarSign} label="MRR"
+            <MetricCard icon={Users} label={t('adminMetricUsers')}
+              value={metrics.total_users} testId="metric-total-users" />
+            <MetricCard icon={Crown} label={t('adminMetricPremium')}
+              value={metrics.premium_users} valueClass="text-primary" testId="metric-premium" />
+            <MetricCard icon={DollarSign} label="MRR"
               value={`$${metrics.mrr_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-              valueClass="text-green-500" testId="metric-mrr"
-            />
-            <MetricCard
-              icon={TrendingUp} label={t('adminMetricNew30d')}
-              value={metrics.new_users_30d} testId="metric-new-30d"
-            />
-            <MetricCard
-              icon={Globe2} label={t('adminMetricLocales')}
-              value={metrics.by_locale.length} testId="metric-locales"
-            />
+              valueClass="text-green-500" testId="metric-mrr" />
+            <MetricCard icon={TrendingUp} label={t('adminMetricNew30d')}
+              value={metrics.new_users_30d} testId="metric-new-30d" />
+            <MetricCard icon={Globe2} label={t('adminMetricLocales')}
+              value={metrics.by_locale.length} testId="metric-locales" />
           </div>
         )}
 
-        {/* Google integrations status */}
-        <IntegrationsCard t={t} />
+        {/* Google integrations editor */}
+        <IntegrationsEditor headers={headers} t={t} />
 
         {/* Filters */}
         <Card className="bg-card border-border">
@@ -245,45 +276,64 @@ export default function AdminPage() {
                   <Th>{t('adminColStatus')}</Th>
                   <Th>{t('adminColProvider')}</Th>
                   <Th><Calendar className="w-3 h-3 inline" /> {t('adminColCreated')}</Th>
-                  <Th>{t('adminColActions')}</Th>
+                  <Th>Acciones</Th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-t border-border hover:bg-muted/20">
-                    <td className="px-3 py-2 font-mono text-xs">{u.email}</td>
-                    <td className="px-3 py-2">{u.name}</td>
-                    <td className="px-3 py-2">
-                      <Badge variant={u.is_premium ? 'default' : 'outline'}>
-                        {u.subscription_plan || 'free'}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge variant={u.is_premium ? 'default' : 'secondary'} className={u.is_premium ? 'bg-green-500/15 text-green-600' : ''}>
-                        {u.is_premium ? 'active' : (u.subscription_status || '—')}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className="text-xs text-muted-foreground">{u.auth_provider || 'password'}</span>
-                    </td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">
-                      {u.created_at ? u.created_at.slice(0, 10) : '—'}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Button
-                        size="sm"
-                        variant={u.is_admin ? 'destructive' : 'outline'}
-                        onClick={() => togglePromote(u.email, u.is_admin)}
-                        className="gap-1 h-7"
-                        data-testid={`admin-toggle-${u.email}`}
-                      >
-                        {u.is_admin
-                          ? <><ShieldOff className="w-3 h-3" /> {t('adminDemote')}</>
-                          : <><Shield className="w-3 h-3" /> {t('adminPromote')}</>}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {users.map((u) => {
+                  const isSelf = u.id === user?.id;
+                  const isDemo = u.email === 'demo@btccalc.pro';
+                  return (
+                    <tr key={u.id} className="border-t border-border hover:bg-muted/20">
+                      <td className="px-3 py-2 font-mono text-xs">{u.email}</td>
+                      <td className="px-3 py-2">{u.name}</td>
+                      <td className="px-3 py-2">
+                        <Badge variant={u.is_premium ? 'default' : 'outline'}>
+                          {u.subscription_plan || 'free'}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Badge variant={u.is_premium ? 'default' : 'secondary'}
+                          className={u.is_premium ? 'bg-green-500/15 text-green-600' : ''}>
+                          {u.is_premium ? 'active' : (u.subscription_status || '—')}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="text-xs text-muted-foreground">{u.auth_provider || 'password'}</span>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-muted-foreground">
+                        {u.created_at ? u.created_at.slice(0, 10) : '—'}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1">
+                          <Button size="sm" variant="outline" onClick={() => setEditing(u)}
+                            className="gap-1 h-7" data-testid={`admin-edit-${u.email}`}>
+                            <Pencil className="w-3 h-3" /> Editar
+                          </Button>
+                          <Button size="sm" variant={u.is_admin ? 'destructive' : 'outline'}
+                            onClick={() => togglePromote(u.email, u.is_admin)}
+                            className="gap-1 h-7" data-testid={`admin-toggle-${u.email}`}>
+                            {u.is_admin
+                              ? <><ShieldOff className="w-3 h-3" /> {t('adminDemote')}</>
+                              : <><Shield className="w-3 h-3" /> {t('adminPromote')}</>}
+                          </Button>
+                          <Button size="sm" variant="outline"
+                            onClick={() => setResetting(u)}
+                            className="gap-1 h-7" data-testid={`admin-reset-${u.email}`}>
+                            <KeyRound className="w-3 h-3" /> Reset
+                          </Button>
+                          {!isSelf && !isDemo && (
+                            <Button size="sm" variant="destructive"
+                              onClick={() => setConfirmDelete(u)}
+                              className="gap-1 h-7" data-testid={`admin-delete-${u.email}`}>
+                              <Trash2 className="w-3 h-3" /> Borrar
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {users.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
@@ -296,6 +346,15 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* MODALS */}
+      <CreateUserDialog open={createOpen} onClose={() => setCreateOpen(false)}
+        headers={headers} onCreated={loadAll} />
+      <EditUserDialog user={editing} onClose={() => setEditing(null)}
+        headers={headers} onSaved={loadAll} />
+      <ResetPasswordDialog user={resetting} onClose={() => setResetting(null)} headers={headers} />
+      <ConfirmDeleteDialog user={confirmDelete} onClose={() => setConfirmDelete(null)}
+        onConfirm={() => deleteUser(confirmDelete)} />
     </div>
   );
 }
@@ -318,85 +377,416 @@ const MetricCard = ({ icon: Icon, label, value, valueClass = '', testId }) => (
   </Card>
 );
 
-/**
- * Live read-out of which Google/Bing services are wired in `frontend/.env`.
- * Each row: status pill (Connected / Not configured) + a hint where to get
- * the key. CRA inlines `process.env.REACT_APP_*` at build time, so this is
- * accurate after every frontend restart.
- */
-function IntegrationsCard({ t }) {
-  const integrations = [
-    {
-      id: 'oauth',
-      label: 'Google OAuth (login)',
-      env:   'REACT_APP_GOOGLE_CLIENT_ID',
-      value: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-      hint:  'Google Cloud Console → APIs & Services → Credentials',
-    },
-    {
-      id: 'ga4',
-      label: 'Google Analytics 4',
-      env:   'REACT_APP_GA4_MEASUREMENT_ID',
-      value: process.env.REACT_APP_GA4_MEASUREMENT_ID,
-      hint:  'analytics.google.com → Admin → Data Streams (G-XXXXXXXXXX)',
-    },
-    {
-      id: 'gtm',
-      label: 'Google Tag Manager',
-      env:   'REACT_APP_GTM_ID',
-      value: process.env.REACT_APP_GTM_ID,
-      hint:  'tagmanager.google.com → workspace overview (GTM-XXXXXXX)',
-    },
-    {
-      id: 'gsc',
-      label: 'Google Search Console',
-      env:   'REACT_APP_GSC_VERIFICATION',
-      value: process.env.REACT_APP_GSC_VERIFICATION,
-      hint:  'search.google.com/search-console → Add property → HTML tag method',
-    },
-    {
-      id: 'ads',
-      label: 'Google AdSense',
-      env:   'REACT_APP_ADSENSE_PUBLISHER_ID',
-      value: process.env.REACT_APP_ADSENSE_PUBLISHER_ID,
-      hint:  'adsense.google.com → Account (ca-pub-XXXXXXXXXXXXXXXX)',
-    },
-    {
-      id: 'bing',
-      label: 'Bing Webmaster',
-      env:   'REACT_APP_BING_VERIFICATION',
-      value: process.env.REACT_APP_BING_VERIFICATION,
-      hint:  'bing.com/webmasters → Add a site → Meta tag verification',
-    },
+/* ============================================================
+ *  GOOGLE INTEGRATIONS EDITOR
+ * ============================================================ */
+function IntegrationsEditor({ headers, t }) {
+  const [settings, setSettings] = useState(null);
+  const [draft, setDraft] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    try {
+      const res = await fetch(`${API}/admin/settings`, { headers });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setSettings(data);
+      setDraft({
+        ga4_measurement_id:   data.ga4_measurement_id || '',
+        gtm_id:               data.gtm_id || '',
+        gsc_verification:     data.gsc_verification || '',
+        adsense_publisher_id: data.adsense_publisher_id || '',
+        bing_verification:    data.bing_verification || '',
+        google_client_id:     data.google_client_id || '',
+      });
+    } catch {
+      toast.error('No se pudieron cargar las settings');
+    }
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/admin/settings`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(draft),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setSettings(data);
+      toast.success('APIs guardadas. Recarga la página para activarlas.');
+    } catch {
+      toast.error('Error guardando settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fields = [
+    { id: 'google_client_id',     label: 'Google OAuth Client ID', placeholder: '704...apps.googleusercontent.com', hint: 'console.cloud.google.com → APIs & Services → Credentials' },
+    { id: 'ga4_measurement_id',   label: 'Google Analytics 4',     placeholder: 'G-XXXXXXXXXX',                       hint: 'analytics.google.com → Admin → Data Streams' },
+    { id: 'gtm_id',               label: 'Google Tag Manager',     placeholder: 'GTM-XXXXXXX',                         hint: 'tagmanager.google.com → workspace overview' },
+    { id: 'gsc_verification',     label: 'Search Console (verification)', placeholder: 'AbC123...',                    hint: 'search.google.com/search-console → HTML tag method' },
+    { id: 'adsense_publisher_id', label: 'Google AdSense Publisher ID',   placeholder: 'ca-pub-XXXXXXXXXXXXXXXX',     hint: 'adsense.google.com → Account' },
+    { id: 'bing_verification',    label: 'Bing Webmaster (msvalidate)', placeholder: 'XXXXX...',                       hint: 'bing.com/webmasters → Meta tag verification' },
   ];
 
   return (
-    <Card className="bg-card border-border" data-testid="integrations-card">
+    <Card className="bg-card border-border" data-testid="integrations-editor">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <Plug className="w-4 h-4 text-primary" /> {t('adminIntegrationsTitle')}
+          <Plug className="w-4 h-4 text-primary" />
+          {t('adminIntegrationsTitle') || 'Integraciones Google'}
         </CardTitle>
+        {settings?.updated_at && (
+          <p className="text-[11px] text-muted-foreground">
+            Última actualización: {settings.updated_at.slice(0, 19).replace('T', ' ')}
+            {settings.updated_by ? ` por ${settings.updated_by}` : ''}
+          </p>
+        )}
       </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
-        {integrations.map((i) => {
-          const connected = !!i.value;
+      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+        {fields.map((f) => {
+          const value = draft[f.id] ?? '';
+          const connected = !!value;
           return (
-            <div
-              key={i.id}
-              className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 border border-border/50"
-              data-testid={`integration-${i.id}`}
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{i.label}</p>
-                <p className="text-[10px] text-muted-foreground truncate font-mono">{i.env}</p>
+            <div key={f.id} className="p-3 rounded-lg bg-muted/30 border border-border/50 space-y-2"
+              data-testid={`integration-${f.id}`}>
+              <div className="flex items-start justify-between gap-2">
+                <Label htmlFor={f.id} className="text-sm font-medium">{f.label}</Label>
+                {connected
+                  ? <Badge className="bg-green-500/15 text-green-500 gap-1"><Check className="w-3 h-3" /> {t('adminIntegrationConnected') || 'Connected'}</Badge>
+                  : <Badge variant="outline" className="text-muted-foreground gap-1"><X className="w-3 h-3" /> {t('adminIntegrationNotSet') || 'Not configured'}</Badge>}
               </div>
-              {connected
-                ? <Badge className="bg-green-500/15 text-green-500 gap-1"><Check className="w-3 h-3" /> {t('adminIntegrationConnected')}</Badge>
-                : <Badge variant="outline" className="text-muted-foreground gap-1"><X className="w-3 h-3" /> {t('adminIntegrationNotSet')}</Badge>}
+              <Input
+                id={f.id}
+                value={value}
+                placeholder={f.placeholder}
+                onChange={(e) => setDraft({ ...draft, [f.id]: e.target.value })}
+                className="font-mono text-xs"
+                data-testid={`input-${f.id}`}
+              />
+              <p className="text-[10px] text-muted-foreground">{f.hint}</p>
             </div>
           );
         })}
+        <div className="md:col-span-2 flex justify-end pt-2">
+          <Button onClick={save} disabled={saving} className="gap-2" data-testid="settings-save">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Guardar APIs
+          </Button>
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+/* ============================================================
+ *  CREATE USER DIALOG
+ * ============================================================ */
+function CreateUserDialog({ open, onClose, headers, onCreated }) {
+  const [form, setForm] = useState({
+    email: '', name: '', password: '',
+    subscription_plan: 'none',
+    is_premium: false, is_admin: false,
+  });
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) setForm({ email: '', name: '', password: '', subscription_plan: 'none', is_premium: false, is_admin: false });
+  }, [open]);
+
+  const submit = async () => {
+    if (!form.email || !form.password || !form.name) {
+      toast.error('Email, nombre y contraseña son obligatorios');
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch(`${API}/admin/users`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          ...form,
+          subscription_plan: form.subscription_plan === 'none' ? null : form.subscription_plan,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'create failed');
+      toast.success(`Usuario ${data.user.email} creado`);
+      onCreated?.();
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Error creando usuario');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md" data-testid="create-user-dialog">
+        <DialogHeader>
+          <DialogTitle>Crear usuario</DialogTitle>
+          <DialogDescription>Crea una cuenta directamente desde el panel admin.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Email *</Label>
+            <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="usuario@dominio.com" data-testid="create-email" />
+          </div>
+          <div>
+            <Label>Nombre *</Label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+              data-testid="create-name" />
+          </div>
+          <div>
+            <Label>Contraseña *</Label>
+            <Input type="text" value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              placeholder="Mínimo 4 caracteres" data-testid="create-password" />
+          </div>
+          <div>
+            <Label>Plan</Label>
+            <Select value={form.subscription_plan} onValueChange={(v) => setForm({ ...form, subscription_plan: v })}>
+              <SelectTrigger data-testid="create-plan"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PLAN_OPTIONS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="is_premium">Premium</Label>
+            <Switch id="is_premium" checked={form.is_premium}
+              onCheckedChange={(v) => setForm({ ...form, is_premium: v })}
+              data-testid="create-premium" />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="is_admin">Administrador</Label>
+            <Switch id="is_admin" checked={form.is_admin}
+              onCheckedChange={(v) => setForm({ ...form, is_admin: v })}
+              data-testid="create-admin" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={submit} disabled={busy} data-testid="create-submit">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+            Crear
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ============================================================
+ *  EDIT USER DIALOG
+ * ============================================================ */
+function EditUserDialog({ user, onClose, headers, onSaved }) {
+  const [form, setForm] = useState({});
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        email: user.email || '',
+        name: user.name || '',
+        subscription_plan: user.subscription_plan || 'none',
+        subscription_end: user.subscription_end ? user.subscription_end.slice(0, 10) : '',
+        subscription_status: user.subscription_status || '',
+        is_premium: !!user.is_premium,
+        is_admin: !!user.is_admin,
+      });
+    }
+  }, [user]);
+
+  if (!user) return null;
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const body = {
+        name: form.name,
+        email: form.email,
+        subscription_plan: form.subscription_plan === 'none' ? null : form.subscription_plan,
+        subscription_end: form.subscription_end ? new Date(form.subscription_end).toISOString() : null,
+        subscription_status: form.subscription_status || null,
+        is_premium: form.is_premium,
+        is_admin: form.is_admin,
+      };
+      const res = await fetch(`${API}/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'update failed');
+      toast.success('Usuario actualizado');
+      onSaved?.();
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Error actualizando usuario');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!user} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md" data-testid="edit-user-dialog">
+        <DialogHeader>
+          <DialogTitle>Editar usuario</DialogTitle>
+          <DialogDescription className="font-mono text-xs">{user.email}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Email</Label>
+            <Input value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })}
+              data-testid="edit-email" />
+          </div>
+          <div>
+            <Label>Nombre</Label>
+            <Input value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })}
+              data-testid="edit-name" />
+          </div>
+          <div>
+            <Label>Plan</Label>
+            <Select value={form.subscription_plan || 'none'}
+              onValueChange={(v) => setForm({ ...form, subscription_plan: v })}>
+              <SelectTrigger data-testid="edit-plan"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PLAN_OPTIONS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Fin de suscripción (opcional)</Label>
+            <Input type="date" value={form.subscription_end || ''}
+              onChange={(e) => setForm({ ...form, subscription_end: e.target.value })}
+              data-testid="edit-sub-end" />
+          </div>
+          <div>
+            <Label>Estado de suscripción</Label>
+            <Select value={form.subscription_status || 'none'}
+              onValueChange={(v) => setForm({ ...form, subscription_status: v === 'none' ? '' : v })}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— (sin estado)</SelectItem>
+                <SelectItem value="active">active</SelectItem>
+                <SelectItem value="canceled">canceled</SelectItem>
+                <SelectItem value="past_due">past_due</SelectItem>
+                <SelectItem value="expired">expired</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="edit_premium">Premium</Label>
+            <Switch id="edit_premium" checked={!!form.is_premium}
+              onCheckedChange={(v) => setForm({ ...form, is_premium: v })} data-testid="edit-premium" />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="edit_admin">Administrador</Label>
+            <Switch id="edit_admin" checked={!!form.is_admin}
+              onCheckedChange={(v) => setForm({ ...form, is_admin: v })} data-testid="edit-admin" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={submit} disabled={busy} data-testid="edit-submit">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ============================================================
+ *  RESET PASSWORD DIALOG
+ * ============================================================ */
+function ResetPasswordDialog({ user, onClose, headers }) {
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => { if (user) setPw(''); }, [user]);
+
+  if (!user) return null;
+
+  const submit = async () => {
+    if (pw.length < 4) { toast.error('Mínimo 4 caracteres'); return; }
+    setBusy(true);
+    try {
+      const res = await fetch(`${API}/admin/users/${user.id}/reset-password`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ new_password: pw }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'reset failed');
+      toast.success(`Contraseña actualizada para ${user.email}`);
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Error reseteando');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!user} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm" data-testid="reset-password-dialog">
+        <DialogHeader>
+          <DialogTitle>Resetear contraseña</DialogTitle>
+          <DialogDescription className="font-mono text-xs">{user.email}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Label>Nueva contraseña</Label>
+          <Input type="text" value={pw} onChange={(e) => setPw(e.target.value)}
+            placeholder="Mínimo 4 caracteres" data-testid="reset-input" />
+          <p className="text-xs text-muted-foreground">
+            El usuario podrá iniciar sesión con esta contraseña inmediatamente.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={submit} disabled={busy} data-testid="reset-submit">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
+            Resetear
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ============================================================
+ *  CONFIRM DELETE DIALOG
+ * ============================================================ */
+function ConfirmDeleteDialog({ user, onClose, onConfirm }) {
+  if (!user) return null;
+  return (
+    <Dialog open={!!user} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm" data-testid="delete-user-dialog">
+        <DialogHeader>
+          <DialogTitle className="text-destructive">¿Eliminar usuario?</DialogTitle>
+          <DialogDescription>
+            Vas a borrar permanentemente <span className="font-mono">{user.email}</span> y todos sus datos asociados.
+            Esta acción no se puede deshacer.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="destructive" onClick={onConfirm} data-testid="confirm-delete">
+            <Trash2 className="w-4 h-4 mr-2" /> Eliminar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
