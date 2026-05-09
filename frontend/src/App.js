@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
 import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
+import AnalyticsTracker from "@/components/integrations/AnalyticsTracker";
 
 // Pages
 import LandingPage from "@/pages/LandingPage";
@@ -26,6 +27,7 @@ function App() {
       <GoogleIntegrations />
       <div className="App">
         <BrowserRouter>
+          <AnalyticsTracker />
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
