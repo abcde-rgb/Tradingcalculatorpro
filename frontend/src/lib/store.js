@@ -3,6 +3,17 @@ import { persist } from 'zustand/middleware';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Helper para leer respuesta de forma segura sin error "body stream already read"
+async function safeJson(res) {
+  const clone = res.clone();
+  try {
+    return await res.json();
+  } catch {
+    const text = await clone.text();
+    throw new Error(text || `Error HTTP ${res.status}`);
+  }
+}
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -19,7 +30,7 @@ export const useAuthStore = create(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
           });
-          const data = await res.json();
+          const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || 'Error de login');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           return { success: true };
@@ -37,7 +48,7 @@ export const useAuthStore = create(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, password })
           });
-          const data = await res.json();
+          const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || 'Error de registro');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           return { success: true };
@@ -60,7 +71,7 @@ export const useAuthStore = create(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ credential })
           });
-          const data = await res.json();
+          const data = await safeJson(res);
           if (!res.ok) throw new Error(data.detail || 'Error con Google');
           set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
           return { success: true };
@@ -82,7 +93,7 @@ export const useAuthStore = create(
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (res.ok) {
-            const user = await res.json();
+            const user = await safeJson(res);
             set({ user });
           }
         } catch (error) {
@@ -108,7 +119,7 @@ export const usePriceStore = create((set) => ({
     set({ isLoading: true });
     try {
       const res = await fetch(`${API}/prices`);
-      const data = await res.json();
+      const data = await safeJson(res);
       set({ prices: data, isLoading: false });
     } catch (error) {
       // ✅ PRODUCTION FIX: Removed console.error
@@ -149,7 +160,7 @@ export const useCalculatorStore = create((set, get) => ({
       const res = await fetch(`${API}/calculations`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await res.json();
+      const data = await safeJson(res);
       set({ history: data, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
