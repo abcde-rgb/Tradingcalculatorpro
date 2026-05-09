@@ -2008,6 +2008,9 @@ export const translations = {
     billingPortalBtn: 'Portal de Facturación',
     viewPlansBtn: 'Ver Planes',
     adminMenuLabel: 'Admin',
+    adminIntegrationsTitle: 'Integraciones de Google',
+    adminIntegrationConnected: 'Conectado',
+    adminIntegrationNotSet: 'Sin configurar',
   },
   
   en: {
@@ -3897,6 +3900,9 @@ export const translations = {
     billingPortalBtn: 'Billing Portal',
     viewPlansBtn: 'View Plans',
     adminMenuLabel: 'Admin',
+    adminIntegrationsTitle: 'Google Integrations',
+    adminIntegrationConnected: 'Connected',
+    adminIntegrationNotSet: 'Not configured',
   },
   
   de: {
@@ -5816,6 +5822,9 @@ export const translations = {
     billingPortalBtn: 'Abrechnungsportal',
     viewPlansBtn: 'Pläne ansehen',
     adminMenuLabel: 'Admin',
+    adminIntegrationsTitle: 'Google-Integrationen',
+    adminIntegrationConnected: 'Verbunden',
+    adminIntegrationNotSet: 'Nicht konfiguriert',
   },
   
   fr: {
@@ -7735,6 +7744,9 @@ export const translations = {
     billingPortalBtn: 'Portail de facturation',
     viewPlansBtn: 'Voir les plans',
     adminMenuLabel: 'Admin',
+    adminIntegrationsTitle: 'Intégrations Google',
+    adminIntegrationConnected: 'Connecté',
+    adminIntegrationNotSet: 'Non configuré',
   },
   
   ru: {
@@ -9596,6 +9608,9 @@ export const translations = {
     billingPortalBtn: 'Биллинг-портал',
     viewPlansBtn: 'Смотреть планы',
     adminMenuLabel: 'Админ',
+    adminIntegrationsTitle: 'Интеграции Google',
+    adminIntegrationConnected: 'Подключено',
+    adminIntegrationNotSet: 'Не настроено',
   },
   
   zh: {
@@ -11457,6 +11472,9 @@ export const translations = {
     billingPortalBtn: '账单门户',
     viewPlansBtn: '查看套餐',
     adminMenuLabel: '管理',
+    adminIntegrationsTitle: 'Google 集成',
+    adminIntegrationConnected: '已连接',
+    adminIntegrationNotSet: '未配置',
   },
   
   ja: {
@@ -13318,6 +13336,9 @@ export const translations = {
     billingPortalBtn: '請求ポータル',
     viewPlansBtn: 'プランを見る',
     adminMenuLabel: '管理',
+    adminIntegrationsTitle: 'Google統合',
+    adminIntegrationConnected: '接続済み',
+    adminIntegrationNotSet: '未設定',
   },
   
   ar: {
@@ -15177,6 +15198,9 @@ export const translations = {
     billingPortalBtn: 'بوابة الفواتير',
     viewPlansBtn: 'عرض الخطط',
     adminMenuLabel: 'إدارة',
+    adminIntegrationsTitle: 'تكاملات Google',
+    adminIntegrationConnected: 'متصل',
+    adminIntegrationNotSet: 'غير مهيأ',
   }
 };
 

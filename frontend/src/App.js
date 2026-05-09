@@ -2,6 +2,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
+import GoogleIntegrations from "@/components/integrations/GoogleIntegrations";
 
 // Pages
 import LandingPage from "@/pages/LandingPage";
@@ -22,6 +23,7 @@ const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 function App() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || ""}>
+      <GoogleIntegrations />
       <div className="App">
         <BrowserRouter>
           <Routes>

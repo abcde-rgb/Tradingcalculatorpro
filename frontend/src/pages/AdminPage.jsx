@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
   Shield, ShieldOff, RefreshCw, Mail, Globe2, Calendar,
+  Plug, Check, X,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -182,6 +183,9 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Google integrations status */}
+        <IntegrationsCard t={t} />
+
         {/* Filters */}
         <Card className="bg-card border-border">
           <CardContent className="p-4">
@@ -313,3 +317,86 @@ const MetricCard = ({ icon: Icon, label, value, valueClass = '', testId }) => (
     </CardContent>
   </Card>
 );
+
+/**
+ * Live read-out of which Google/Bing services are wired in `frontend/.env`.
+ * Each row: status pill (Connected / Not configured) + a hint where to get
+ * the key. CRA inlines `process.env.REACT_APP_*` at build time, so this is
+ * accurate after every frontend restart.
+ */
+function IntegrationsCard({ t }) {
+  const integrations = [
+    {
+      id: 'oauth',
+      label: 'Google OAuth (login)',
+      env:   'REACT_APP_GOOGLE_CLIENT_ID',
+      value: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+      hint:  'Google Cloud Console → APIs & Services → Credentials',
+    },
+    {
+      id: 'ga4',
+      label: 'Google Analytics 4',
+      env:   'REACT_APP_GA4_MEASUREMENT_ID',
+      value: process.env.REACT_APP_GA4_MEASUREMENT_ID,
+      hint:  'analytics.google.com → Admin → Data Streams (G-XXXXXXXXXX)',
+    },
+    {
+      id: 'gtm',
+      label: 'Google Tag Manager',
+      env:   'REACT_APP_GTM_ID',
+      value: process.env.REACT_APP_GTM_ID,
+      hint:  'tagmanager.google.com → workspace overview (GTM-XXXXXXX)',
+    },
+    {
+      id: 'gsc',
+      label: 'Google Search Console',
+      env:   'REACT_APP_GSC_VERIFICATION',
+      value: process.env.REACT_APP_GSC_VERIFICATION,
+      hint:  'search.google.com/search-console → Add property → HTML tag method',
+    },
+    {
+      id: 'ads',
+      label: 'Google AdSense',
+      env:   'REACT_APP_ADSENSE_PUBLISHER_ID',
+      value: process.env.REACT_APP_ADSENSE_PUBLISHER_ID,
+      hint:  'adsense.google.com → Account (ca-pub-XXXXXXXXXXXXXXXX)',
+    },
+    {
+      id: 'bing',
+      label: 'Bing Webmaster',
+      env:   'REACT_APP_BING_VERIFICATION',
+      value: process.env.REACT_APP_BING_VERIFICATION,
+      hint:  'bing.com/webmasters → Add a site → Meta tag verification',
+    },
+  ];
+
+  return (
+    <Card className="bg-card border-border" data-testid="integrations-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Plug className="w-4 h-4 text-primary" /> {t('adminIntegrationsTitle')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
+        {integrations.map((i) => {
+          const connected = !!i.value;
+          return (
+            <div
+              key={i.id}
+              className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 border border-border/50"
+              data-testid={`integration-${i.id}`}
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{i.label}</p>
+                <p className="text-[10px] text-muted-foreground truncate font-mono">{i.env}</p>
+              </div>
+              {connected
+                ? <Badge className="bg-green-500/15 text-green-500 gap-1"><Check className="w-3 h-3" /> {t('adminIntegrationConnected')}</Badge>
+                : <Badge variant="outline" className="text-muted-foreground gap-1"><X className="w-3 h-3" /> {t('adminIntegrationNotSet')}</Badge>}
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
