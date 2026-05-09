@@ -13,7 +13,7 @@ Guía paso a paso para activar el login con Google en Trading Calculator PRO.
 5. Selecciona **Application type: Web application**
 6. En **Authorized JavaScript origins**, añade la URL de tu frontend:
    ```
-   https://unified-site-1.preview.emergentagent.com
+   https://auth-fix-google-api.preview.emergentagent.com
    ```
    > ⚠️ NO añadas `/` al final. NO es necesario añadir Redirect URIs.
 7. Haz clic en **Create** y copia el **Client ID** generado.

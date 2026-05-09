@@ -13,7 +13,7 @@ def _read_frontend_env():
         pass
     return None
 
-BASE_URL = (os.environ.get('REACT_APP_BACKEND_URL') or _read_frontend_env() or 'https://unified-site-1.preview.emergentagent.com').rstrip('/')
+BASE_URL = (os.environ.get('REACT_APP_BACKEND_URL') or _read_frontend_env() or 'https://auth-fix-google-api.preview.emergentagent.com').rstrip('/')
 
 
 @pytest.fixture
