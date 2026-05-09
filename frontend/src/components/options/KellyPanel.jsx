@@ -38,7 +38,7 @@ const KellyPanel = ({ pop, maxProfit, maxLoss, capitalPerContract, isMaxLossUnli
       R,
       p,
     };
-  }, [pop, maxProfit, maxLoss, isMaxLossUnlimited]);
+  }, [pop, maxProfit, maxLoss, isMaxLossUnlimited, t]);
 
   const suggestedContracts = (pct) => {
     if (!accountBalance || accountBalance <= 0 || !capitalPerContract || capitalPerContract <= 0) return 0;
