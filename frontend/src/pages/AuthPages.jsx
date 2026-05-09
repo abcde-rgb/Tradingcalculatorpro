@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/lib/store';
 import { toast } from 'sonner';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 
 export const LoginPage = () => {
   const { t } = useTranslation();
@@ -81,6 +82,8 @@ export const LoginPage = () => {
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </form>
+
+          <GoogleSignInButton />
           
           <div className="mt-6 text-center text-sm">
             <span className="text-muted-foreground">{t('noTienesCuenta_ba7c96')} </span>
@@ -99,6 +102,7 @@ export const LoginPage = () => {
 };
 
 export const RegisterPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { register, isLoading } = useAuthStore();
   const [name, setName] = useState('');
@@ -190,6 +194,8 @@ export const RegisterPage = () => {
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </form>
+
+          <GoogleSignInButton />
           
           <div className="mt-6 text-center text-sm">
             <span className="text-muted-foreground">{t('yaTienesCuenta_7e833c')} </span>

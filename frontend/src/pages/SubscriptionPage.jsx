@@ -5,7 +5,7 @@ import { useAuthStore } from '../lib/store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle, Calendar, CreditCard, Download, ExternalLink } from 'lucide-react';
+import { AlertCircle, CheckCircle, Calendar, CreditCard, Download, ExternalLink, ArrowRightLeft } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 
@@ -232,33 +232,48 @@ export default function SubscriptionPage() {
                       variant="destructive"
                       onClick={handleCancelSubscription}
                       disabled={actionLoading}
+                      data-testid="cancel-subscription-btn"
                     >
-                      Cancelar Suscripción
+                      {t('cancelSubscriptionBtn')}
                     </Button>
                   ) : (
                     <Button
                       variant="default"
                       onClick={handleResumeSubscription}
                       disabled={actionLoading}
+                      data-testid="resume-subscription-btn"
                     >
-                      Reactivar Suscripción
+                      {t('resumeSubscriptionBtn')}
                     </Button>
                   )}
-                  
+
+                  <Button
+                    variant="default"
+                    onClick={handleOpenPortal}
+                    disabled={actionLoading}
+                    className="bg-primary text-primary-foreground"
+                    data-testid="change-plan-btn"
+                  >
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                    {t('changePlanBtn')}
+                  </Button>
+
                   <Button
                     variant="outline"
                     onClick={handleOpenPortal}
                     disabled={actionLoading}
+                    data-testid="billing-portal-btn"
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Portal de Facturación
+                    {t('billingPortalBtn')}
                   </Button>
 
                   <Button
                     variant="outline"
                     onClick={() => navigate('/pricing')}
+                    data-testid="view-plans-btn"
                   >
-                    Ver Planes
+                    {t('viewPlansBtn')}
                   </Button>
                 </div>
               </>

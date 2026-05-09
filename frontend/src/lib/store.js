@@ -47,6 +47,29 @@ export const useAuthStore = create(
         }
       },
 
+      /**
+       * Sign in with the Google ID token returned by `<GoogleLogin>`.
+       * Backend verifies the signature against Google's certs, then returns
+       * our own JWT and user object — same shape as `login` / `register`.
+       */
+      loginWithGoogle: async (credential) => {
+        set({ isLoading: true });
+        try {
+          const res = await fetch(`${API}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || 'Error con Google');
+          set({ user: data.user, token: data.token, isAuthenticated: true, isLoading: false });
+          return { success: true };
+        } catch (error) {
+          set({ isLoading: false });
+          return { success: false, error: error.message };
+        }
+      },
+
       logout: () => {
         set({ user: null, token: null, isAuthenticated: false });
       },

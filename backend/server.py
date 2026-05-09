@@ -15,6 +15,8 @@ import jwt
 import httpx
 import secrets  # ✅ SECURITY FIX: Added secure random for sensitive operations
 import stripe  # Stripe SDK for advanced subscription management
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 
 from options_math import (
     generate_options_chain,
@@ -176,6 +178,19 @@ async def require_user(credentials: HTTPAuthorizationCredentials = Depends(secur
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
     return user
 
+
+async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Gate-keeper for admin-only endpoints. Returns the admin user."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Se requiere autenticación")
+    payload = decode_token(credentials.credentials)
+    user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado")
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Acceso restringido")
+    return user
+
 def check_premium(user: dict) -> bool:
     """Check if user has premium access. Demo user always has premium."""
     if not user:
@@ -227,6 +242,8 @@ async def register(user_data: UserCreate):
         "subscription_plan": None,
         "subscription_end": None,
         "is_premium": False,
+        "is_admin": False,
+        "auth_provider": "password",
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
@@ -240,14 +257,16 @@ async def register(user_data: UserCreate):
             "name": user_data.name,
             "subscription_plan": None,
             "subscription_end": None,
-            "is_premium": False
+            "is_premium": False,
+            "is_admin": False,
+            "auth_provider": "password",
         }
     }
 
 @api_router.post("/auth/login", response_model=dict)
 async def login(credentials: UserLogin):
     user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
-    if not user or not verify_password(credentials.password, user["password"]):
+    if not user or not user.get("password") or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     
     token = create_token(user["id"], user["email"])
@@ -259,9 +278,12 @@ async def login(credentials: UserLogin):
             "id": user["id"],
             "email": user["email"],
             "name": user["name"],
+            "picture": user.get("picture"),
             "subscription_plan": user.get("subscription_plan"),
             "subscription_end": user.get("subscription_end"),
-            "is_premium": is_premium
+            "is_premium": is_premium,
+            "is_admin": bool(user.get("is_admin")),
+            "auth_provider": user.get("auth_provider", "password"),
         }
     }
 
@@ -274,7 +296,98 @@ async def get_me(user: dict = Depends(require_user)):
         "name": user["name"],
         "subscription_plan": user.get("subscription_plan"),
         "subscription_end": user.get("subscription_end"),
-        "is_premium": is_premium
+        "is_premium": is_premium,
+        "is_admin": bool(user.get("is_admin")),
+        "auth_provider": user.get("auth_provider", "password"),
+        "picture": user.get("picture"),
+    }
+
+
+# ============= GOOGLE OAUTH =============
+# REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+
+
+class GoogleAuthRequest(BaseModel):
+    """Payload sent by the SPA after Google's button returns an ID token."""
+    credential: str  # the Google-issued ID token (JWT signed by Google)
+
+
+@api_router.post("/auth/google")
+async def google_auth(payload: GoogleAuthRequest):
+    """
+    Verify a Google ID token, then return our own JWT.
+
+    Flow:
+      1. SPA shows Google button (`<GoogleLogin/>`).
+      2. On success Google returns an `id_token` JWT, signed by Google.
+      3. SPA POSTs it to this endpoint as `{credential: <jwt>}`.
+      4. We verify the signature against Google's public certs, extract email,
+         look up or create our app's user, and issue our own JWT.
+    """
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google OAuth no está configurado en el servidor")
+
+    try:
+        # `verify_oauth2_token` checks signature, audience, expiration & issuer.
+        info = google_id_token.verify_oauth2_token(
+            payload.credential,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID,
+        )
+    except ValueError as exc:
+        # Bad signature, expired token, or wrong audience
+        raise HTTPException(status_code=401, detail=f"Token de Google inválido: {exc}") from exc
+
+    email = (info.get("email") or "").lower()
+    if not email or not info.get("email_verified"):
+        raise HTTPException(status_code=401, detail="Cuenta de Google sin email verificado")
+
+    # Look up by email, otherwise create a passwordless user with `auth_provider=google`.
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user:
+        user_id = str(uuid.uuid4())
+        user = {
+            "id": user_id,
+            "email": email,
+            "password": None,                  # no password for Google users
+            "name": info.get("name") or email.split("@")[0],
+            "picture": info.get("picture"),
+            "subscription_plan": None,
+            "subscription_end": None,
+            "is_premium": False,
+            "is_admin": False,
+            "auth_provider": "google",
+            "google_sub": info.get("sub"),     # stable Google user id
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.users.insert_one(user)
+    else:
+        # Backfill picture / google_sub on existing accounts that registered with email/password.
+        updates = {}
+        if not user.get("google_sub"):
+            updates["google_sub"] = info.get("sub")
+        if not user.get("picture") and info.get("picture"):
+            updates["picture"] = info.get("picture")
+        if updates:
+            await db.users.update_one({"id": user["id"]}, {"$set": updates})
+            user.update(updates)
+
+    token = create_token(user["id"], user["email"])
+    return {
+        "token": token,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user["name"],
+            "picture": user.get("picture"),
+            "subscription_plan": user.get("subscription_plan"),
+            "subscription_end": user.get("subscription_end"),
+            "is_premium": check_premium(user),
+            "is_admin": bool(user.get("is_admin")),
+            "auth_provider": user.get("auth_provider", "google"),
+        },
     }
 
 # ============= PRICES - Real-time Data =============
@@ -2488,6 +2601,162 @@ async def performance_analytics(user: dict = Depends(require_user)):
     analytics = compute_analytics(enriched)
     insights = generate_insights(analytics)
     return {"analytics": analytics, "insights": insights}
+
+
+# ============= ADMIN PANEL =============
+
+def _serialize_admin_user(u: dict) -> dict:
+    """Strip internal fields from a user document for admin views."""
+    return {
+        "id": u.get("id"),
+        "email": u.get("email"),
+        "name": u.get("name"),
+        "auth_provider": u.get("auth_provider", "password"),
+        "is_premium": check_premium(u),
+        "is_admin": bool(u.get("is_admin")),
+        "subscription_plan": u.get("subscription_plan"),
+        "subscription_end": u.get("subscription_end"),
+        "subscription_status": u.get("subscription_status"),  # active, canceled, past_due …
+        "stripe_customer_id": u.get("stripe_customer_id"),
+        "stripe_subscription_id": u.get("stripe_subscription_id"),
+        "preferred_locale": u.get("preferred_locale"),
+        "created_at": u.get("created_at"),
+        "last_payment_amount": u.get("last_payment_amount"),
+        "last_payment_at": u.get("last_payment_at"),
+    }
+
+
+@api_router.get("/admin/users")
+async def admin_list_users(
+    admin: dict = Depends(require_admin),
+    q: Optional[str] = None,                     # email/name search
+    plan: Optional[str] = None,                  # monthly|quarterly|annual|lifetime|none
+    status: Optional[str] = None,                # active|canceled|expired|none
+    provider: Optional[str] = None,              # password|google
+    locale: Optional[str] = None,                # es|en|de|...
+    limit: int = 200,
+    skip: int = 0,
+):
+    """Paged, filterable user list for the /admin panel."""
+    query: Dict[str, Any] = {}
+
+    if q:
+        query["$or"] = [
+            {"email": {"$regex": q, "$options": "i"}},
+            {"name":  {"$regex": q, "$options": "i"}},
+        ]
+    if plan:
+        query["subscription_plan"] = None if plan == "none" else plan
+    if provider:
+        # Treat missing field as "password" for legacy users.
+        query["auth_provider"] = provider if provider != "password" else {"$in": ["password", None]}
+    if locale:
+        query["preferred_locale"] = locale
+
+    cursor = db.users.find(query, {"_id": 0, "password": 0}).sort("created_at", -1).skip(skip).limit(limit)
+    users = [_serialize_admin_user(u) async for u in cursor]
+
+    if status:
+        # Apply status as a Python-side filter because `is_premium` is a derived check.
+        def _matches(u):
+            sub_end = u.get("subscription_end")
+            if status == "active":
+                return u["is_premium"]
+            if status == "canceled":
+                return u.get("subscription_status") == "canceled"
+            if status == "expired":
+                return (sub_end is not None) and not u["is_premium"]
+            if status == "none":
+                return u.get("subscription_plan") is None
+            return True
+        users = [u for u in users if _matches(u)]
+
+    total = await db.users.count_documents(query)
+    return {"users": users, "total": total, "skip": skip, "limit": limit}
+
+
+@api_router.get("/admin/users.csv")
+async def admin_export_users_csv(admin: dict = Depends(require_admin)):
+    """Export the full user list as CSV (one row per user)."""
+    import csv
+    import io
+    cursor = db.users.find({}, {"_id": 0, "password": 0})
+    rows = [_serialize_admin_user(u) async for u in cursor]
+
+    cols = [
+        "email", "name", "auth_provider", "is_premium", "is_admin",
+        "subscription_plan", "subscription_end", "subscription_status",
+        "stripe_customer_id", "preferred_locale", "created_at",
+        "last_payment_amount", "last_payment_at",
+    ]
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=cols, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+
+    from fastapi.responses import Response
+    return Response(
+        content=buf.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="tcp-users.csv"'},
+    )
+
+
+@api_router.get("/admin/metrics")
+async def admin_metrics(admin: dict = Depends(require_admin)):
+    """Aggregate KPIs for the admin overview header."""
+    pipeline_plan = [
+        {"$group": {"_id": "$subscription_plan", "count": {"$sum": 1}}}
+    ]
+    pipeline_locale = [
+        {"$group": {"_id": "$preferred_locale", "count": {"$sum": 1}}}
+    ]
+    by_plan, by_locale = [], []
+    async for r in db.users.aggregate(pipeline_plan):
+        by_plan.append({"plan": r["_id"] or "free", "count": r["count"]})
+    async for r in db.users.aggregate(pipeline_locale):
+        by_locale.append({"locale": r["_id"] or "es", "count": r["count"]})
+
+    total = await db.users.count_documents({})
+    free  = await db.users.count_documents({"subscription_plan": None})
+    premium = total - free
+
+    # MRR (rough — uses plan price ÷ months)
+    plan_mrr = {"monthly": 9.99, "quarterly": 19.99 / 3, "annual": 79.99 / 12, "lifetime": 0}
+    mrr = 0.0
+    for r in by_plan:
+        mrr += plan_mrr.get(r["plan"], 0) * r["count"]
+
+    # New users last 30 days
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    new_30d = await db.users.count_documents({"created_at": {"$gte": cutoff}})
+
+    return {
+        "total_users":   total,
+        "premium_users": premium,
+        "free_users":    free,
+        "mrr_usd":       round(mrr, 2),
+        "new_users_30d": new_30d,
+        "by_plan":       by_plan,
+        "by_locale":     by_locale,
+    }
+
+
+class AdminPromoteRequest(BaseModel):
+    email: EmailStr
+    is_admin: bool = True
+
+
+@api_router.post("/admin/promote")
+async def admin_promote_user(payload: AdminPromoteRequest, admin: dict = Depends(require_admin)):
+    """Toggle is_admin flag for any user (only callable by an existing admin)."""
+    result = await db.users.update_one(
+        {"email": payload.email.lower()},
+        {"$set": {"is_admin": payload.is_admin}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"email": payload.email, "is_admin": payload.is_admin}
 
 
 # Include router and setup middleware

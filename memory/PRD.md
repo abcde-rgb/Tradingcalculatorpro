@@ -23,8 +23,46 @@
 - `components/layout/Header.jsx` + `Footer.jsx` — universales
 
 ## Implementado
+### May 2026 — Google OAuth + Panel Admin + Subscription Polish ✅
+**Tres features grandes en una tanda, tras petición del usuario.**
+
+**1. Google OAuth Sign-in (manual via Google Cloud Console)**
+- Backend `POST /api/auth/google` con verificación criptográfica del ID token usando `google-auth==2.49.1`. Verifica firma + audience + expiración + issuer contra los certs de Google. Si el email está verificado, busca el user por email; si no existe lo crea con `auth_provider: 'google'` y `password: null`.
+- Frontend: `@react-oauth/google` 0.13.5 instalado. App envuelta en `<GoogleOAuthProvider>` con `REACT_APP_GOOGLE_CLIENT_ID` desde `.env`. Botón Google en `/login` y `/register` (componente reutilizable `GoogleSignInButton`). El botón usa el theme `filled_black`, locale dinámico según idioma activo, y al success llama `loginWithGoogle(credential)` del store.
+- Migración de schema: campos nuevos en `users` collection: `auth_provider`, `picture`, `google_sub`, `is_admin`. Login y register existentes ahora devuelven también `is_admin`, `auth_provider`, `picture`.
+- Bug fix de paso: `RegisterPage` no tenía `t` en scope — el toast de "contraseña corta" crasheaba.
+
+**2. Panel `/admin` (gated by `is_admin`)**
+- Backend (4 endpoints):
+  - `GET /api/admin/users` — paged + filtros (q por email/name, plan, status, provider, locale)
+  - `GET /api/admin/users.csv` — export CSV con 13 columnas (email, name, auth_provider, is_premium, is_admin, plan, sub end, sub status, stripe customer, locale, created, last payment)
+  - `GET /api/admin/metrics` — KPIs agregados: total users, premium, MRR estimado por plan, new 30d, by_plan, by_locale
+  - `POST /api/admin/promote` — toggle is_admin de cualquier user (idempotente)
+- `require_admin` dependency injection: 401 si no auth, 403 si auth pero no admin.
+- Frontend `AdminPage.jsx` (320 líneas): 5 cards de métricas con iconos lucide, fila de filtros (search + plan select + provider select), tabla con 7 columnas + acciones inline "Hacer admin"/"Quitar admin", export CSV con timestamp en nombre. Auto-redirige a `/dashboard` si el user no es admin.
+- Header.jsx muestra link "Admin" en el dropdown del usuario sólo si `user.is_admin === true`.
+
+**3. Suscripción mejorada**
+- 4 botones explícitos en `/subscription` para usuarios con sub Stripe real:
+  - "Cambiar de plan" (primario, abre Stripe Customer Portal con proración nativa)
+  - "Cancelar Suscripción" / "Reactivar Suscripción" (toggle según estado)
+  - "Portal de Facturación" (mismo portal pero distinto contexto)
+  - "Ver Planes" (navega a `/pricing`)
+- Todos los botones ahora son traducibles en los 8 idiomas (5 keys nuevas).
+
+**i18n: 42 keys × 8 locales = 336 entradas nuevas** para Admin panel + Google sign-in + Subscription buttons.
+
+**Verificación E2E:**
+- Backend lint ruff: clean ✅
+- Frontend lint eslint: clean ✅
+- Endpoints curl: `/auth/google` con token inválido → 401 con mensaje correcto ✅; `/admin/metrics` con token admin → JSON con 5 KPIs ✅; `/admin/users?limit=5` → 7 users con plan + is_admin ✅
+- Browser screenshots: login muestra botón "Sign in with Google" + divider; user dropdown muestra "Admin" link cuando is_admin; `/admin` renderiza 5 metric cards + filtros + tabla con 7 users + botones "Hacer admin"/"Quitar admin"; subscription page muestra los nuevos botones cuando hay Stripe sub real.
+
+**Credentials:**
+- Demo `demo@btccalc.pro / 1234` ahora tiene `is_admin: true` (bootstrap manual). El usuario puede crear más admins desde el panel `/admin`.
+- Google OAuth en `/app/backend/.env`: `GOOGLE_CLIENT_ID=704202303011-h80r1dthm40hm7qtmu6ood7bq24mgcs2.apps.googleusercontent.com` + secret. JS Origin autorizado: preview URL.
+
 ### May 2026 — SEO Multi-idioma Dinámico (8 locales) ✅
-**Aplicado tras análisis de SEO competitivo de un experto externo:**
 
 - **`useSEO` reescrito i18n-aware** (`/src/hooks/useSEO.js`):
   - Lee `locale` directamente de `useTranslation()` y mapea a `og:locale` (es_ES, en_US, de_DE, fr_FR, ru_RU, zh_CN, ja_JP, ar_SA), `<html lang>` BCP-47, y `dir` (ltr/rtl).
