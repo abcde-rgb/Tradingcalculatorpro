@@ -1072,7 +1072,19 @@ async def _create_stripe_session(
     """Create a Stripe Checkout session via emergentintegrations and return it."""
     from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
     webhook_url = f"{origin_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    # Prefer the key the admin saved in /admin/settings, fall back to env.
+    runtime_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
+    stripe.api_key = runtime_key
+    stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=webhook_url)
+    checkout_request = CheckoutSessionRequest(
+        amount=float(plan["price"]),
+        currency=plan["currency"].lower(),
+        success_url=success_url,
+        cancel_url=cancel_url,
+        payment_methods=_PAYMENT_METHODS_MAP.get(payment_method, ["card"]),
+        metadata=metadata,
+    )
+    return await stripe_checkout.create_checkout_session(checkout_request)
     checkout_request = CheckoutSessionRequest(
         amount=float(plan["price"]),
         currency=plan["currency"].lower(),
@@ -1182,7 +1194,9 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
     host_url = str(request.base_url).rstrip("/")
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=f"{host_url}/api/webhook/stripe")
+    runtime_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
+    stripe.api_key = runtime_key
+    stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=f"{host_url}/api/webhook/stripe")
 
     try:
         webhook_response = await stripe_checkout.handle_webhook(body, signature)
@@ -2948,29 +2962,87 @@ async def admin_reset_password(user_id: str, payload: AdminPasswordReset, admin:
 
 # ============= ADMIN — APP SETTINGS (Google APIs etc.) =============
 # Stored in `app_settings` collection as a single doc with `_id: "global"`.
-# Admin can edit; the public projection (non-secret keys only) is read by the
+# Admin can edit all keys; the public projection (non-secret) is read by the
 # SPA at boot to dynamically load GA4/GTM/AdSense/Bing/GSC scripts WITHOUT
-# rebuilding the frontend.
+# rebuilding the frontend. Secrets (Stripe/PayPal/Coinbase keys, OAuth client
+# secrets, SendGrid) are read at runtime by their respective code paths.
 
+# Public keys → exposed via /api/public/settings (no auth needed).
 PUBLIC_SETTING_KEYS = (
+    # Google
+    "google_client_id",
     "ga4_measurement_id",
     "gtm_id",
     "gsc_verification",
     "adsense_publisher_id",
     "bing_verification",
-    "google_client_id",        # OAuth client id is meant to be public
+    # Stripe
+    "stripe_publishable_key",
+    # PayPal
+    "paypal_client_id",
+    "paypal_mode",                # "sandbox" | "live"
+    # Misc
+    "trustpilot_business_id",
+    "clarity_project_id",
 )
 
-ADMIN_SETTING_KEYS = PUBLIC_SETTING_KEYS  # No private fields yet (secrets stay in env)
+# Secret keys → admin-only, never sent to the SPA bus.
+SECRET_SETTING_KEYS = (
+    "google_client_secret",
+    "stripe_secret_key",
+    "stripe_webhook_secret",
+    "paypal_client_secret",
+    "coinbase_api_key",
+    "sendgrid_api_key",
+)
+
+ALL_SETTING_KEYS = PUBLIC_SETTING_KEYS + SECRET_SETTING_KEYS
+
+# Map each setting → env var that should be used as fallback when the DB doc
+# doesn't define it. Lets admin "see what's actually active" before saving.
+_SETTING_ENV_FALLBACK: Dict[str, str] = {
+    "google_client_id":       "GOOGLE_CLIENT_ID",
+    "google_client_secret":   "GOOGLE_CLIENT_SECRET",
+    "ga4_measurement_id":     "REACT_APP_GA4_MEASUREMENT_ID",
+    "gtm_id":                 "REACT_APP_GTM_ID",
+    "gsc_verification":       "REACT_APP_GSC_VERIFICATION",
+    "adsense_publisher_id":   "REACT_APP_ADSENSE_PUBLISHER_ID",
+    "bing_verification":      "REACT_APP_BING_VERIFICATION",
+    "stripe_publishable_key": "STRIPE_PUBLISHABLE_KEY",
+    "stripe_secret_key":      "STRIPE_API_KEY",
+    "stripe_webhook_secret":  "STRIPE_WEBHOOK_SECRET",
+    "paypal_client_id":       "PAYPAL_CLIENT_ID",
+    "paypal_client_secret":   "PAYPAL_CLIENT_SECRET",
+    "paypal_mode":            "PAYPAL_MODE",
+    "coinbase_api_key":       "COINBASE_API_KEY",
+    "sendgrid_api_key":       "SENDGRID_API_KEY",
+    "trustpilot_business_id": "REACT_APP_TRUSTPILOT_BUSINESS_ID",
+    "clarity_project_id":     "REACT_APP_CLARITY_PROJECT_ID",
+}
 
 
 class AdminSettingsUpdate(BaseModel):
+    # Google
+    google_client_id: Optional[str] = None
+    google_client_secret: Optional[str] = None
     ga4_measurement_id: Optional[str] = None
     gtm_id: Optional[str] = None
     gsc_verification: Optional[str] = None
     adsense_publisher_id: Optional[str] = None
     bing_verification: Optional[str] = None
-    google_client_id: Optional[str] = None
+    # Stripe
+    stripe_publishable_key: Optional[str] = None
+    stripe_secret_key: Optional[str] = None
+    stripe_webhook_secret: Optional[str] = None
+    # PayPal
+    paypal_client_id: Optional[str] = None
+    paypal_client_secret: Optional[str] = None
+    paypal_mode: Optional[str] = None
+    # Crypto / email / misc
+    coinbase_api_key: Optional[str] = None
+    sendgrid_api_key: Optional[str] = None
+    trustpilot_business_id: Optional[str] = None
+    clarity_project_id: Optional[str] = None
 
 
 async def _load_settings_doc() -> Dict[str, Any]:
@@ -2979,20 +3051,37 @@ async def _load_settings_doc() -> Dict[str, Any]:
     return doc
 
 
+async def get_setting(key: str) -> str:
+    """Public helper: DB value first, env var fallback. Returns "" if both empty."""
+    doc = await _load_settings_doc()
+    return (doc.get(key) or os.environ.get(_SETTING_ENV_FALLBACK.get(key, ""), "") or "")
+
+
+def _mask_secret(val: str) -> str:
+    """Show only the last 4 chars of a secret so admin can verify it without re-exposing."""
+    if not val:
+        return ""
+    if len(val) <= 4:
+        return "•" * len(val)
+    return "•" * (len(val) - 4) + val[-4:]
+
+
 @api_router.get("/admin/settings")
 async def admin_get_settings(admin: dict = Depends(require_admin)):
-    """Full settings doc (admin-only)."""
+    """Full settings doc (admin-only). Secrets are masked but a `*_set` flag tells admin
+    whether each secret has a value, so they can choose to overwrite or leave it."""
     doc = await _load_settings_doc()
-    # Prefer DB value, fall back to env so admin sees what's *actually* active.
-    env_fallbacks = {
-        "ga4_measurement_id":   os.environ.get("REACT_APP_GA4_MEASUREMENT_ID", ""),
-        "gtm_id":               os.environ.get("REACT_APP_GTM_ID", ""),
-        "gsc_verification":     os.environ.get("REACT_APP_GSC_VERIFICATION", ""),
-        "adsense_publisher_id": os.environ.get("REACT_APP_ADSENSE_PUBLISHER_ID", ""),
-        "bing_verification":    os.environ.get("REACT_APP_BING_VERIFICATION", ""),
-        "google_client_id":     os.environ.get("GOOGLE_CLIENT_ID", ""),
-    }
-    out = {k: doc.get(k) or env_fallbacks.get(k, "") for k in ADMIN_SETTING_KEYS}
+
+    out: Dict[str, Any] = {}
+    flags: Dict[str, bool] = {}
+    for k in PUBLIC_SETTING_KEYS:
+        out[k] = doc.get(k) or os.environ.get(_SETTING_ENV_FALLBACK.get(k, ""), "") or ""
+    for k in SECRET_SETTING_KEYS:
+        raw = doc.get(k) or os.environ.get(_SETTING_ENV_FALLBACK.get(k, ""), "") or ""
+        out[k] = _mask_secret(raw)            # masked value for display
+        flags[f"{k}_set"] = bool(raw)
+
+    out.update(flags)
     out["updated_at"] = doc.get("updated_at")
     out["updated_by"] = doc.get("updated_by")
     return out
@@ -3000,14 +3089,31 @@ async def admin_get_settings(admin: dict = Depends(require_admin)):
 
 @api_router.put("/admin/settings")
 async def admin_update_settings(payload: AdminSettingsUpdate, admin: dict = Depends(require_admin)):
-    """Upsert global app settings. Only fields explicitly sent are updated."""
+    """Upsert global app settings. Only fields explicitly sent are updated.
+
+    For secret fields, an empty string ("") = "leave unchanged". Use a sentinel
+    "__CLEAR__" to actually wipe a secret. This protects against the UI sending
+    masked values back accidentally.
+    """
     incoming = payload.model_dump(exclude_unset=True)
-    # Trim whitespace, store None when empty so DB doesn't keep stale strings.
     cleaned: Dict[str, Any] = {}
+
     for k, v in incoming.items():
         if isinstance(v, str):
             v = v.strip()
-        cleaned[k] = v or None
+
+        if k in SECRET_SETTING_KEYS:
+            if v == "__CLEAR__":
+                cleaned[k] = None                                # explicit wipe
+            elif not v:
+                continue                                          # ignore empty (don't overwrite)
+            elif v.startswith("•"):
+                continue                                          # ignore re-submitted mask
+            else:
+                cleaned[k] = v
+        else:
+            cleaned[k] = v or None
+
     cleaned["updated_at"] = datetime.now(timezone.utc).isoformat()
     cleaned["updated_by"] = admin.get("email")
 
@@ -3023,9 +3129,7 @@ async def admin_update_settings(payload: AdminSettingsUpdate, admin: dict = Depe
 async def public_settings():
     """Non-sensitive subset, readable by anyone (frontend boot uses this)."""
     doc = await _load_settings_doc()
-    return {
-        k: doc.get(k) or "" for k in PUBLIC_SETTING_KEYS
-    }
+    return {k: (doc.get(k) or "") for k in PUBLIC_SETTING_KEYS}
 
 
 # Include router and setup middleware

@@ -4,6 +4,7 @@ import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
   Shield, ShieldOff, RefreshCw, Mail, Globe2, Calendar,
   Plug, Check, X, Plus, Pencil, Trash2, KeyRound, Save, Loader2,
+  Eye, EyeOff,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -378,8 +379,110 @@ const MetricCard = ({ icon: Icon, label, value, valueClass = '', testId }) => (
 );
 
 /* ============================================================
- *  GOOGLE INTEGRATIONS EDITOR
+ *  GOOGLE / STRIPE / PAYPAL / MISC INTEGRATIONS EDITOR
  * ============================================================ */
+
+const INTEGRATION_SECTIONS = [
+  {
+    id: 'google',
+    title: 'Google (Identity Platform, Analytics, Ads, SEO)',
+    description:
+      'Google Identity Platform usa el OAuth Client ID + Client Secret para login con Google. ' +
+      'Recuerda añadir esta URL como JavaScript Origin autorizado en Google Cloud Console.',
+    fields: [
+      { id: 'google_client_id',     label: 'OAuth Client ID',         secret: false, placeholder: '704...apps.googleusercontent.com', hint: 'console.cloud.google.com → Credentials' },
+      { id: 'google_client_secret', label: 'OAuth Client Secret',     secret: true,  placeholder: 'GOCSPX-...',                       hint: 'Same screen as the Client ID' },
+      { id: 'ga4_measurement_id',   label: 'Analytics 4 Measurement', secret: false, placeholder: 'G-XXXXXXXXXX',                      hint: 'analytics.google.com → Admin → Data Streams' },
+      { id: 'gtm_id',               label: 'Tag Manager Container',   secret: false, placeholder: 'GTM-XXXXXXX',                       hint: 'tagmanager.google.com → workspace overview' },
+      { id: 'gsc_verification',     label: 'Search Console (meta)',   secret: false, placeholder: 'AbC123…',                           hint: 'search.google.com/search-console → HTML tag' },
+      { id: 'adsense_publisher_id', label: 'AdSense Publisher ID',    secret: false, placeholder: 'ca-pub-XXXXXXXXXXXXXXXX',          hint: 'adsense.google.com → Account' },
+    ],
+  },
+  {
+    id: 'stripe',
+    title: 'Stripe (pagos con tarjeta y SEPA)',
+    description: 'Las claves se aplican en caliente al runtime — no necesitas reiniciar el backend.',
+    fields: [
+      { id: 'stripe_publishable_key', label: 'Publishable Key',  secret: false, placeholder: 'pk_live_… o pk_test_…', hint: 'dashboard.stripe.com → Developers → API keys' },
+      { id: 'stripe_secret_key',      label: 'Secret Key',       secret: true,  placeholder: 'sk_live_… o sk_test_…', hint: 'NUNCA la expongas al frontend; sólo backend' },
+      { id: 'stripe_webhook_secret',  label: 'Webhook Signing Secret', secret: true, placeholder: 'whsec_…',           hint: 'Webhooks → Add endpoint → Reveal signing secret' },
+    ],
+  },
+  {
+    id: 'paypal',
+    title: 'PayPal',
+    description: 'Configura sandbox para pruebas y live para producción.',
+    fields: [
+      { id: 'paypal_client_id',     label: 'Client ID',     secret: false, placeholder: 'AYS…',                hint: 'developer.paypal.com → Apps & Credentials' },
+      { id: 'paypal_client_secret', label: 'Client Secret', secret: true,  placeholder: 'EJX…',                hint: 'Mismo dashboard, dentro de cada app' },
+      { id: 'paypal_mode',          label: 'Mode',          secret: false, placeholder: 'sandbox | live',      hint: 'Usa "sandbox" para pruebas, "live" en producción' },
+    ],
+  },
+  {
+    id: 'others',
+    title: 'Otras integraciones (Crypto, SEO, Email, Reviews)',
+    description: '',
+    fields: [
+      { id: 'coinbase_api_key',       label: 'Coinbase Commerce API Key', secret: true,  placeholder: '0123abcd-…',  hint: 'commerce.coinbase.com → Settings → API Keys' },
+      { id: 'sendgrid_api_key',       label: 'SendGrid API Key',          secret: true,  placeholder: 'SG.…',         hint: 'app.sendgrid.com → Settings → API Keys' },
+      { id: 'trustpilot_business_id', label: 'Trustpilot Business URL',   secret: false, placeholder: 'midominio.com', hint: 'business.trustpilot.com — usa el slug de la URL' },
+      { id: 'clarity_project_id',     label: 'Microsoft Clarity Project', secret: false, placeholder: 'a1b2c3d4',     hint: 'clarity.microsoft.com → Settings → Setup' },
+      { id: 'bing_verification',      label: 'Bing Webmaster meta',       secret: false, placeholder: 'XXXXX…',       hint: 'bing.com/webmasters → Meta tag verification' },
+    ],
+  },
+];
+
+function IntegrationField({ field, value, isSet, onChange }) {
+  const [show, setShow] = useState(false);
+  const isMasked = field.secret && typeof value === 'string' && value.startsWith('•');
+
+  return (
+    <div className="p-3 rounded-lg bg-muted/30 border border-border/50 space-y-2"
+      data-testid={`integration-${field.id}`}>
+      <div className="flex items-start justify-between gap-2">
+        <Label htmlFor={field.id} className="text-sm font-medium">{field.label}</Label>
+        {(isSet || (!field.secret && value))
+          ? <Badge className="bg-green-500/15 text-green-500 gap-1"><Check className="w-3 h-3" /> Connected</Badge>
+          : <Badge variant="outline" className="text-muted-foreground gap-1"><X className="w-3 h-3" /> Not configured</Badge>}
+      </div>
+      <div className="flex gap-1">
+        <Input
+          id={field.id}
+          type={field.secret && !show ? 'password' : 'text'}
+          value={value || ''}
+          placeholder={field.placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className="font-mono text-xs"
+          data-testid={`input-${field.id}`}
+          autoComplete="off"
+        />
+        {field.secret && (
+          <>
+            <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0"
+              onClick={() => setShow((s) => !s)}
+              title={show ? 'Hide' : 'Show'}>
+              {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+            {isSet && (
+              <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0 text-destructive"
+                onClick={() => onChange('__CLEAR__')}
+                title="Wipe this secret">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </>
+        )}
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        {field.hint}
+        {isMasked && (
+          <span className="ml-1 italic">— escribe un valor nuevo para reemplazarlo, o usa el icono 🗑 para borrarlo.</span>
+        )}
+      </p>
+    </div>
+  );
+}
+
 function IntegrationsEditor({ headers, t }) {
   const [settings, setSettings] = useState(null);
   const [draft, setDraft] = useState({});
@@ -391,14 +494,12 @@ function IntegrationsEditor({ headers, t }) {
       if (!res.ok) throw new Error();
       const data = await res.json();
       setSettings(data);
-      setDraft({
-        ga4_measurement_id:   data.ga4_measurement_id || '',
-        gtm_id:               data.gtm_id || '',
-        gsc_verification:     data.gsc_verification || '',
-        adsense_publisher_id: data.adsense_publisher_id || '',
-        bing_verification:    data.bing_verification || '',
-        google_client_id:     data.google_client_id || '',
-      });
+      // Build draft = current displayed values for every known field.
+      const d = {};
+      INTEGRATION_SECTIONS.forEach((sec) => sec.fields.forEach((f) => {
+        d[f.id] = data[f.id] || '';
+      }));
+      setDraft(d);
     } catch {
       toast.error('No se pudieron cargar las settings');
     }
@@ -409,15 +510,34 @@ function IntegrationsEditor({ headers, t }) {
   const save = async () => {
     setSaving(true);
     try {
+      // Send only fields the admin actually changed, plus explicit "__CLEAR__" wipes.
+      const body = {};
+      INTEGRATION_SECTIONS.forEach((sec) => sec.fields.forEach((f) => {
+        const cur = draft[f.id] ?? '';
+        const orig = settings?.[f.id] ?? '';
+        if (cur === orig) return;          // unchanged
+        if (f.secret && cur.startsWith('•')) return; // masked re-submit, skip
+        body[f.id] = cur;                   // includes "__CLEAR__" sentinel
+      }));
+      if (Object.keys(body).length === 0) {
+        toast.info('Sin cambios');
+        setSaving(false);
+        return;
+      }
       const res = await fetch(`${API}/admin/settings`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify(draft),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error();
-      const data = await res.json();
-      setSettings(data);
-      toast.success('APIs guardadas. Recarga la página para activarlas.');
+      const fresh = await res.json();
+      setSettings(fresh);
+      const d = {};
+      INTEGRATION_SECTIONS.forEach((sec) => sec.fields.forEach((f) => {
+        d[f.id] = fresh[f.id] || '';
+      }));
+      setDraft(d);
+      toast.success('APIs guardadas. Recarga la página para activar las integraciones del frontend.');
     } catch {
       toast.error('Error guardando settings');
     } finally {
@@ -425,21 +545,12 @@ function IntegrationsEditor({ headers, t }) {
     }
   };
 
-  const fields = [
-    { id: 'google_client_id',     label: 'Google OAuth Client ID', placeholder: '704...apps.googleusercontent.com', hint: 'console.cloud.google.com → APIs & Services → Credentials' },
-    { id: 'ga4_measurement_id',   label: 'Google Analytics 4',     placeholder: 'G-XXXXXXXXXX',                       hint: 'analytics.google.com → Admin → Data Streams' },
-    { id: 'gtm_id',               label: 'Google Tag Manager',     placeholder: 'GTM-XXXXXXX',                         hint: 'tagmanager.google.com → workspace overview' },
-    { id: 'gsc_verification',     label: 'Search Console (verification)', placeholder: 'AbC123...',                    hint: 'search.google.com/search-console → HTML tag method' },
-    { id: 'adsense_publisher_id', label: 'Google AdSense Publisher ID',   placeholder: 'ca-pub-XXXXXXXXXXXXXXXX',     hint: 'adsense.google.com → Account' },
-    { id: 'bing_verification',    label: 'Bing Webmaster (msvalidate)', placeholder: 'XXXXX...',                       hint: 'bing.com/webmasters → Meta tag verification' },
-  ];
-
   return (
     <Card className="bg-card border-border" data-testid="integrations-editor">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Plug className="w-4 h-4 text-primary" />
-          {t('adminIntegrationsTitle') || 'Integraciones Google'}
+          Integraciones &amp; APIs
         </CardTitle>
         {settings?.updated_at && (
           <p className="text-[11px] text-muted-foreground">
@@ -448,35 +559,30 @@ function IntegrationsEditor({ headers, t }) {
           </p>
         )}
       </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-        {fields.map((f) => {
-          const value = draft[f.id] ?? '';
-          const connected = !!value;
-          return (
-            <div key={f.id} className="p-3 rounded-lg bg-muted/30 border border-border/50 space-y-2"
-              data-testid={`integration-${f.id}`}>
-              <div className="flex items-start justify-between gap-2">
-                <Label htmlFor={f.id} className="text-sm font-medium">{f.label}</Label>
-                {connected
-                  ? <Badge className="bg-green-500/15 text-green-500 gap-1"><Check className="w-3 h-3" /> {t('adminIntegrationConnected') || 'Connected'}</Badge>
-                  : <Badge variant="outline" className="text-muted-foreground gap-1"><X className="w-3 h-3" /> {t('adminIntegrationNotSet') || 'Not configured'}</Badge>}
-              </div>
-              <Input
-                id={f.id}
-                value={value}
-                placeholder={f.placeholder}
-                onChange={(e) => setDraft({ ...draft, [f.id]: e.target.value })}
-                className="font-mono text-xs"
-                data-testid={`input-${f.id}`}
-              />
-              <p className="text-[10px] text-muted-foreground">{f.hint}</p>
+      <CardContent className="space-y-5 pt-2">
+        {INTEGRATION_SECTIONS.map((sec) => (
+          <section key={sec.id} className="space-y-2" data-testid={`integration-section-${sec.id}`}>
+            <div>
+              <h4 className="text-sm font-semibold">{sec.title}</h4>
+              {sec.description && <p className="text-xs text-muted-foreground">{sec.description}</p>}
             </div>
-          );
-        })}
-        <div className="md:col-span-2 flex justify-end pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {sec.fields.map((f) => (
+                <IntegrationField
+                  key={f.id}
+                  field={f}
+                  value={draft[f.id]}
+                  isSet={f.secret ? !!settings?.[`${f.id}_set`] : !!draft[f.id]}
+                  onChange={(v) => setDraft({ ...draft, [f.id]: v })}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+        <div className="flex justify-end pt-2 border-t border-border">
           <Button onClick={save} disabled={saving} className="gap-2" data-testid="settings-save">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Guardar APIs
+            Guardar todas las APIs
           </Button>
         </div>
       </CardContent>
