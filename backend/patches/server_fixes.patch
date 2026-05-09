@@ -1,0 +1,216 @@
+# ============================================================
+# PATCH MANUAL para backend/server.py
+# Aplica con:  patch -p1 < backend/patches/server_fixes.patch
+# O copia cada bloque individualmente al archivo
+# ============================================================
+
+# -----------------------------------------------------------
+# FIX 1 — JWT_SECRET persistente (evita logout masivo al reiniciar)
+# Busca el bloque que empieza en:
+#   JWT_SECRET = os.environ.get('JWT_SECRET')
+# Reemplázalo con:
+# -----------------------------------------------------------
+
+JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET:
+    raise RuntimeError(
+        "FATAL: JWT_SECRET no está definida en las variables de entorno. "
+        "Añade JWT_SECRET=<random-string-32+chars> a tu fichero .env "
+        "o a las variables de entorno del servidor."
+    )
+
+# -----------------------------------------------------------
+# FIX 2 — /forex-prices con Finnhub real (fallback estático si falla)
+# Busca la función get_forex_prices() y reemplázala con:
+# -----------------------------------------------------------
+
+@api_router.get("/forex-prices")
+async def get_forex_prices():
+    """Get forex prices from Finnhub API (fallback to static if key missing)."""
+    FINNHUB_KEY = os.environ.get('FINNHUB_API_KEY', '')
+    FOREX_PAIRS = [
+        ("EURUSD", "OANDA:EUR_USD"),
+        ("GBPUSD", "OANDA:GBP_USD"),
+        ("USDJPY", "OANDA:USD_JPY"),
+        ("USDCHF", "OANDA:USD_CHF"),
+        ("AUDUSD", "OANDA:AUD_USD"),
+        ("USDCAD", "OANDA:USD_CAD"),
+        ("NZDUSD", "OANDA:NZD_USD"),
+        ("EURGBP", "OANDA:EUR_GBP"),
+        ("EURJPY", "OANDA:EUR_JPY"),
+        ("GBPJPY", "OANDA:GBP_JPY"),
+    ]
+    STATIC_FALLBACK = {
+        "EURUSD": {"price": 1.0856, "change": 0.12},
+        "GBPUSD": {"price": 1.2734, "change": -0.08},
+        "USDJPY": {"price": 149.85, "change": 0.25},
+        "USDCHF": {"price": 0.8812, "change": -0.05},
+        "AUDUSD": {"price": 0.6542, "change": 0.18},
+        "USDCAD": {"price": 1.3564, "change": 0.03},
+        "NZDUSD": {"price": 0.5987, "change": 0.22},
+        "EURGBP": {"price": 0.8525, "change": 0.15},
+        "EURJPY": {"price": 162.68, "change": 0.38},
+        "GBPJPY": {"price": 190.78, "change": 0.17},
+    }
+    if not FINNHUB_KEY:
+        return STATIC_FALLBACK
+    result = {}
+    try:
+        async with httpx.AsyncClient() as client:
+            for pair_label, symbol in FOREX_PAIRS:
+                try:
+                    r = await client.get(
+                        "https://finnhub.io/api/v1/quote",
+                        params={"symbol": symbol, "token": FINNHUB_KEY},
+                        timeout=5.0,
+                    )
+                    if r.status_code == 200:
+                        data = r.json()
+                        price = data.get("c", 0)   # current price
+                        prev  = data.get("pc", price) or price
+                        change_pct = round(((price - prev) / prev) * 100, 4) if prev else 0
+                        result[pair_label] = {"price": price, "change": change_pct}
+                    else:
+                        result[pair_label] = STATIC_FALLBACK[pair_label]
+                except Exception:
+                    result[pair_label] = STATIC_FALLBACK[pair_label]
+    except Exception as e:
+        logging.error(f"Finnhub forex fetch failed: {e}")
+        return STATIC_FALLBACK
+    return result
+
+# -----------------------------------------------------------
+# FIX 3 — /indices-prices con yfinance real (fallback estático)
+# Busca la función get_indices_prices() y reemplázala con:
+# -----------------------------------------------------------
+
+@api_router.get("/indices-prices")
+async def get_indices_prices():
+    """Get indices prices from yfinance (fallback to static on error)."""
+    INDICES_MAP = {
+        "SPX":  "^GSPC",
+        "NDX":  "^NDX",
+        "DJI":  "^DJI",
+        "DAX":  "^GDAXI",
+        "FTSE": "^FTSE",
+        "N225": "^N225",
+        "HSI":  "^HSI",
+    }
+    STATIC_FALLBACK = {
+        "SPX":  {"price": 5998.50, "change": 0.45},
+        "NDX":  {"price": 21245.80, "change": 0.68},
+        "DJI":  {"price": 44235.20, "change": 0.32},
+        "DAX":  {"price": 19785.60, "change": 0.28},
+        "FTSE": {"price": 8265.40, "change": 0.15},
+        "N225": {"price": 38542.80, "change": 0.52},
+        "HSI":  {"price": 19876.30, "change": -0.25},
+    }
+    try:
+        import yfinance as yf
+        result = {}
+        for label, yf_sym in INDICES_MAP.items():
+            try:
+                ticker = yf.Ticker(yf_sym)
+                hist = ticker.history(period="2d", interval="1d")
+                if hist.empty or len(hist) < 2:
+                    result[label] = STATIC_FALLBACK[label]
+                    continue
+                prev_close = float(hist["Close"].iloc[-2])
+                curr_close = float(hist["Close"].iloc[-1])
+                change_pct = round(((curr_close - prev_close) / prev_close) * 100, 2) if prev_close else 0
+                result[label] = {"price": round(curr_close, 2), "change": change_pct}
+            except Exception:
+                result[label] = STATIC_FALLBACK[label]
+        return result
+    except Exception as e:
+        logging.error(f"Indices yfinance fetch failed: {e}")
+        return STATIC_FALLBACK
+
+# -----------------------------------------------------------
+# FIX 4 — /prices: commodities via yfinance (gold y silver reales)
+# Dentro de get_prices(), busca las líneas:
+#   data["gold"] = {"usd": 2680, ...}
+#   data["silver"] = {"usd": 31.50, ...}
+# Reemplázalas con:
+# -----------------------------------------------------------
+
+            # Commodities via yfinance
+            try:
+                import yfinance as yf
+                gold_tick = yf.Ticker("GC=F")
+                silver_tick = yf.Ticker("SI=F")
+                gh = gold_tick.history(period="2d", interval="1d")
+                sh = silver_tick.history(period="2d", interval="1d")
+                gold_usd = round(float(gh["Close"].iloc[-1]), 2) if not gh.empty else 2680
+                silver_usd = round(float(sh["Close"].iloc[-1]), 2) if not sh.empty else 31.50
+                # EUR conversion via EURUSD (approximate)
+                gold_eur = round(gold_usd / 1.09, 2)
+                silver_eur = round(silver_usd / 1.09, 2)
+                gold_ch = round(((float(gh["Close"].iloc[-1]) - float(gh["Close"].iloc[-2])) / float(gh["Close"].iloc[-2])) * 100, 2) if len(gh) >= 2 else 0.5
+                silver_ch = round(((float(sh["Close"].iloc[-1]) - float(sh["Close"].iloc[-2])) / float(sh["Close"].iloc[-2])) * 100, 2) if len(sh) >= 2 else 0.8
+                data["gold"] = {"usd": gold_usd, "eur": gold_eur, "usd_24h_change": gold_ch}
+                data["silver"] = {"usd": silver_usd, "eur": silver_eur, "usd_24h_change": silver_ch}
+            except Exception:
+                data["gold"] = {"usd": 2680, "eur": 2450, "usd_24h_change": 0.5}
+                data["silver"] = {"usd": 31.50, "eur": 28.80, "usd_24h_change": 0.8}
+
+# -----------------------------------------------------------
+# FIX 5 — /subscriptions/change-plan: cambio real de plan en Stripe
+# Busca la función change_plan() y reemplaza el bloque de retorno final con:
+# -----------------------------------------------------------
+
+        # Try to modify the Stripe subscription items
+        if not sub.get("items") or not sub["items"].get("data"):
+            # One-time payment plans (lifetime, quarterly) — guide the user
+            return {
+                "message": "Este plan es de pago único. Cancela el actual y adquiere el nuevo plan.",
+                "current_plan": user_doc.get("subscription_plan"),
+                "requested_plan": request.new_plan_id,
+            }
+        # Recurring plans — modify subscription items proration
+        new_plan_cfg = SUBSCRIPTION_PLANS[request.new_plan_id]
+        stripe.Subscription.modify(
+            sub.id,
+            proration_behavior="create_prorations",
+            items=[{"id": sub["items"]["data"][0]["id"]}],
+            metadata={"plan_id": request.new_plan_id},
+        )
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {
+                "subscription_plan": request.new_plan_id,
+                "subscription_end": (
+                    datetime.now(timezone.utc) + timedelta(days=new_plan_cfg["days"])
+                ).isoformat(),
+            }}
+        )
+        return {
+            "message": f"Plan cambiado a {new_plan_cfg['name']} correctamente",
+            "new_plan": request.new_plan_id,
+            "new_plan_price": new_plan_cfg["price"],
+        }
+
+# -----------------------------------------------------------
+# FIX 6 — /options/ai-analyze: guard claro si EMERGENT_LLM_KEY falta
+# (ya implementado en el código; asegúrate de que el bloque sea):
+# -----------------------------------------------------------
+
+    key = os.environ.get("EMERGENT_LLM_KEY")
+    if not key:
+        raise HTTPException(
+            status_code=503,
+            detail="El AI Trade Coach no está disponible: EMERGENT_LLM_KEY no configurada en el servidor."
+        )
+
+# -----------------------------------------------------------
+# FIX 7 — .env.example: añadir las nuevas variables
+# Añade a backend/.env (o .env.example) las siguientes líneas:
+# -----------------------------------------------------------
+# JWT_SECRET=<genera_con: python -c "import secrets; print(secrets.token_urlsafe(48))">
+# FINNHUB_API_KEY=<tu_clave_finnhub.io>
+# EMERGENT_LLM_KEY=<tu_clave_emergent_llm>
+# GOOGLE_CLIENT_ID=<tu_google_oauth_client_id>
+# STRIPE_API_KEY=sk_live_...
+# SENDGRID_API_KEY=SG....
+# MONGO_URL=mongodb+srv://...
+# ============================================================
