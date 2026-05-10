@@ -434,7 +434,11 @@ const INTEGRATION_SECTIONS = [
 
 function IntegrationField({ field, value, isSet, onChange }) {
   const [show, setShow] = useState(false);
-  const isMasked = field.secret && typeof value === 'string' && value.startsWith('•');
+  // Secret already saved → input is shown empty; placeholder communicates
+  // that there is a stored value. Typing here writes a fresh secret only.
+  const placeholder = field.secret && isSet
+    ? '•••••••• (ya hay un valor guardado — escribe uno nuevo para reemplazarlo)'
+    : (field.placeholder || '');
 
   return (
     <div className="p-3 rounded-lg bg-muted/30 border border-border/50 space-y-2"
@@ -450,7 +454,7 @@ function IntegrationField({ field, value, isSet, onChange }) {
           id={field.id}
           type={field.secret && !show ? 'password' : 'text'}
           value={value || ''}
-          placeholder={field.placeholder}
+          placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
           className="font-mono text-xs"
           data-testid={`input-${field.id}`}
@@ -475,8 +479,8 @@ function IntegrationField({ field, value, isSet, onChange }) {
       </div>
       <p className="text-[10px] text-muted-foreground">
         {field.hint}
-        {isMasked && (
-          <span className="ml-1 italic">— escribe un valor nuevo para reemplazarlo, o usa el icono 🗑 para borrarlo.</span>
+        {field.secret && isSet && (
+          <span className="ml-1 italic">— el valor está cifrado en servidor; este campo está vacío para evitar duplicarlo. Escribe un nuevo valor para reemplazar, o usa 🗑 para borrar.</span>
         )}
       </p>
     </div>
@@ -495,9 +499,19 @@ function IntegrationsEditor({ headers, t }) {
       const data = await res.json();
       setSettings(data);
       // Build draft = current displayed values for every known field.
+      // CRITICAL: for secret fields, we DROP the masked value (••••XXXX) from the
+      // draft. Otherwise users would type after the bullets and produce corrupted
+      // secrets ("••••XXXXmy_new_key") which get either silently skipped (if the
+      // result starts with •) OR — worse — saved with bullets inside. Empty draft
+      // + placeholder + green "Connected" badge is the safe pattern.
       const d = {};
       INTEGRATION_SECTIONS.forEach((sec) => sec.fields.forEach((f) => {
-        d[f.id] = data[f.id] || '';
+        const raw = data[f.id] || '';
+        if (f.secret && (raw.startsWith('•') || data[`${f.id}_set`])) {
+          d[f.id] = '';
+        } else {
+          d[f.id] = raw;
+        }
       }));
       setDraft(d);
     } catch {
@@ -510,15 +524,41 @@ function IntegrationsEditor({ headers, t }) {
   const save = async () => {
     setSaving(true);
     try {
-      // Send only fields the admin actually changed, plus explicit "__CLEAR__" wipes.
+      // Build the body: send fields the admin actually changed, plus explicit
+      // "__CLEAR__" wipes for secrets.
       const body = {};
+      const errors = [];
       INTEGRATION_SECTIONS.forEach((sec) => sec.fields.forEach((f) => {
-        const cur = draft[f.id] ?? '';
-        const orig = settings?.[f.id] ?? '';
-        if (cur === orig) return;          // unchanged
-        if (f.secret && cur.startsWith('•')) return; // masked re-submit, skip
-        body[f.id] = cur;                   // includes "__CLEAR__" sentinel
+        const cur = (draft[f.id] ?? '').toString();
+
+        if (f.secret) {
+          // Secrets: draft is empty if a value already exists on the server
+          // (we cleared the mask in load()). Only send when admin typed
+          // something fresh OR the explicit __CLEAR__ sentinel.
+          if (cur === '') return;                       // no change
+          if (cur === '__CLEAR__') {
+            body[f.id] = '__CLEAR__';
+            return;
+          }
+          if (cur.startsWith('•')) {
+            // Defensive: if mask leaked through, refuse to corrupt the secret.
+            errors.push(`${f.label}: limpia el campo y escribe el valor completo`);
+            return;
+          }
+          body[f.id] = cur;
+        } else {
+          // Public field: send if changed (allows clearing too).
+          const orig = settings?.[f.id] ?? '';
+          if (cur === orig) return;
+          body[f.id] = cur;
+        }
       }));
+
+      if (errors.length) {
+        toast.error(errors.join(' · '));
+        setSaving(false);
+        return;
+      }
       if (Object.keys(body).length === 0) {
         toast.info('Sin cambios');
         setSaving(false);
@@ -532,9 +572,15 @@ function IntegrationsEditor({ headers, t }) {
       if (!res.ok) throw new Error();
       const fresh = await res.json();
       setSettings(fresh);
+      // Rebuild draft from fresh response — same masking rules.
       const d = {};
       INTEGRATION_SECTIONS.forEach((sec) => sec.fields.forEach((f) => {
-        d[f.id] = fresh[f.id] || '';
+        const raw = fresh[f.id] || '';
+        if (f.secret && (raw.startsWith('•') || fresh[`${f.id}_set`])) {
+          d[f.id] = '';
+        } else {
+          d[f.id] = raw;
+        }
       }));
       setDraft(d);
       toast.success('APIs guardadas. Recarga la página para activar las integraciones del frontend.');

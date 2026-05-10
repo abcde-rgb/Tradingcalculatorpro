@@ -3634,6 +3634,7 @@ async def admin_update_settings(request: Request, payload: AdminSettingsUpdate, 
     """
     incoming = payload.model_dump(exclude_unset=True)
     cleaned: Dict[str, Any] = {}
+    rejected: List[str] = []
 
     for k, v in incoming.items():
         if isinstance(v, str):
@@ -3646,10 +3647,26 @@ async def admin_update_settings(request: Request, payload: AdminSettingsUpdate, 
                 continue                                          # ignore empty (don't overwrite)
             elif v.startswith("•"):
                 continue                                          # ignore re-submitted mask
+            elif "•" in v or "\u2022" in v:
+                # Defensive guard: secret contains bullet chars mid-value (likely
+                # the frontend appended typing after a mask). Refuse rather than
+                # save a corrupted credential.
+                rejected.append(k)
+                continue
             else:
                 cleaned[k] = v
         else:
             cleaned[k] = v or None
+
+    if rejected:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Estos secretos llegaron con el carácter de mask (•) dentro del valor. "
+                "Limpia el campo en el formulario y escribe el valor completo otra vez: "
+                + ", ".join(rejected)
+            ),
+        )
 
     cleaned["updated_at"] = datetime.now(timezone.utc).isoformat()
     cleaned["updated_by"] = admin.get("email")

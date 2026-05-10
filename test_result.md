@@ -1356,3 +1356,151 @@ agent_communication:
       ALL 15 NEWLY ADDED/REPLACED BACKEND ENDPOINTS ARE PRODUCTION-READY.
       
       Database cleaned up: Test users deleted, test calculations removed.
+
+#====================================================================================================
+# 2026-05-10 — ADMIN INTEGRACIONES & APIs SAVE FLOW BUG FIX VERIFICATION
+#====================================================================================================
+
+frontend:
+  - task: "Admin Integraciones & APIs save flow (bug fix: secrets no longer silently skipped or corrupted)"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/AdminPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: |
+          ✅ ALL 5 SCENARIOS PASSED (5/5 tests, 100% success rate)
+          
+          Tested via Playwright against https://missing-apis-impl.preview.emergentagent.com
+          Login: demo@btccalc.pro / 1234 (admin)
+          
+          BUG FIX VERIFIED:
+          The bug was: when admin tried to add/update API credentials, secrets were either 
+          silently skipped OR saved corrupted (with bullet chars inside the value).
+          
+          SCENARIO 1: Save brand-new public field (Google Client ID) ✅
+          - Typed: test-google-client-id-AAA-1778428681
+          - Clicked Save → Success toast: "APIs guardadas. Recarga la página..."
+          - Reloaded page → Value persisted correctly
+          - PASS: Public fields save and persist correctly
+          
+          SCENARIO 2: Save brand-new SECRET field (Stripe Secret Key) ✅
+          - Field initially EMPTY (no bullet characters) ✅
+          - Typed: sk_test_FRESH_KEY_99999
+          - Clicked Save → Success toast
+          - After save: Field cleared back to EMPTY (as expected for secrets) ✅
+          - Badge changed to "Connected" (green) ✅
+          - Reloaded page:
+            * Field still EMPTY ✅
+            * "Connected" badge still present ✅
+            * Placeholder: "•••••••• (ya hay un valor guardado...)" ✅
+          - PASS: New secrets save correctly, field clears, badge shows Connected
+          
+          SCENARIO 3: Update existing secret without corrupting it ✅
+          - With Stripe Secret Key already saved (field empty + Connected badge)
+          - Typed new value: sk_test_UPDATED_AAAA
+          - Clicked Save → Success toast
+          - Reloaded page:
+            * Field still empty ✅
+            * "Connected" badge still present ✅
+          - PASS: Secrets can be updated without corruption
+          
+          SCENARIO 4: Backend rejects corrupted input (defense-in-depth) ✅
+          - Sent corrupted value via curl: sk_TEST••••XXXX
+          - Backend response: HTTP 400
+          - Error detail: "Estos secretos llegaron con el carácter de mask (•) dentro del valor. 
+            Limpia el campo en el formulario y escribe el valor completo otra vez: stripe_secret_key"
+          - PASS: Backend correctly rejects secrets containing bullet chars
+          
+          SCENARIO 5: Wipe a secret (__CLEAR__) ✅
+          - With Stripe Secret Key saved, clicked trash icon
+          - Field set to __CLEAR__ ✅
+          - Clicked Save → Success toast
+          - Reloaded page:
+            * "Not configured" badge shown (gray, not green) ✅
+          - PASS: Secrets can be wiped using __CLEAR__ sentinel
+          
+          CLEANUP: ✅
+          - Cleared Google Client ID test value
+          - Stripe Secret Key already cleared in Scenario 5
+          - All test values removed
+          
+          BUG FIX IMPLEMENTATION DETAILS:
+          Frontend (AdminPage.jsx, IntegrationsEditor component):
+          - Line 510-511: Drops masked values (starting with •) from draft on load
+          - Line 538-542: Only sends secrets when admin typed something fresh OR __CLEAR__
+          - Line 543-547: Defensive check: refuses to save if mask leaked through
+          - Line 472-474: Trash button sets __CLEAR__ value
+          
+          Backend (server.py, admin_update_settings endpoint):
+          - Line 3644-3645: Explicit wipe for __CLEAR__ sentinel
+          - Line 3646-3647: Ignores empty strings (don't overwrite existing secrets)
+          - Line 3648-3649: Ignores re-submitted masks (values starting with •)
+          - Line 3650-3655: Rejects secrets containing bullet chars mid-value (corrupted)
+          - Line 3661-3669: Returns HTTP 400 with clear error message for rejected secrets
+          
+          NO ISSUES FOUND. Bug fix working correctly.
+          Secrets are no longer silently skipped or saved corrupted.
+          All 5 test scenarios passed.
+
+metadata:
+  created_by: "main_agent"
+  version: "2.1"
+  test_sequence: 4
+  run_ui: true
+  last_tested: "2026-05-10T15:58:00Z"
+
+test_plan:
+  current_focus: []
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "testing"
+    -message: |
+      ✅ ADMIN INTEGRACIONES & APIs SAVE FLOW BUG FIX VERIFICATION COMPLETE
+      
+      Tested via Playwright + curl against https://missing-apis-impl.preview.emergentagent.com
+      
+      SUMMARY:
+      
+      ALL 5 SCENARIOS PASSED ✅
+      
+      1. Save brand-new public field (Google Client ID) - PASS ✅
+         - Value persists correctly after save and reload
+      
+      2. Save brand-new SECRET field (Stripe Secret Key) - PASS ✅
+         - Field clears after save (shows empty)
+         - Badge changes to "Connected" (green)
+         - Placeholder indicates saved value
+         - Persists correctly after reload
+      
+      3. Update existing secret without corruption - PASS ✅
+         - Can update secret multiple times
+         - Field remains empty + Connected after each update
+      
+      4. Backend rejects corrupted input (defense-in-depth) - PASS ✅
+         - HTTP 400 response for secrets containing bullet chars
+         - Clear error message: "Estos secretos llegaron con el carácter de mask (•)..."
+      
+      5. Wipe secret with __CLEAR__ - PASS ✅
+         - Trash icon sets __CLEAR__ value
+         - After save, badge changes to "Not configured" (gray)
+      
+      BUG FIX VERIFIED:
+      - Secrets are NO LONGER silently skipped ✅
+      - Secrets are NO LONGER saved corrupted with bullet chars ✅
+      - Frontend drops masked values from draft on load ✅
+      - Frontend refuses to save if mask leaked through ✅
+      - Backend rejects secrets containing bullet chars ✅
+      - Backend handles __CLEAR__ sentinel correctly ✅
+      
+      NO CRITICAL ISSUES FOUND.
+      
+      The admin "Integraciones & APIs" save flow is now working correctly.
+      All test values cleaned up.
