@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getApiBaseUrl } from './api';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 // Helper para leer respuesta de forma segura sin error "body stream already read"
 async function safeJson(res) {
