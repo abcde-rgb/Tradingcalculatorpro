@@ -4,8 +4,10 @@
   publish = "frontend/build"
 
 [build.environment]
+  CI = "false"
   NODE_OPTIONS = "--openssl-legacy-provider"
   NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 [[redirects]]
   from = "/*"
