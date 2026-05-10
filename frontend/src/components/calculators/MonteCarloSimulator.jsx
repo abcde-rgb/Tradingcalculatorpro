@@ -10,8 +10,9 @@ import { useIsPremium } from '@/lib/premium';
 import { useTranslation } from '@/lib/i18n';
 import { Link } from 'react-router-dom';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { getBackendBaseUrl } from '@/lib/api';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getBackendBaseUrl();
 
 export function MonteCarloSimulator() {
   const { user, token } = useAuthStore();

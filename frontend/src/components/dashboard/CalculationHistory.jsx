@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuthStore, useCalculatorStore } from '@/lib/store';
 import { formatNumber } from '@/lib/utils';
+import { getBackendBaseUrl } from '@/lib/api';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getBackendBaseUrl();
 
 export const CalculationHistory = () => {
   const { isAuthenticated, token } = useAuthStore();

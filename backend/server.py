@@ -75,15 +75,31 @@ SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculator.pro')
 
 # Demo User (siempre tiene acceso PRO completo)
-DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro")
+DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro").strip().lower()
 DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', "1234")
 
 # Subscription Plans
 SUBSCRIPTION_PLANS = {
-    "monthly": {"name": "Mensual", "price": 17.00, "currency": "EUR", "interval": "month", "days": 30},
-    "quarterly": {"name": "Trimestral", "price": 45.00, "currency": "EUR", "interval": "quarter", "days": 90},
-    "annual": {"name": "Anual", "price": 200.00, "currency": "EUR", "interval": "year", "days": 365},
-    "lifetime": {"name": "De Por Vida", "price": 500.00, "currency": "USD", "interval": "lifetime", "days": 36500}
+    "monthly": {
+        "name": "Mensual", "price": 17.00, "currency": "CHF", "interval": "month",
+        "days": 30, "stripe_price_id": "price_1TG484ImYjMeegYB6alNlPZT",
+        "payment_link": "https://buy.stripe.com/4gM7sLeTNa8AcpseT21VK00",
+    },
+    "quarterly": {
+        "name": "Trimestral", "price": 45.00, "currency": "CHF", "interval": "quarter",
+        "days": 90, "stripe_price_id": "price_1TG48pImYjMeegYBdilMeCpg",
+        "payment_link": "https://buy.stripe.com/6oU5kD7rl4Og0GK12c1VK01",
+    },
+    "annual": {
+        "name": "Anual", "price": 200.00, "currency": "CHF", "interval": "year",
+        "days": 365, "stripe_price_id": "price_1TG49NImYjMeegYBI0GIf5lE",
+        "payment_link": "https://buy.stripe.com/14AeVd271fsU89c7qA1VK02",
+    },
+    "lifetime": {
+        "name": "De Por Vida", "price": 500.00, "currency": "CHF", "interval": "lifetime",
+        "days": 36500, "stripe_price_id": "price_1TG4AgImYjMeegYBlK5bC6l5",
+        "payment_link": "https://buy.stripe.com/00w8wP12X80s3SWcKU1VK03",
+    },
 }
 
 app = FastAPI(title="Trading Calculator PRO API")
@@ -164,6 +180,10 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+
+def normalize_email(email: str) -> str:
+    return (email or "").strip().lower()
 
 
 # ============================================================
@@ -387,6 +407,14 @@ async def startup_event():
     except Exception as e:
         logging.error(f"Could not ensure TTL indexes: {e}")
 
+    try:
+        await db.users.create_index("email", unique=True)
+        await db.users.create_index("google_sub", unique=True, sparse=True)
+        await db.users.create_index([("email", 1), ("auth_provider", 1)])
+        logging.info("User identity indexes ensured")
+    except Exception as e:
+        logging.error(f"Could not ensure user identity indexes; run duplicate cleanup first: {e}")
+
     existing = await db.users.find_one({"email": DEMO_EMAIL})
     if not existing:
         demo_user = {
@@ -421,14 +449,15 @@ async def startup_event():
 @api_router.post("/auth/register", response_model=dict)
 @limiter.limit("3/hour")
 async def register(request: Request, user_data: UserCreate):
-    existing = await db.users.find_one({"email": user_data.email})
+    email = normalize_email(user_data.email)
+    existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
     
     user_id = str(uuid.uuid4())
     user = {
         "id": user_id,
-        "email": user_data.email,
+        "email": email,
         "password": hash_password(user_data.password),
         "name": user_data.name,
         "subscription_plan": None,
@@ -440,12 +469,12 @@ async def register(request: Request, user_data: UserCreate):
     }
     await db.users.insert_one(user)
     
-    token = create_token(user_id, user_data.email)
+    token = create_token(user_id, email)
     return {
         "token": token,
         "user": {
             "id": user_id,
-            "email": user_data.email,
+            "email": email,
             "name": user_data.name,
             "subscription_plan": None,
             "subscription_end": None,
@@ -458,7 +487,8 @@ async def register(request: Request, user_data: UserCreate):
 @api_router.post("/auth/login", response_model=dict)
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: UserLogin):
-    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    email = normalize_email(credentials.email)
+    user = await db.users.find_one({"email": email}, {"_id": 0})
     if not user or not user.get("password") or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     
@@ -547,7 +577,7 @@ async def google_auth(request: Request, payload: GoogleAuthRequest):
         # Bad signature, expired token, or wrong audience
         raise HTTPException(status_code=401, detail=f"Token de Google inválido: {exc}") from exc
 
-    email = (info.get("email") or "").lower()
+    email = normalize_email(info.get("email") or "")
     if not email or not info.get("email_verified"):
         raise HTTPException(status_code=401, detail="Cuenta de Google sin email verificado")
 
@@ -1273,15 +1303,6 @@ async def _create_stripe_session(
     runtime_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
     stripe.api_key = runtime_key
     stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=webhook_url)
-    checkout_request = CheckoutSessionRequest(
-        amount=float(plan["price"]),
-        currency=plan["currency"].lower(),
-        success_url=success_url,
-        cancel_url=cancel_url,
-        payment_methods=_PAYMENT_METHODS_MAP.get(payment_method, ["card"]),
-        metadata=metadata,
-    )
-    return await stripe_checkout.create_checkout_session(checkout_request)
     checkout_request = CheckoutSessionRequest(
         amount=float(plan["price"]),
         currency=plan["currency"].lower(),
@@ -2955,8 +2976,8 @@ async def admin_metrics(admin: dict = Depends(require_admin)):
     free  = await db.users.count_documents({"subscription_plan": None})
     premium = total - free
 
-    # MRR (rough — uses plan price ÷ months)
-    plan_mrr = {"monthly": 9.99, "quarterly": 19.99 / 3, "annual": 79.99 / 12, "lifetime": 0}
+    # MRR (rough: plan price divided by months; lifetime excluded).
+    plan_mrr = {"monthly": 17.00, "quarterly": 45.00 / 3, "annual": 200.00 / 12, "lifetime": 0}
     mrr = 0.0
     for r in by_plan:
         mrr += plan_mrr.get(r["plan"], 0) * r["count"]
@@ -2969,11 +2990,41 @@ async def admin_metrics(admin: dict = Depends(require_admin)):
         "total_users":   total,
         "premium_users": premium,
         "free_users":    free,
-        "mrr_usd":       round(mrr, 2),
+        "mrr_chf":       round(mrr, 2),
+        "mrr_usd":       round(mrr, 2),  # legacy frontend key; value now follows CHF plan pricing.
         "new_users_30d": new_30d,
         "by_plan":       by_plan,
         "by_locale":     by_locale,
     }
+
+
+@api_router.get("/admin/users/duplicate-emails")
+async def admin_duplicate_emails(admin: dict = Depends(require_admin)):
+    """Report legacy duplicate identities that share the same normalized email."""
+    pipeline = [
+        {"$group": {
+            "_id": {"$toLower": "$email"},
+            "count": {"$sum": 1},
+            "users": {"$push": {
+                "id": "$id",
+                "email": "$email",
+                "name": "$name",
+                "auth_provider": "$auth_provider",
+                "is_admin": "$is_admin",
+                "created_at": "$created_at",
+            }},
+        }},
+        {"$match": {"count": {"$gt": 1}}},
+        {"$sort": {"count": -1, "_id": 1}},
+    ]
+    duplicates = []
+    async for row in db.users.aggregate(pipeline):
+        duplicates.append({
+            "email": row["_id"],
+            "count": row["count"],
+            "users": row["users"],
+        })
+    return {"duplicates": duplicates, "count": len(duplicates)}
 
 
 class AdminPromoteRequest(BaseModel):
@@ -2984,11 +3035,12 @@ class AdminPromoteRequest(BaseModel):
 @api_router.post("/admin/promote")
 async def admin_promote_user(request: Request, payload: AdminPromoteRequest, admin: dict = Depends(require_admin)):
     """Toggle is_admin flag for any user (only callable by an existing admin)."""
-    target = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
+    email = normalize_email(payload.email)
+    target = await db.users.find_one({"email": email}, {"_id": 0})
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     result = await db.users.update_one(
-        {"email": payload.email.lower()},
+        {"email": email},
         {"$set": {"is_admin": payload.is_admin}},
     )
     if result.matched_count == 0:
@@ -3002,7 +3054,7 @@ async def admin_promote_user(request: Request, payload: AdminPromoteRequest, adm
         details={"is_admin_before": bool(target.get("is_admin")), "is_admin_after": payload.is_admin},
         request=request,
     )
-    return {"email": payload.email, "is_admin": payload.is_admin}
+    return {"email": email, "is_admin": payload.is_admin}
 
 
 # ============= ADMIN — REAL USER CRUD =============
@@ -3056,7 +3108,7 @@ def _compute_subscription_end(plan: Optional[str], explicit_end: Optional[str]) 
 @api_router.post("/admin/users", response_model=dict)
 async def admin_create_user(request: Request, payload: AdminUserCreate, admin: dict = Depends(require_admin)):
     """Create a new user from the admin panel (full control over plan / premium / admin)."""
-    email_lc = payload.email.lower()
+    email_lc = normalize_email(payload.email)
     existing = await db.users.find_one({"email": email_lc})
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
@@ -3109,7 +3161,7 @@ async def admin_update_user(request: Request, user_id: str, payload: AdminUserUp
         updates["name"] = payload.name
 
     if payload.email is not None:
-        new_email = payload.email.lower()
+        new_email = normalize_email(payload.email)
         if new_email != user["email"]:
             clash = await db.users.find_one({"email": new_email, "id": {"$ne": user_id}})
             if clash:
@@ -3412,7 +3464,10 @@ async def admin_update_settings(request: Request, payload: AdminSettingsUpdate, 
 async def public_settings():
     """Non-sensitive subset, readable by anyone (frontend boot uses this)."""
     doc = await _load_settings_doc()
-    return {k: (doc.get(k) or "") for k in PUBLIC_SETTING_KEYS}
+    return {
+        k: (doc.get(k) or os.environ.get(_SETTING_ENV_FALLBACK.get(k, ""), "") or "")
+        for k in PUBLIC_SETTING_KEYS
+    }
 
 
 # ============= ADMIN — AUDIT LOG VIEW =============

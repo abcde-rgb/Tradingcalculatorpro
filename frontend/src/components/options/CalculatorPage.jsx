@@ -9,6 +9,7 @@ import {
 } from '../../utils/blackScholes';
 import { computeStrategyStats } from '../../utils/strategyStats';
 import { useTranslation } from '@/lib/i18n';
+import { getBackendBaseUrl } from '@/lib/api';
 import { fetchStock, fetchOptionsChain, fetchExpirations } from '../../services/optionsApi';
 
 import PayoffChart from './PayoffChart';
@@ -30,6 +31,8 @@ import StatsKPIBar from './StatsKPIBar';
 import CompareBar from './CompareBar';
 import EarningsBanner from './EarningsBanner';
 import AdvancedToggles from './AdvancedToggles';
+
+const API = getBackendBaseUrl();
 
 const readPersistedNumber = (key, fallback) => {
   try {
@@ -110,7 +113,7 @@ const CalculatorPage = () => {
 
     (async () => {
       try {
-        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/options/earnings/${ticker}`);
+        const res = await fetch(`${API}/api/options/earnings/${ticker}`);
         if (res.ok) {
           const data = await res.json();
           setNextEarnings(data.nextEarnings);

@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthStore } from '@/lib/store';
 import { formatCurrency } from '@/lib/utils';
+import { getBackendBaseUrl } from '@/lib/api';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getBackendBaseUrl();
 
 export const PriceAlerts = () => {
   const { isAuthenticated, token } = useAuthStore();

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Save, Trash2, Briefcase, Loader2, X, Plus } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { getBackendBaseUrl } from '@/lib/api';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getBackendBaseUrl();
 
 /**
  * Saved Positions Panel — save/load/delete strategies.

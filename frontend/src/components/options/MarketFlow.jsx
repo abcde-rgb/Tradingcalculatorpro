@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { getBackendBaseUrl } from '@/lib/api';
 import { Globe, Loader2, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getBackendBaseUrl();
 
 /**
  * Market-Wide Flow — scans 20+ popular tickers for unusual activity.

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { getBackendBaseUrl } from '@/lib/api';
 import { Sparkles, Loader2, RefreshCw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getBackendBaseUrl();
 
 /**
  * AI Trade Coach — sends current strategy context to Claude Sonnet 4.5

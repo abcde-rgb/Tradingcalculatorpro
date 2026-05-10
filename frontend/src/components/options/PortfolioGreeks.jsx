@@ -2,8 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { Briefcase, RefreshCw, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { getBackendBaseUrl } from '@/lib/api';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getBackendBaseUrl();
 
 const GREEK_ROWS = [
   { key: 'delta', label: 'Delta Δ', subKey: 'greekDeltaSub_bc3a40', good: (v) => Math.abs(v) < 100, color: (v) => v >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]' },

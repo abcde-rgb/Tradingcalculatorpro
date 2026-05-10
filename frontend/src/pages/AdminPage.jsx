@@ -19,11 +19,12 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
+import { getApiBaseUrl } from '@/lib/api';
 import { useSEO } from '@/hooks/useSEO';
 import { Header } from '@/components/layout/Header';
 import { toast } from 'sonner';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = getApiBaseUrl();
 
 const PLAN_OPTIONS = [
   { value: 'none',      label: 'Free' },
@@ -206,7 +207,7 @@ export default function AdminPage() {
             <MetricCard icon={Crown} label={t('adminMetricPremium')}
               value={metrics.premium_users} valueClass="text-primary" testId="metric-premium" />
             <MetricCard icon={DollarSign} label="MRR"
-              value={`$${metrics.mrr_usd.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+              value={`CHF ${(metrics.mrr_chf ?? metrics.mrr_usd ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
               valueClass="text-green-500" testId="metric-mrr" />
             <MetricCard icon={TrendingUp} label={t('adminMetricNew30d')}
               value={metrics.new_users_30d} testId="metric-new-30d" />

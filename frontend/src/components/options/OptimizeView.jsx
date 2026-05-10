@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { getBackendBaseUrl } from '@/lib/api';
 import { Loader2, Target, TrendingUp, Shield, Zap, Trophy, Percent, DollarSign, Wallet, ArrowRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getBackendBaseUrl();
 
 const SENTIMENTS = [
   { id: 'very_bearish', labelKey: 'sentVeryBearish_6aa1', icon: '↓↓', color: 'text-[#ef4444]', bg: 'bg-[#ef4444]/15 border-[#ef4444]/40' },

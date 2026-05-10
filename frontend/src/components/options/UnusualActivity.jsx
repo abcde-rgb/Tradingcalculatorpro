@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { getBackendBaseUrl } from '@/lib/api';
 import { Zap, RefreshCw, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getBackendBaseUrl();
 
 /**
  * Unusual Options Activity Scanner — detects strikes where volume >> open interest.

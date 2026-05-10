@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { getBackendBaseUrl } from '@/lib/api';
 import { TrendingUp, Info } from 'lucide-react';
+
+const API = getBackendBaseUrl();
 
 const IVSurfaceView = ({ stock, chain }) => {
   const { t } = useTranslation();
@@ -15,8 +18,7 @@ const IVSurfaceView = ({ stock, chain }) => {
     const fetchIVSurface = async () => {
       setLoading(true);
       try {
-        const API_URL = process.env.REACT_APP_BACKEND_URL;
-        const res = await fetch(`${API_URL}/api/options/iv-surface/${stock.symbol}?max_expirations=8`);
+        const res = await fetch(`${API}/api/options/iv-surface/${stock.symbol}?max_expirations=8`);
         const data = await res.json();
         setSurfaceData(data);
       } catch (error) {
