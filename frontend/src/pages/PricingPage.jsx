@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Crown, Check, CreditCard, Wallet, Bitcoin, ArrowRight, Loader2, Building, ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,20 @@ import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { toast } from 'sonner';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+// Real Stripe Payment Links for acct_1TG3qhImYjMeegYB.
+const STRIPE_PAYMENT_LINKS = {
+  monthly: 'https://buy.stripe.com/4gM7sLeTNa8AcpseT21VK00',
+  quarterly: 'https://buy.stripe.com/6oU5kD7rl4Og0GK12c1VK01',
+  annual: 'https://buy.stripe.com/14AeVd271fsU89c7qA1VK02',
+  lifetime: 'https://buy.stripe.com/00w8wP12X80s3SWcKU1VK03',
+};
+
+const PLAN_DISPLAY = {
+  monthly: { price: 'CHF 17', period: '/mes' },
+  quarterly: { price: 'CHF 45', period: '/3 meses' },
+  annual: { price: 'CHF 200', period: '/año' },
+  lifetime: { price: 'CHF 500', period: ' pago único' },
+};
 
 // Framer Motion variants — extracted to prevent re-creation per render
 const HOVER_SCALE_UP = { scale: 1.02 };
@@ -36,16 +49,39 @@ const PAYMENT_METHODS_DATA = [
 // Processor name displayed in "Secure payment via {processor}" footer
 const PAYMENT_PROCESSOR_NAMES = {
   card: 'Stripe',
-  crypto: 'Stripe (Crypto)',
-  paypal: 'PayPal',
-  sepa: 'Stripe (SEPA)',
-  klarna: 'Klarna',
+  crypto: 'Stripe',
+  paypal: 'Stripe',
+  sepa: 'Stripe',
+  klarna: 'Stripe',
 };
+
+function getClientReferenceId(user) {
+  if (!user?.id) return '';
+  return String(user.id).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 200);
+}
+
+function buildStripePaymentLink(baseUrl, { planId, paymentMethod, user }) {
+  const url = new URL(baseUrl);
+  const clientReferenceId = getClientReferenceId(user);
+
+  if (user?.email) {
+    url.searchParams.set('prefilled_email', user.email);
+  }
+  if (clientReferenceId) {
+    url.searchParams.set('client_reference_id', clientReferenceId);
+  }
+
+  url.searchParams.set('utm_source', 'tradingcalculatorpro');
+  url.searchParams.set('utm_medium', 'pricing_page');
+  url.searchParams.set('utm_campaign', 'stripe_checkout');
+  url.searchParams.set('utm_content', `${planId}_${paymentMethod}`);
+
+  return url.toString();
+}
 
 export default function PricingPage() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { isAuthenticated, token, user, refreshUser } = useAuthStore();
+  const { user } = useAuthStore();
   const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState(searchParams.get('plan') || 'annual');
   const [selectedPayment, setSelectedPayment] = useState('card');
@@ -62,50 +98,31 @@ export default function PricingPage() {
     if (urlPlan && PLANS_DATA.find(p => p.id === urlPlan)) {
       setSelectedPlan(urlPlan);
     }
-  }, [searchParams]); // Fixed: removed setSelectedPlan and PLANS_DATA (stable/constant)
+  }, [searchParams]);
 
   const isPremium = user?.is_premium || user?.email === 'demo@btccalc.pro';
 
-  const handleCheckout = async () => {
-    if (!isAuthenticated) {
-      toast.error(t('mustLoginFirst'));
-      navigate('/login');
-      return;
-    }
+  const getPlanPrice = (planId) => PLAN_DISPLAY[planId]?.price || t(planId + 'Price');
+  const getPlanPeriod = (planId) => PLAN_DISPLAY[planId]?.period || t(planId + 'Period');
 
+  const handleCheckout = () => {
     if (isPremium) {
       toast.info(t('alreadyHaveSubscription'));
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`${API}/api/checkout/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          plan_id: selectedPlan,
-          payment_method: selectedPayment,
-          origin_url: window.location.origin
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.checkout_url) {
-        window.location.href = data.checkout_url;
-      } else {
-        toast.error(data.detail || t('checkoutError'));
-      }
-    } catch (error) {
-      toast.error(t('connectionError'));
+    const paymentLink = STRIPE_PAYMENT_LINKS[selectedPlan];
+    if (!paymentLink) {
+      toast.error(t('checkoutError') || 'No hay enlace de pago configurado para este plan');
+      return;
     }
 
-    setIsLoading(false);
+    setIsLoading(true);
+    window.location.assign(buildStripePaymentLink(paymentLink, {
+      planId: selectedPlan,
+      paymentMethod: selectedPayment,
+      user,
+    }));
   };
 
   const selectedPlanData = PLANS_DATA.find(p => p.id === selectedPlan);
@@ -154,8 +171,8 @@ export default function PricingPage() {
                 )}
                 <h3 className="font-bold text-lg mb-2">{t(plan.id + 'Plan')}</h3>
                 <div className="mb-4">
-                  <span className="font-unbounded text-3xl font-bold">{t(plan.id + 'Price')}</span>
-                  <span className="text-muted-foreground text-sm">{t(plan.id + 'Period')}</span>
+                  <span className="font-unbounded text-3xl font-bold">{getPlanPrice(plan.id)}</span>
+                  <span className="text-muted-foreground text-sm">{getPlanPeriod(plan.id)}</span>
                 </div>
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -220,15 +237,15 @@ export default function PricingPage() {
                     <div className="p-4 rounded-xl bg-muted/50 border border-border">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-semibold">{t(selectedPlan + 'Plan')}</span>
-                        <span className="font-mono text-lg">{t(selectedPlan + 'Price')}</span>
+                        <span className="font-mono text-lg">{getPlanPrice(selectedPlan)}</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">{t(selectedPlan + 'Period')}</p>
+                      <p className="text-sm text-muted-foreground">{getPlanPeriod(selectedPlan)}</p>
                     </div>
                     
                     <div className="border-t border-border pt-4">
                       <div className="flex justify-between items-center text-lg font-bold">
                         <span>{t('total')}</span>
-                        <span className="font-mono text-primary">{t(selectedPlan + 'Price')}</span>
+                        <span className="font-mono text-primary">{getPlanPrice(selectedPlan)}</span>
                       </div>
                     </div>
                     
@@ -243,7 +260,7 @@ export default function PricingPage() {
                       ) : isPremium ? (
                         <>{t('alreadyPremiumButton')}</>
                       ) : (
-                        <>{t('payButton')} {t(selectedPlan + 'Price')} <ArrowRight className="ml-2" /></>
+                        <>{t('payButton')} {getPlanPrice(selectedPlan)} <ArrowRight className="ml-2" /></>
                       )}
                     </Button>
                     
