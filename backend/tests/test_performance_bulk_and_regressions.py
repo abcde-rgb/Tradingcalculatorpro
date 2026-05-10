@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 import pytest
 import requests
 
-BASE_URL: str = os.environ.get("REACT_APP_BACKEND_URL", "https://auth-fix-google-api.preview.emergentagent.com").rstrip("/")
+BASE_URL: str = os.environ.get("REACT_APP_BACKEND_URL", "https://missing-apis-impl.preview.emergentagent.com").rstrip("/")
 
 DEMO_EMAIL = "demo@btccalc.pro"
 DEMO_PASSWORD = "1234"

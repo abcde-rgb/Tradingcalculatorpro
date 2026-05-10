@@ -277,7 +277,7 @@ frontend:
         -comment: |
           ✅ COMPREHENSIVE ADMIN PANEL UI TEST COMPLETE - ALL 29 TESTS PASSED (100% success rate)
           
-          Tested via Playwright against https://auth-fix-google-api.preview.emergentagent.com
+          Tested via Playwright against https://missing-apis-impl.preview.emergentagent.com
           
           SECTION 1: AUTH BASICS (3 tests) - ALL PASS ✅
           - Navigate to login page from home
@@ -421,7 +421,7 @@ agent_communication:
     -message: |
       ✅ COMPREHENSIVE ADMIN PANEL UI TESTING COMPLETE - ALL 29 TESTS PASSED (100% success rate)
       
-      Tested via Playwright against https://auth-fix-google-api.preview.emergentagent.com
+      Tested via Playwright against https://missing-apis-impl.preview.emergentagent.com
       
       FULL END-TO-END TESTING COMPLETED:
       

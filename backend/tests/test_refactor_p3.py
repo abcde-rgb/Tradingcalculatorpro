@@ -15,7 +15,7 @@ import pytest
 import requests
 
 BASE_URL: str = os.environ.get(
-    "REACT_APP_BACKEND_URL", "https://auth-fix-google-api.preview.emergentagent.com"
+    "REACT_APP_BACKEND_URL", "https://missing-apis-impl.preview.emergentagent.com"
 ).rstrip("/")
 
 

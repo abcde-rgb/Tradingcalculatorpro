@@ -10,7 +10,7 @@ import pytest
 import requests
 
 BASE_URL: str = os.environ.get(
-    "REACT_APP_BACKEND_URL", "https://auth-fix-google-api.preview.emergentagent.com"
+    "REACT_APP_BACKEND_URL", "https://missing-apis-impl.preview.emergentagent.com"
 )
 
 
@@ -40,7 +40,7 @@ class TestStripeCheckoutCreate:
             json={
                 "plan_id": "monthly",
                 "payment_method": "card",
-                "origin_url": "https://auth-fix-google-api.preview.emergentagent.com",
+                "origin_url": "https://missing-apis-impl.preview.emergentagent.com",
             },
         )
         assert response.status_code == 200
@@ -69,7 +69,7 @@ class TestStripeCheckoutCreate:
             json={
                 "plan_id": "quarterly",
                 "payment_method": "card",
-                "origin_url": "https://auth-fix-google-api.preview.emergentagent.com",
+                "origin_url": "https://missing-apis-impl.preview.emergentagent.com",
             },
         )
         assert response.status_code == 200
@@ -85,7 +85,7 @@ class TestStripeCheckoutCreate:
             json={
                 "plan_id": "annual",
                 "payment_method": "card",
-                "origin_url": "https://auth-fix-google-api.preview.emergentagent.com",
+                "origin_url": "https://missing-apis-impl.preview.emergentagent.com",
             },
         )
         assert response.status_code == 200
@@ -101,7 +101,7 @@ class TestStripeCheckoutCreate:
             json={
                 "plan_id": "lifetime",
                 "payment_method": "card",
-                "origin_url": "https://auth-fix-google-api.preview.emergentagent.com",
+                "origin_url": "https://missing-apis-impl.preview.emergentagent.com",
             },
         )
         assert response.status_code == 200
@@ -117,7 +117,7 @@ class TestStripeCheckoutCreate:
             json={
                 "plan_id": "monthly",
                 "payment_method": "sepa",
-                "origin_url": "https://auth-fix-google-api.preview.emergentagent.com",
+                "origin_url": "https://missing-apis-impl.preview.emergentagent.com",
             },
         )
         assert response.status_code == 200
@@ -173,7 +173,7 @@ class TestStripeCheckoutStatus:
             json={
                 "plan_id": "monthly",
                 "payment_method": "card",
-                "origin_url": "https://auth-fix-google-api.preview.emergentagent.com",
+                "origin_url": "https://missing-apis-impl.preview.emergentagent.com",
             },
         )
         return response.json()
@@ -320,7 +320,7 @@ class TestNewUserCheckoutFlow:
             json={
                 "plan_id": "monthly",
                 "payment_method": "card",
-                "origin_url": "https://auth-fix-google-api.preview.emergentagent.com",
+                "origin_url": "https://missing-apis-impl.preview.emergentagent.com",
             },
         )
         assert response.status_code == 200
@@ -339,7 +339,7 @@ class TestNewUserCheckoutFlow:
             json={
                 "plan_id": "annual",
                 "payment_method": "card",
-                "origin_url": "https://auth-fix-google-api.preview.emergentagent.com",
+                "origin_url": "https://missing-apis-impl.preview.emergentagent.com",
             },
         )
         assert create_response.status_code == 200
