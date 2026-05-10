@@ -7,7 +7,7 @@
   CI = "false"
   DISABLE_ESLINT_PLUGIN = "true"
   NODE_OPTIONS = "--openssl-legacy-provider"
-  NODE_VERSION = "18"
+  NODE_VERSION = "22"
   NPM_FLAGS = "--legacy-peer-deps"
 
 [[redirects]]
