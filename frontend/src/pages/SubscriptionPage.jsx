@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../lib/store';
+import { getApiBaseUrl } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +10,7 @@ import { AlertCircle, CheckCircle, Calendar, CreditCard, Download, ExternalLink,
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getApiBaseUrl();
 
 export default function SubscriptionPage() {
   const { t } = useTranslation();
@@ -25,14 +26,14 @@ export default function SubscriptionPage() {
       setLoading(true);
       
       // Fetch subscription
-      const subRes = await fetch(`${API}/api/subscriptions/current`, {
+      const subRes = await fetch(`${API}/subscriptions/current`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const subData = await subRes.json();
       setSubscription(subData);
       
       // Fetch billing history
-      const invRes = await fetch(`${API}/api/billing/history`, {
+      const invRes = await fetch(`${API}/billing/history`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const invData = await invRes.json();
@@ -61,7 +62,7 @@ export default function SubscriptionPage() {
 
     try {
       setActionLoading(true);
-      const response = await fetch(`${API}/api/subscriptions/cancel`, {
+      const response = await fetch(`${API}/subscriptions/cancel`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -89,7 +90,7 @@ export default function SubscriptionPage() {
   const handleResumeSubscription = async () => {
     try {
       setActionLoading(true);
-      const response = await fetch(`${API}/api/subscriptions/resume`, {
+      const response = await fetch(`${API}/subscriptions/resume`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -113,7 +114,7 @@ export default function SubscriptionPage() {
   const handleOpenPortal = async () => {
     try {
       setActionLoading(true);
-      const response = await fetch(`${API}/api/billing/create-portal-session`, {
+      const response = await fetch(`${API}/billing/create-portal-session`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
