@@ -1,11 +1,9 @@
 import axios from 'axios';
 import { useAuthStore } from '@/lib/store';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { getApiBaseUrl } from '@/lib/api';
 
 const client = axios.create({
-  baseURL: API,
+  baseURL: getApiBaseUrl(),
   timeout: 15000,
 });
 
