@@ -19,6 +19,7 @@ Fuentes externas consultadas:
    - `frontend/package.json`: React y React DOM pasan a React 18 para satisfacer `react-day-picker@8.10.1`.
    - `frontend/package-lock.json`: lockfile regenerado con React 18.
    - `netlify.toml`: eliminado `NPM_FLAGS = "--legacy-peer-deps"` para no ocultar conflictos reales.
+   - `netlify.toml`: `publish` corregido a `build` porque Netlify resuelve ese path relativo a `base = "frontend"`.
    - `netlify.toml`: agregados headers basicos `nosniff`, `DENY`, `strict-origin-when-cross-origin` y `Permissions-Policy`.
 
 2. URLs de API en frontend:
@@ -397,6 +398,7 @@ Bajos:
 - `python -m py_compile backend/server.py backend/stock_data.py backend/options_math.py backend/options_optimize.py backend/performance.py backend/candle_patterns.py`: OK.
 - `npm ls react react-dom react-day-picker --depth=0`: OK, React 18.3.1.
 - `npm run build`: OK, con warnings de hooks en `TradingViewChart`, `KellyPanel` y `AdminPage`; bundle principal ~851 kB gzip.
+- `npx netlify build --offline`: OK con la configuracion de `netlify.toml`.
 - Browser smoke test sobre build local (`http://127.0.0.1:4173/`): landing renderiza, enlaces a pricing/login presentes, navegacion SPA a `/pricing` funciona y el boton/flujo de checkout aparece sin errores de consola capturados.
 - `npm audit --omit=dev --json`: 28 vulnerabilidades transitivas (11 low, 3 moderate, 14 high), principalmente asociadas a CRA/react-scripts/tooling (`svgo`, `serialize-javascript`, `webpack-dev-server`, etc.). No se aplico `npm audit fix --force` porque propone cambios mayores/riesgosos; la solucion profesional es planificar migracion de CRA/CRACO a Vite o actualizar cadena de build con pruebas.
 - `pip-audit`: no disponible en el entorno local.
