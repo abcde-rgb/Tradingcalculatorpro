@@ -569,7 +569,19 @@ function IntegrationsEditor({ headers, t }) {
         headers,
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        // Bubble the backend's detail to the user (instead of the generic toast)
+        let detail = `HTTP ${res.status}`;
+        try {
+          const err = await res.json();
+          if (err && err.detail) detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+        } catch { /* ignore */ }
+        // Log to console so the user can copy it for debugging
+        console.error('[admin/settings PUT failed]', res.status, detail, 'body sent:', body);
+        toast.error(`No se guardó: ${detail}`, { duration: 8000 });
+        setSaving(false);
+        return;
+      }
       const fresh = await res.json();
       setSettings(fresh);
       // Rebuild draft from fresh response — same masking rules.
@@ -584,8 +596,9 @@ function IntegrationsEditor({ headers, t }) {
       }));
       setDraft(d);
       toast.success('APIs guardadas. Recarga la página para activar las integraciones del frontend.');
-    } catch {
-      toast.error('Error guardando settings');
+    } catch (err) {
+      console.error('[admin/settings save] network error', err);
+      toast.error(`Error de red guardando settings: ${err?.message || 'fallo desconocido'}`, { duration: 8000 });
     } finally {
       setSaving(false);
     }
