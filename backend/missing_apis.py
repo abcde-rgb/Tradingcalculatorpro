@@ -52,6 +52,18 @@ JWT_ALGORITHM = "HS256"
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
 
+
+# ─────────────────────────────────────────────────────────────────────
+# Proxy dependencies — at decoration time `require_user` is None, so we
+# use a proxy callable that defers resolution until request time.
+# ─────────────────────────────────────────────────────────────────────
+async def _require_user_proxy(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> Dict[str, Any]:
+    if require_user is None:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+    return await require_user(credentials)
+
 # ---------------------------------------------------------------------------
 # 0.  STARTUP — MongoDB unique index on users.email
 # ---------------------------------------------------------------------------
@@ -600,7 +612,7 @@ async def _send_verification_email(to_email: str, verify_url: str) -> bool:
 
 
 @router.post("/auth/send-verification-email")
-async def send_verification_email(request: Request, user: dict = Depends(require_user)):
+async def send_verification_email(request: Request, user: dict = Depends(_require_user_proxy)):
     """Send (or resend) an email-verification link for the logged-in user."""
     if user.get("email_verified"):
         return {"ok": True, "message": "Email ya verificado"}
@@ -664,7 +676,7 @@ class ChangePlanRequest(BaseModel):
 
 
 @router.post("/subscriptions/change-plan")
-async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(require_user)):
+async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_require_user_proxy)):
     """
     Upgrade or downgrade an active Stripe subscription via proration.
     Requires the user to have a Stripe customer + subscription.
@@ -887,7 +899,7 @@ def _trades_to_excel_bytes(trades: List[Dict[str, Any]]) -> bytes:
 
 @router.get("/performance/export")
 async def export_trades(
-    user: dict = Depends(require_user),
+    user: dict = Depends(_require_user_proxy),
     format: str = "csv",   # "csv" or "excel"
     status: Optional[str] = None,
     symbol: Optional[str] = None,
@@ -947,7 +959,7 @@ class SaveToJournalRequest(BaseModel):
 
 
 @router.post("/calculations/{calc_id}/save-to-journal")
-async def save_calculation_to_journal(calc_id: str, payload: SaveToJournalRequest, user: dict = Depends(require_user)):
+async def save_calculation_to_journal(calc_id: str, payload: SaveToJournalRequest, user: dict = Depends(_require_user_proxy)):
     """
     Pre-fill a new journal trade entry from a saved calculation.
     The calculation inputs/results are merged with any overrides in the payload.

@@ -416,6 +416,22 @@ async def startup_event():
             await db.users.update_one({"email": DEMO_EMAIL}, {"$set": patch})
             logging.info("Demo user patched: %s", patch)
 
+    # ─────────────────────────────────────────────────────────────────────
+    # Module-level routers were already registered (see bottom of file).
+    # Here we just create the runtime indexes and start the WS poller.
+    # ─────────────────────────────────────────────────────────────────────
+    try:
+        from missing_apis import ensure_missing_api_indexes
+        from referrals import ensure_referral_indexes
+        from realtime_alerts import start_poller
+
+        await ensure_missing_api_indexes(db)
+        await ensure_referral_indexes(db)
+        start_poller()
+        logging.info("✅ Extended modules: indexes ensured & WS poller started")
+    except Exception as e:
+        logging.error(f"Extended modules startup error: {e}", exc_info=True)
+
 # ============= AUTH ROUTES =============
 
 @api_router.post("/auth/register", response_model=dict)
@@ -601,7 +617,8 @@ async def google_auth(request: Request, payload: GoogleAuthRequest):
 
 @api_router.get("/prices")
 async def get_prices():
-    """Get real-time crypto prices from CoinGecko"""
+    """Real-time crypto prices from CoinGecko + real commodities (gold, silver, oil) from yfinance."""
+    data: Dict[str, Any] = {}
     try:
         async with httpx.AsyncClient() as http_client:
             response = await http_client.get(
@@ -616,59 +633,64 @@ async def get_prices():
             )
             if response.status_code == 200:
                 data = response.json()
-                # Add commodities (simulated for now - would need different API)
-                data["gold"] = {"usd": 2680, "eur": 2450, "usd_24h_change": 0.5}
-                data["silver"] = {"usd": 31.50, "eur": 28.80, "usd_24h_change": 0.8}
-                return data
     except Exception as e:
-        logging.error(f"Error fetching prices: {e}")
-    
-    # Fallback prices
-    return {
-        "bitcoin": {"usd": 97000, "eur": 89000, "usd_24h_change": 2.1},
-        "ethereum": {"usd": 3600, "eur": 3300, "usd_24h_change": 1.5},
-        "solana": {"usd": 195, "eur": 178, "usd_24h_change": 3.2},
-        "binancecoin": {"usd": 680, "eur": 620, "usd_24h_change": 1.1},
-        "ripple": {"usd": 0.62, "eur": 0.57, "usd_24h_change": 0.8},
-        "cardano": {"usd": 0.48, "eur": 0.44, "usd_24h_change": -0.5},
-        "dogecoin": {"usd": 0.14, "eur": 0.13, "usd_24h_change": 4.2},
-        "avalanche-2": {"usd": 38, "eur": 35, "usd_24h_change": 2.1},
-        "polkadot": {"usd": 7.8, "eur": 7.1, "usd_24h_change": 1.3},
-        "chainlink": {"usd": 16, "eur": 14.5, "usd_24h_change": 0.7},
-        "litecoin": {"usd": 88, "eur": 80, "usd_24h_change": 1.2},
-        "gold": {"usd": 2680, "eur": 2450, "usd_24h_change": 0.5},
-        "silver": {"usd": 31.50, "eur": 28.80, "usd_24h_change": 0.8}
-    }
+        logging.error(f"Error fetching crypto prices: {e}")
 
-@api_router.get("/forex-prices")
-async def get_forex_prices():
-    """Get forex prices - simulated for demo (would need Finnhub API for real data)"""
-    # In production, integrate Finnhub or similar
-    return {
-        "EURUSD": {"price": 1.0856, "change": 0.12},
-        "GBPUSD": {"price": 1.2734, "change": -0.08},
-        "USDJPY": {"price": 149.85, "change": 0.25},
-        "USDCHF": {"price": 0.8812, "change": -0.05},
-        "AUDUSD": {"price": 0.6542, "change": 0.18},
-        "USDCAD": {"price": 1.3564, "change": 0.03},
-        "NZDUSD": {"price": 0.5987, "change": 0.22},
-        "EURGBP": {"price": 0.8525, "change": 0.15},
-        "EURJPY": {"price": 162.68, "change": 0.38},
-        "GBPJPY": {"price": 190.78, "change": 0.17}
-    }
+    # Crypto fallback if CoinGecko failed entirely
+    if not data:
+        data = {
+            "bitcoin": {"usd": 97000, "eur": 89000, "usd_24h_change": 2.1},
+            "ethereum": {"usd": 3600, "eur": 3300, "usd_24h_change": 1.5},
+            "solana": {"usd": 195, "eur": 178, "usd_24h_change": 3.2},
+            "binancecoin": {"usd": 680, "eur": 620, "usd_24h_change": 1.1},
+            "ripple": {"usd": 0.62, "eur": 0.57, "usd_24h_change": 0.8},
+            "cardano": {"usd": 0.48, "eur": 0.44, "usd_24h_change": -0.5},
+            "dogecoin": {"usd": 0.14, "eur": 0.13, "usd_24h_change": 4.2},
+            "avalanche-2": {"usd": 38, "eur": 35, "usd_24h_change": 2.1},
+            "polkadot": {"usd": 7.8, "eur": 7.1, "usd_24h_change": 1.3},
+            "chainlink": {"usd": 16, "eur": 14.5, "usd_24h_change": 0.7},
+            "litecoin": {"usd": 88, "eur": 80, "usd_24h_change": 1.2},
+        }
 
-@api_router.get("/indices-prices")
-async def get_indices_prices():
-    """Get indices prices - simulated for demo"""
-    return {
-        "SPX": {"price": 5998.50, "change": 0.45},
-        "NDX": {"price": 21245.80, "change": 0.68},
-        "DJI": {"price": 44235.20, "change": 0.32},
-        "DAX": {"price": 19785.60, "change": 0.28},
-        "FTSE": {"price": 8265.40, "change": 0.15},
-        "N225": {"price": 38542.80, "change": 0.52},
-        "HSI": {"price": 19876.30, "change": -0.25}
-    }
+    # ── REAL commodities via yfinance (GC=F gold, SI=F silver, CL=F oil) ──
+    try:
+        import yfinance as yf
+        eur_usd = 0.92
+        try:
+            fx = yf.Ticker("EURUSD=X").history(period="2d")
+            if not fx.empty:
+                eur_usd = 1 / float(fx["Close"].iloc[-1])
+        except Exception:
+            pass
+        commodity_map = {"gold": "GC=F", "silver": "SI=F", "oil": "CL=F"}
+        for label, sym in commodity_map.items():
+            try:
+                t = yf.Ticker(sym)
+                hist = t.history(period="2d")
+                if hist.empty:
+                    continue
+                price = float(hist["Close"].iloc[-1])
+                prev = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else price
+                change = round((price - prev) / prev * 100, 4) if prev else 0.0
+                data[label] = {
+                    "usd": round(price, 4),
+                    "eur": round(price * eur_usd, 4),
+                    "usd_24h_change": change,
+                }
+            except Exception as ce:
+                logging.warning(f"Commodity {label} ({sym}) fetch error: {ce}")
+        # Static fallback only if yfinance returned nothing
+        data.setdefault("gold",   {"usd": 2680.0, "eur": 2450.0, "usd_24h_change": 0.5})
+        data.setdefault("silver", {"usd": 31.50,  "eur": 28.80,  "usd_24h_change": 0.8})
+    except Exception as e:
+        logging.error(f"Commodities (yfinance) error: {e}")
+        data.setdefault("gold",   {"usd": 2680.0, "eur": 2450.0, "usd_24h_change": 0.5})
+        data.setdefault("silver", {"usd": 31.50,  "eur": 28.80,  "usd_24h_change": 0.8})
+
+    return data
+
+# Note: /forex-prices, /indices-prices, /commodities-prices, /ohlc/{symbol} (universal)
+# are provided by `missing_apis.py` (registered at startup with REAL data via yfinance).
 
 _COINGECKO_COIN_MAP: Dict[str, str] = {
     "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "binancecoin",
@@ -722,28 +744,69 @@ def _group_prices_into_ohlc(
 
 @api_router.get("/ohlc/{symbol}")
 async def get_ohlc_data(symbol: str, days: int = 30) -> Dict[str, Any]:
-    """Get OHLC data for candlestick charts."""
-    empty: Dict[str, Any] = {"ohlc": [], "symbol": symbol.upper()}
-    coin_id = _COINGECKO_COIN_MAP.get(symbol.upper(), "bitcoin")
+    """Universal OHLC for ANY asset (crypto, stocks, forex, indices, commodities).
+    1) Try CoinGecko (for known crypto). 2) Fall back to yfinance for any symbol."""
+    sym_upper = symbol.upper()
+    empty: Dict[str, Any] = {"ohlc": [], "symbol": sym_upper, "source": "none"}
+
+    # 1) CoinGecko for the well-known crypto coins
+    coin_id = _COINGECKO_COIN_MAP.get(sym_upper)
+    if coin_id:
+        try:
+            async with httpx.AsyncClient() as http_client:
+                response = await http_client.get(
+                    f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart",
+                    params={"vs_currency": "usd", "days": days},
+                    timeout=15.0,
+                )
+            if response.status_code == 200:
+                prices = response.json().get("prices", [])
+                if prices:
+                    ohlc = _group_prices_into_ohlc(prices, _pick_ohlc_interval_ms(days))
+                    return {"ohlc": ohlc, "symbol": sym_upper, "source": "coingecko"}
+        except Exception as e:
+            logging.warning(f"CoinGecko OHLC for {sym_upper}: {e}")
+
+    # 2) yfinance fallback — works for stocks, forex (EURUSD=X), indices (^GSPC),
+    #    commodities (GC=F), and any crypto via SYMBOL-USD pair.
     try:
-        async with httpx.AsyncClient() as http_client:
-            response = await http_client.get(
-                f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart",
-                params={"vs_currency": "usd", "days": days},
-                timeout=15.0,
-            )
-        if response.status_code != 200:
-            return empty
+        import yfinance as yf
+        if days <= 7:
+            interval = "1h"
+        elif days <= 60:
+            interval = "1d"
+        else:
+            interval = "1wk"
+        period_str = f"{days}d" if days <= 730 else "2y"
 
-        prices = response.json().get("prices", [])
-        if not prices:
-            return empty
+        candidate_symbols = [symbol]
+        if not any(c in symbol for c in ["-", "=", "^", "."]):
+            candidate_symbols.append(f"{sym_upper}-USD")  # try crypto pair
 
-        ohlc = _group_prices_into_ohlc(prices, _pick_ohlc_interval_ms(days))
-        return {"ohlc": ohlc, "symbol": symbol.upper()}
+        for cand in candidate_symbols:
+            try:
+                hist = yf.Ticker(cand).history(period=period_str, interval=interval)
+                if hist.empty:
+                    continue
+                candles = []
+                for idx, row in hist.iterrows():
+                    candles.append({
+                        "time": int(idx.timestamp()),
+                        "open":  round(float(row["Open"]), 6),
+                        "high":  round(float(row["High"]), 6),
+                        "low":   round(float(row["Low"]), 6),
+                        "close": round(float(row["Close"]), 6),
+                        "volume": float(row.get("Volume", 0) or 0),
+                    })
+                if candles:
+                    return {"ohlc": candles, "symbol": sym_upper, "source": "yfinance"}
+            except Exception as e:
+                logging.warning(f"yfinance OHLC for {cand}: {e}")
+
     except Exception as e:
-        logging.error(f"Error fetching OHLC data: {e}")
-        return empty
+        logging.error(f"OHLC error: {e}")
+
+    return empty
 
 # ============= TRADING JOURNAL =============
 
@@ -1164,41 +1227,199 @@ def _simulate_backtest_trades(
             "max_drawdown": max_drawdown}
 
 
+def _run_real_backtest(
+    symbol: str,
+    strategy: str,
+    days: int,
+    initial_capital: float,
+    take_profit_pct: float,
+    stop_loss_pct: float,
+    leverage: float,
+) -> Dict[str, Any]:
+    """REAL backtest using historical data from yfinance.
+    Strategies supported:
+      - SMA Crossover (10/30)
+      - RSI 14 (oversold<30 long / overbought>70 short)
+      - Buy & Hold
+    Returns: {trades, balance, wins, losses, max_drawdown, equity_curve}.
+    """
+    import yfinance as yf
+    import pandas as pd
+
+    # Pick yfinance symbol — auto-add -USD for bare crypto tickers
+    yf_sym = symbol
+    if not any(c in symbol for c in ["-", "=", "^", "."]):
+        if symbol.upper() in ("BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "DOT", "LINK", "LTC", "MATIC"):
+            yf_sym = f"{symbol.upper()}-USD"
+    period_str = f"{max(days, 30)}d" if days <= 730 else "2y"
+    interval = "1d" if days >= 30 else "1h"
+
+    hist = yf.Ticker(yf_sym).history(period=period_str, interval=interval)
+    if hist.empty or len(hist) < 30:
+        # Fall back to BTC-USD if symbol not found
+        hist = yf.Ticker("BTC-USD").history(period=period_str, interval=interval)
+
+    closes = hist["Close"].astype(float).tolist()
+    times = [int(t.timestamp()) for t in hist.index]
+    if len(closes) < 30:
+        raise HTTPException(status_code=400, detail="No hay datos históricos suficientes para este símbolo")
+
+    # ── Generate entry signals depending on strategy ──
+    signals: List[int] = [0] * len(closes)  # 1=long, -1=short, 0=flat
+    s_lower = strategy.lower().replace("_", " ")
+
+    if "rsi" in s_lower:
+        period_rsi = 14
+        gains, losses = [], []
+        for i in range(1, len(closes)):
+            diff = closes[i] - closes[i - 1]
+            gains.append(max(diff, 0)); losses.append(max(-diff, 0))
+        rsi: List[Optional[float]] = [None] * len(closes)
+        for i in range(period_rsi, len(closes)):
+            avg_gain = sum(gains[i - period_rsi:i]) / period_rsi
+            avg_loss = sum(losses[i - period_rsi:i]) / period_rsi or 1e-9
+            rs = avg_gain / avg_loss
+            rsi[i] = 100 - 100 / (1 + rs)
+        for i in range(len(closes)):
+            r = rsi[i]
+            if r is None:
+                continue
+            if r < 30:
+                signals[i] = 1
+            elif r > 70:
+                signals[i] = -1
+    elif "buy" in s_lower or "hold" in s_lower:
+        signals[0] = 1  # enter long once, hold forever
+    else:
+        # Default: SMA Crossover 10/30
+        short_w, long_w = 10, 30
+        for i in range(long_w, len(closes)):
+            sma_s = sum(closes[i - short_w:i]) / short_w
+            sma_l = sum(closes[i - long_w:i]) / long_w
+            sma_s_prev = sum(closes[i - short_w - 1:i - 1]) / short_w
+            sma_l_prev = sum(closes[i - long_w - 1:i - 1]) / long_w
+            if sma_s_prev <= sma_l_prev and sma_s > sma_l:
+                signals[i] = 1
+            elif sma_s_prev >= sma_l_prev and sma_s < sma_l:
+                signals[i] = -1
+
+    # ── Simulate trades with TP/SL ──
+    balance = float(initial_capital)
+    equity: List[float] = [balance]
+    trades: List[Dict[str, Any]] = []
+    peak = balance
+    max_dd = 0.0
+    in_pos = False
+    side = 0  # 1 long, -1 short
+    entry_price = 0.0
+    entry_idx = 0
+    risk_per_trade = 0.02  # 2% risk per trade
+    wins, losses = 0, 0
+
+    for i, price in enumerate(closes):
+        if not in_pos and signals[i] != 0 and i < len(closes) - 1:
+            in_pos = True
+            side = signals[i]
+            entry_price = price
+            entry_idx = i
+            continue
+        if in_pos:
+            move_pct = ((price - entry_price) / entry_price) * 100 * side * leverage
+            should_exit = (
+                move_pct >= take_profit_pct or
+                move_pct <= -stop_loss_pct or
+                signals[i] == -side or          # opposite signal
+                i == len(closes) - 1            # close on last bar
+            )
+            if should_exit:
+                pnl = balance * risk_per_trade * (move_pct / max(stop_loss_pct, 0.01))
+                pnl = max(min(pnl, balance * risk_per_trade * (take_profit_pct / max(stop_loss_pct, 0.01))),
+                          -balance * risk_per_trade)
+                balance += pnl
+                if pnl > 0:
+                    wins += 1
+                else:
+                    losses += 1
+                trades.append({
+                    "id": str(uuid.uuid4()),
+                    "side": "LONG" if side == 1 else "SHORT",
+                    "entry_time": times[entry_idx],
+                    "exit_time": times[i],
+                    "entry_price": round(entry_price, 6),
+                    "exit_price": round(price, 6),
+                    "move_pct": round(move_pct, 2),
+                    "pnl": round(pnl, 2),
+                    "balance": round(balance, 2),
+                })
+                in_pos = False
+                side = 0
+        peak = max(peak, balance)
+        dd = ((peak - balance) / peak * 100) if peak > 0 else 0
+        max_dd = max(max_dd, dd)
+        equity.append(round(balance, 2))
+
+    return {
+        "trades": trades,
+        "balance": balance,
+        "wins": wins,
+        "losses": losses,
+        "max_drawdown": max_dd,
+        "equity_curve": equity,
+    }
+
+
 @api_router.post("/backtest")
 async def run_backtest(request: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
     if not check_premium(user):
         raise HTTPException(status_code=403, detail="Función premium requerida")
 
     strategy = request.get("strategy", "SMA Crossover")
-    initial_capital = request.get("initial_capital", 10000)
-    take_profit = request.get("take_profit", 5)
-    stop_loss = request.get("stop_loss", 2)
-    leverage = request.get("leverage", 1)
+    initial_capital = float(request.get("initial_capital", 10000))
+    take_profit = float(request.get("take_profit", 5))
+    stop_loss = float(request.get("stop_loss", 2))
+    leverage = float(request.get("leverage", 1))
+    symbol = (request.get("symbol") or "BTC-USD").upper()
+    days = int(request.get("days", 180))
 
-    rng = secrets.SystemRandom()
-    n = rng.randint(50, 150)
-    win_rate = rng.uniform(0.45, 0.65)
-    sim = _simulate_backtest_trades(n, initial_capital, win_rate, take_profit, stop_loss, leverage, rng)
+    try:
+        sim = _run_real_backtest(
+            symbol=symbol,
+            strategy=strategy,
+            days=days,
+            initial_capital=initial_capital,
+            take_profit_pct=take_profit,
+            stop_loss_pct=stop_loss,
+            leverage=leverage,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"backtest error: {e}")
+        raise HTTPException(status_code=500, detail=f"Error ejecutando backtest: {e}")
 
     final = sim["balance"]
+    n = len(sim["trades"])
     wins, losses = sim["wins"], sim["losses"]
     roi = ((final - initial_capital) / initial_capital) * 100
-    profit_factor = round((wins * take_profit) / (losses * stop_loss), 2) if losses > 0 else 0
+    profit_factor = round((wins * take_profit) / (losses * stop_loss), 2) if losses > 0 else 0.0
 
     return {
         "id": str(uuid.uuid4()),
+        "symbol": symbol,
         "strategy": strategy,
+        "days": days,
         "initial_capital": initial_capital,
         "final_balance": round(final, 2),
         "total_trades": n,
         "wins": wins,
         "losses": losses,
-        "win_rate": round(wins / n * 100, 2),
+        "win_rate": round(wins / n * 100, 2) if n else 0.0,
         "roi": round(roi, 2),
         "max_drawdown": round(sim["max_drawdown"], 2),
         "profit_factor": profit_factor,
-        "trades": sim["trades"][-20:],
-        "equity_curve": [t["balance"] for t in sim["trades"]],
+        "trades": sim["trades"][-30:],
+        "equity_curve": sim["equity_curve"],
+        "data_source": "yfinance",
     }
 
 # ============= CALCULATIONS =============
@@ -1387,14 +1608,78 @@ async def _activate_paid_subscription(
 
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request) -> Dict[str, str]:
+    """Handles all Stripe webhook events:
+    - checkout.session.completed     → activate paid subscription (+ credit referrer)
+    - customer.subscription.deleted  → revoke premium
+    - invoice.payment_failed         → mark past_due, revoke after 3 attempts
+    - customer.subscription.updated  → sync status changes
+    """
     from emergentintegrations.payments.stripe.checkout import StripeCheckout
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
     host_url = str(request.base_url).rstrip("/")
     runtime_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
     stripe.api_key = runtime_key
-    stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=f"{host_url}/api/webhook/stripe")
 
+    # Try to parse a generic Stripe event (for the new event types)
+    raw_event_type = ""
+    raw_event = None
+    try:
+        webhook_secret = (await get_setting("stripe_webhook_secret")) or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+        if webhook_secret and signature:
+            raw_event = stripe.Webhook.construct_event(body, signature, webhook_secret)
+        else:
+            import json as _json
+            raw_event = stripe.Event.construct_from(_json.loads(body), runtime_key)
+        raw_event_type = raw_event.get("type", "")
+    except Exception:
+        # We'll still try to handle the legacy checkout.session.completed flow below
+        pass
+
+    # ── Handle subscription lifecycle events directly via Stripe SDK ──
+    if raw_event and raw_event_type in (
+        "customer.subscription.deleted",
+        "invoice.payment_failed",
+        "customer.subscription.updated",
+    ):
+        try:
+            data_obj = raw_event["data"]["object"]
+            customer_id = data_obj.get("customer")
+            if raw_event_type == "customer.subscription.deleted" and customer_id:
+                await db.users.update_one(
+                    {"stripe_customer_id": customer_id},
+                    {"$set": {
+                        "is_premium": False,
+                        "subscription_plan": None,
+                        "subscription_end": None,
+                        "subscription_status": "canceled",
+                        "stripe_subscription_id": None,
+                        "subscription_canceled_at": datetime.now(timezone.utc).isoformat(),
+                    }},
+                )
+                logging.info(f"[stripe-webhook] subscription deleted for {customer_id}")
+            elif raw_event_type == "invoice.payment_failed" and customer_id:
+                attempt = int(data_obj.get("attempt_count", 1) or 1)
+                update: Dict[str, Any] = {"subscription_status": "past_due"}
+                if attempt >= 3:
+                    update.update({"is_premium": False, "subscription_plan": None, "subscription_status": "unpaid"})
+                    logging.warning(f"[stripe-webhook] payment failed {attempt}x for {customer_id} → premium revoked")
+                await db.users.update_one({"stripe_customer_id": customer_id}, {"$set": update})
+            elif raw_event_type == "customer.subscription.updated" and customer_id:
+                status = data_obj.get("status")
+                if status:
+                    is_active = status in ("active", "trialing")
+                    await db.users.update_one(
+                        {"stripe_customer_id": customer_id},
+                        {"$set": {"subscription_status": status, "is_premium": is_active}},
+                    )
+            return {"status": "received", "event": raw_event_type}
+        except Exception as e:
+            logging.error(f"[stripe-webhook] subscription event error: {e}")
+            return {"status": "error"}
+
+    # ── Legacy checkout.session.completed via emergentintegrations ──
+    stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=f"{host_url}/api/webhook/stripe")
     try:
         webhook_response = await stripe_checkout.handle_webhook(body, signature)
         if webhook_response.payment_status != "paid":
@@ -1414,6 +1699,18 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             transaction_id=meta.get("transaction_id"),
             session_id=webhook_response.session_id,
         )
+        # ── Credit the referrer (if any) for this paid signup ──
+        try:
+            from referrals import credit_referrer_for_payment
+            await credit_referrer_for_payment(
+                referee_user_id=user_id,
+                plan_id=plan_id,
+                plan_amount=float(plan.get("price", 0)),
+                plan_currency=plan.get("currency", "EUR"),
+                transaction_id=meta.get("transaction_id"),
+            )
+        except Exception as e:
+            logging.warning(f"[stripe-webhook] referral credit error: {e}")
         return {"status": "received"}
     except Exception as e:
         logging.error(f"Webhook error: {e}")
@@ -1556,50 +1853,22 @@ async def resume_subscription(user: dict = Depends(require_user)):
         logging.error(f"Error resuming subscription: {e}")
         raise HTTPException(status_code=500, detail="Error resuming subscription")
 
-@api_router.post("/subscriptions/change-plan")
-async def change_plan(
+@api_router.post("/subscriptions/change-plan-legacy")
+async def change_plan_legacy(
     request: ChangePlanRequest,
     user: dict = Depends(require_user)
 ):
-    """Upgrade/downgrade subscription plan"""
-    try:
-        # Validate new plan
-        if request.new_plan_id not in SUBSCRIPTION_PLANS:
-            raise HTTPException(status_code=400, detail="Invalid plan")
-        
-        user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0})
-        
-        if not user_doc or not user_doc.get("stripe_customer_id"):
-            raise HTTPException(status_code=404, detail="No subscription found")
-        
-        # Get active subscription
-        subscriptions = stripe.Subscription.list(
-            customer=user_doc["stripe_customer_id"],
-            status="active",
-            limit=1
-        )
-        
-        if not subscriptions.data:
-            raise HTTPException(status_code=404, detail="No active subscription found")
-        
-        sub = subscriptions.data[0]
-        new_plan = SUBSCRIPTION_PLANS[request.new_plan_id]
-
-        # For simplicity, we'll cancel current and create new
-        # In production, you'd modify the subscription items
-        return {
-            "message": "To change plan, please cancel current subscription and purchase new one",
-            "current_plan": user_doc.get("subscription_plan"),
-            "current_subscription_id": sub.id,
-            "requested_plan": request.new_plan_id,
-            "requested_plan_price": new_plan["price"],
-            "requested_plan_currency": new_plan["currency"],
-        }
-    except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logging.error(f"Error changing plan: {e}")
-        raise HTTPException(status_code=500, detail="Error changing plan")
+    """[Legacy stub] superseded by /subscriptions/change-plan from missing_apis.py
+    which performs a real Stripe proration. Kept for backwards-compat tests."""
+    if request.new_plan_id not in SUBSCRIPTION_PLANS:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+    new_plan = SUBSCRIPTION_PLANS[request.new_plan_id]
+    return {
+        "message": "Use POST /api/subscriptions/change-plan (real Stripe proration upgrade/downgrade)",
+        "requested_plan": request.new_plan_id,
+        "requested_plan_price": new_plan["price"],
+        "requested_plan_currency": new_plan["currency"],
+    }
 
 @api_router.post("/billing/create-portal-session")
 async def create_portal_session(request: dict, user: dict = Depends(require_user)):
@@ -3454,6 +3723,37 @@ async def admin_get_audit_log(
 
 
 # Include router and setup middleware
+# ─────────────────────────────────────────────────────────────────────
+# Register extended API modules at module level so all routes are
+# included into the main app via `app.include_router(api_router)`.
+# Indexes & WebSocket poller are bootstrapped in @app.on_event("startup").
+# ─────────────────────────────────────────────────────────────────────
+try:
+    from missing_apis import register as register_missing_apis
+    from referrals import register as register_referrals
+    from realtime_alerts import register as register_realtime_alerts
+
+    register_missing_apis(api_router, db, {
+        "require_user": require_user,
+        "check_premium": check_premium,
+        "SUBSCRIPTION_PLANS": SUBSCRIPTION_PLANS,
+        "hash_password": hash_password,
+        "SENDGRID_API_KEY": SENDGRID_API_KEY,
+        "SENDER_EMAIL": SENDER_EMAIL,
+        "STRIPE_API_KEY": STRIPE_API_KEY,
+        "get_setting": get_setting,
+    })
+    register_referrals(api_router, db, {
+        "require_user": require_user,
+        "require_admin": require_admin,
+    })
+    register_realtime_alerts(api_router, db, {
+        "decode_token": decode_token,
+    })
+    logging.info("✅ Extended modules registered into api_router (module-level)")
+except Exception as _e:
+    logging.error(f"Module-level extended modules registration error: {_e}", exc_info=True)
+
 app.include_router(api_router)
 
 app.add_middleware(
