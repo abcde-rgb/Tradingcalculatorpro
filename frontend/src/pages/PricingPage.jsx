@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Crown, Check, CreditCard, Wallet, Bitcoin, ArrowRight, Loader2, Building, ShoppingCart } from 'lucide-react';
+import { Crown, Check, CreditCard, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -37,22 +37,12 @@ const PLANS_DATA = [
   { id: 'lifetime', popular: false }
 ];
 
-// Payment methods will use t() for dynamic translation
 const PAYMENT_METHODS_DATA = [
   { id: 'card', icon: CreditCard, color: 'text-blue-500', nameKey: 'creditDebitCard', descKey: 'creditCardDesc' },
-  { id: 'sepa', icon: Building, color: 'text-emerald-500', nameKey: 'sepaDebit', descKey: 'sepaDesc' },
-  { id: 'klarna', icon: ShoppingCart, color: 'text-pink-500', nameKey: 'klarnaPayment', descKey: 'klarnaDesc' },
-  { id: 'paypal', icon: Wallet, color: 'text-blue-400', nameKey: 'paypalPayment', descKey: 'paypalDesc' },
-  { id: 'crypto', icon: Bitcoin, color: 'text-orange-500', nameKey: 'cryptoPayment', descKey: 'cryptoDesc' },
 ];
 
-// Processor name displayed in "Secure payment via {processor}" footer
 const PAYMENT_PROCESSOR_NAMES = {
-  card: 'Stripe',
-  crypto: 'Stripe',
-  paypal: 'Stripe',
-  sepa: 'Stripe',
-  klarna: 'Stripe',
+  card: 'Stripe Checkout',
 };
 
 function getClientReferenceId(user) {
@@ -266,7 +256,7 @@ export default function PricingPage() {
                     
                     <div className="text-xs text-center text-muted-foreground space-y-1">
                       <p>
-                        {t('securePayment')} {PAYMENT_PROCESSOR_NAMES[selectedPayment] || 'Stripe'}
+                        {t('securePayment')} {PAYMENT_PROCESSOR_NAMES[selectedPayment] || 'Stripe Checkout'}
                       </p>
                       <p>{t('cancelAnytime')}</p>
                     </div>
