@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, Fragment } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
   Shield, ShieldOff, RefreshCw, Mail, Globe2, Calendar,
   Plug, Check, X, Plus, Pencil, Trash2, KeyRound, Save, Loader2,
-  Eye, EyeOff,
+  Eye, EyeOff, History, FileText,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -268,8 +268,7 @@ export default function AdminPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-sm" data-testid="admin-users-table">
-              <thead className="bg-muted/40">
+            <table className="w-full text-sm" data-testid="admin-users-table">              <thead className="bg-muted/40">
                 <tr className="text-left">
                   <Th><Mail className="w-3 h-3 inline" /> Email</Th>
                   <Th>{t('adminColName')}</Th>
@@ -346,12 +345,13 @@ export default function AdminPage() {
             </table>
           </CardContent>
         </Card>
+        {/* Audit Log */}
+        <AuditLogPanel headers={headers} />
       </main>
 
       {/* MODALS */}
       <CreateUserDialog open={createOpen} onClose={() => setCreateOpen(false)}
-        headers={headers} onCreated={loadAll} />
-      <EditUserDialog user={editing} onClose={() => setEditing(null)}
+        headers={headers} onCreated={loadAll} />      <EditUserDialog user={editing} onClose={() => setEditing(null)}
         headers={headers} onSaved={loadAll} />
       <ResetPasswordDialog user={resetting} onClose={() => setResetting(null)} headers={headers} />
       <ConfirmDeleteDialog user={confirmDelete} onClose={() => setConfirmDelete(null)}
@@ -894,5 +894,150 @@ function ConfirmDeleteDialog({ user, onClose, onConfirm }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ============================================================
+ *  AUDIT LOG PANEL — every admin write is recorded server-side and
+ *  surfaced here for transparency / GDPR / forensics.
+ * ============================================================ */
+
+const ACTION_LABELS = {
+  'user.create':         { label: 'Usuario creado',       color: 'bg-green-500/15 text-green-600' },
+  'user.update':         { label: 'Usuario editado',      color: 'bg-blue-500/15 text-blue-500'   },
+  'user.delete':         { label: 'Usuario eliminado',    color: 'bg-red-500/15 text-red-500'     },
+  'user.reset_password': { label: 'Password reseteada',   color: 'bg-amber-500/15 text-amber-500' },
+  'user.promote':        { label: 'Promovido a admin',    color: 'bg-purple-500/15 text-purple-500' },
+  'user.demote':         { label: 'Admin removido',       color: 'bg-slate-500/15 text-slate-400' },
+  'settings.update':     { label: 'Settings guardadas',   color: 'bg-indigo-500/15 text-indigo-500' },
+};
+
+function AuditLogPanel({ headers }) {
+  const [rows, setRows] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [actionFilter, setActionFilter] = useState('all');
+  const [emailFilter, setEmailFilter] = useState('');
+  const [expanded, setExpanded] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    const params = new URLSearchParams({ limit: '50' });
+    if (actionFilter !== 'all') params.set('action', actionFilter);
+    if (emailFilter.trim()) params.set('target_email', emailFilter.trim());
+    try {
+      const res = await fetch(`${API}/admin/audit-log?${params.toString()}`, { headers });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setRows(data.rows || []);
+      setTotal(data.total || 0);
+    } catch {
+      toast.error('Error cargando audit log');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  return (
+    <Card className="bg-card border-border" data-testid="audit-log-panel">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <History className="w-4 h-4 text-primary" /> Audit log
+            <Badge variant="outline" className="ml-2">{total}</Badge>
+          </CardTitle>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={actionFilter} onValueChange={setActionFilter}>
+              <SelectTrigger className="w-44 h-8 text-xs" data-testid="audit-filter-action">
+                <SelectValue placeholder="Acción" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las acciones</SelectItem>
+                {Object.entries(ACTION_LABELS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              value={emailFilter}
+              onChange={(e) => setEmailFilter(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && load()}
+              placeholder="Filtrar por email afectado"
+              className="w-56 h-8 text-xs"
+              data-testid="audit-filter-email"
+            />
+            <Button size="sm" variant="outline" onClick={load} className="gap-2 h-8" data-testid="audit-apply">
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Aplicar
+            </Button>
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Cada acción admin se registra automáticamente con IP, agente y detalles. Auto-purga a 180 días.
+        </p>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40">
+            <tr className="text-left">
+              <Th>Fecha</Th>
+              <Th>Acción</Th>
+              <Th>Admin</Th>
+              <Th>Afectado</Th>
+              <Th>IP</Th>
+              <Th></Th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const meta = ACTION_LABELS[r.action] || { label: r.action, color: 'bg-muted text-muted-foreground' };
+              const isOpen = expanded === r.id;
+              return (
+                <Fragment key={r.id}>
+                  <tr className="border-t border-border hover:bg-muted/20">
+                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                      {r.timestamp ? r.timestamp.slice(0, 19).replace('T', ' ') : '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Badge className={meta.color}>{meta.label}</Badge>
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">{r.admin_email}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{r.target_email || '—'}</td>
+                    <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">{r.ip || '—'}</td>
+                    <td className="px-3 py-2">
+                      <Button size="sm" variant="ghost"
+                        onClick={() => setExpanded(isOpen ? null : r.id)}
+                        className="gap-1 h-7" data-testid={`audit-toggle-${r.id}`}>
+                        <FileText className="w-3 h-3" /> {isOpen ? 'Ocultar' : 'Detalles'}
+                      </Button>
+                    </td>
+                  </tr>
+                  {isOpen && (
+                    <tr className="bg-muted/10">
+                      <td colSpan={6} className="px-3 py-3">
+                        <pre className="text-[11px] font-mono bg-background border border-border rounded p-2 overflow-x-auto">
+{JSON.stringify(r.details || {}, null, 2)}
+                        </pre>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          User-Agent: <span className="font-mono">{r.user_agent || '—'}</span>
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
+                  {loading ? 'Cargando…' : 'Sin registros'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
   );
 }

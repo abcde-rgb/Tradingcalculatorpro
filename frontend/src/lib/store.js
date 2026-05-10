@@ -81,7 +81,19 @@ export const useAuthStore = create(
         }
       },
 
-      logout: () => {
+      logout: async () => {
+        const token = get().token;
+        // Best-effort revoke the JWT server-side so it can't be reused if leaked.
+        if (token) {
+          try {
+            await fetch(`${API}/auth/logout`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+          } catch (_) {
+            // Network failure is fine; the local session is still cleared below.
+          }
+        }
         set({ user: null, token: null, isAuthenticated: false });
       },
 

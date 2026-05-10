@@ -17,6 +17,10 @@ import secrets  # ✅ SECURITY FIX: Added secure random for sensitive operations
 import stripe  # Stripe SDK for advanced subscription management
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from options_math import (
     generate_options_chain,
@@ -86,6 +90,24 @@ app = FastAPI(title="Trading Calculator PRO API")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
+# ============================================================
+#  Rate limiting (slowapi) — applied to brute-force-prone routes
+# ============================================================
+limiter = Limiter(key_func=get_remote_address, default_limits=[])
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def _rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Demasiados intentos, espera un momento. Límite: {exc.detail}"},
+    )
+
+
+app.add_middleware(SlowAPIMiddleware)
+
 # ============= MODELS =============
 
 class UserCreate(BaseModel):
@@ -143,11 +165,19 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
+
+# ============================================================
+#  JWT (with revocable tokens via `jti` blacklist)
+# ============================================================
 def create_token(user_id: str, email: str) -> str:
+    """Issue a JWT carrying a unique `jti` so we can revoke individual sessions."""
+    now = datetime.now(timezone.utc)
     payload = {
         "user_id": user_id,
         "email": email,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
+        "jti": str(uuid.uuid4()),
+        "iat": now,
+        "exp": now + timedelta(hours=JWT_EXPIRATION_HOURS),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
@@ -159,11 +189,87 @@ def decode_token(token: str) -> dict:
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token inválido")
 
+
+async def _is_token_revoked(payload: dict) -> bool:
+    """Quick BL lookup. Older tokens (no `jti`) are still accepted for backwards compat."""
+    jti = payload.get("jti")
+    if not jti:
+        return False
+    return bool(await db.revoked_tokens.find_one({"jti": jti}, {"_id": 1}))
+
+
+async def _revoke_token(payload: dict) -> None:
+    """Insert the token's jti into the blacklist so subsequent requests fail."""
+    jti = payload.get("jti")
+    if not jti:
+        return  # nothing to revoke
+    exp = payload.get("exp")
+    expires_at = (
+        datetime.fromtimestamp(exp, tz=timezone.utc)
+        if isinstance(exp, (int, float))
+        else datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
+    )
+    await db.revoked_tokens.update_one(
+        {"jti": jti},
+        {"$set": {
+            "jti": jti,
+            "user_id": payload.get("user_id"),
+            "expires_at": expires_at,
+            "revoked_at": datetime.now(timezone.utc),
+        }},
+        upsert=True,
+    )
+
+
+async def _revoke_all_tokens_for_user(user_id: str) -> int:
+    """Best-effort: scan recently-issued sessions and revoke them. Used when admin
+    resets a user's password so old tokens stop working immediately."""
+    # We don't track issued tokens explicitly; instead we insert a "user-wide"
+    # revocation marker that `require_user` will honor.
+    await db.user_revocations.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "user_id": user_id,
+            "revoked_after": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS + 1),
+        }},
+        upsert=True,
+    )
+    return 1
+
+
+async def _is_user_session_revoked(payload: dict) -> bool:
+    """If admin reset password, old tokens issued *before* `revoked_after` are dead."""
+    user_id = payload.get("user_id")
+    iat = payload.get("iat")
+    if not user_id or not iat:
+        return False
+    iat_dt = datetime.fromtimestamp(iat, tz=timezone.utc) if isinstance(iat, (int, float)) else None
+    if not iat_dt:
+        return False
+    rec = await db.user_revocations.find_one({"user_id": user_id}, {"_id": 0, "revoked_after": 1})
+    if not rec or not rec.get("revoked_after"):
+        return False
+    revoked_after = rec["revoked_after"]
+    if isinstance(revoked_after, str):
+        try:
+            revoked_after = datetime.fromisoformat(revoked_after.replace("Z", "+00:00"))
+        except ValueError:
+            return False
+    elif isinstance(revoked_after, datetime):
+        # Ensure timezone-aware comparison
+        if revoked_after.tzinfo is None:
+            revoked_after = revoked_after.replace(tzinfo=timezone.utc)
+    return iat_dt < revoked_after
+
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[dict]:
     if not credentials:
         return None
     try:
         payload = decode_token(credentials.credentials)
+        if await _is_token_revoked(payload) or await _is_user_session_revoked(payload):
+            return None
         user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
         return user
     except Exception:
@@ -173,6 +279,10 @@ async def require_user(credentials: HTTPAuthorizationCredentials = Depends(secur
     if not credentials:
         raise HTTPException(status_code=401, detail="Se requiere autenticación")
     payload = decode_token(credentials.credentials)
+    if await _is_token_revoked(payload):
+        raise HTTPException(status_code=401, detail="Sesión revocada (logout)")
+    if await _is_user_session_revoked(payload):
+        raise HTTPException(status_code=401, detail="Sesión expirada por cambio de contraseña")
     user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
@@ -184,12 +294,57 @@ async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(secu
     if not credentials:
         raise HTTPException(status_code=401, detail="Se requiere autenticación")
     payload = decode_token(credentials.credentials)
+    if await _is_token_revoked(payload):
+        raise HTTPException(status_code=401, detail="Sesión revocada (logout)")
+    if await _is_user_session_revoked(payload):
+        raise HTTPException(status_code=401, detail="Sesión expirada por cambio de contraseña")
     user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
     if not user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Acceso restringido")
     return user
+
+
+# ============================================================
+#  ADMIN AUDIT LOG  (every admin write goes through here)
+# ============================================================
+def _client_ip(request: Optional[Request]) -> str:
+    if not request:
+        return ""
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+
+async def log_admin_action(
+    *,
+    admin: dict,
+    action: str,
+    target_type: str = "",
+    target_id: str = "",
+    target_email: str = "",
+    details: Optional[Dict[str, Any]] = None,
+    request: Optional[Request] = None,
+) -> None:
+    """Persist an admin action to `admin_audit_log`. Never raises."""
+    try:
+        await db.admin_audit_log.insert_one({
+            "id": str(uuid.uuid4()),
+            "admin_id": admin.get("id"),
+            "admin_email": admin.get("email"),
+            "action": action,
+            "target_type": target_type,
+            "target_id": target_id,
+            "target_email": target_email,
+            "details": details or {},
+            "ip": _client_ip(request),
+            "user_agent": (request.headers.get("user-agent") if request else "") or "",
+            "timestamp": datetime.now(timezone.utc),
+        })
+    except Exception as e:
+        logging.error(f"audit log failed for action={action}: {e}")
 
 def check_premium(user: dict) -> bool:
     """Check if user has premium access. Demo user always has premium."""
@@ -209,7 +364,29 @@ def check_premium(user: dict) -> bool:
 
 @app.on_event("startup")
 async def startup_event():
-    """Create demo user on startup if it doesn't exist; ensure admin flag."""
+    """Create demo user on startup if it doesn't exist; ensure admin flag.
+    Also creates TTL indexes that auto-expire stale data (security best practice)."""
+
+    # ── TTL indexes ──────────────────────────────────────────────────────
+    # MongoDB TTL works on `Date` fields; we always store the relevant date
+    # field as a `datetime` (not isoformat string) on the writes that matter.
+    try:
+        await db.stock_cache.create_index("expires_at", expireAfterSeconds=0)
+        await db.user_states.create_index("expires_at", expireAfterSeconds=0)
+        await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
+        await db.user_revocations.create_index("expires_at", expireAfterSeconds=0)
+        # Audit log auto-purges after 180 days to bound DB growth.
+        await db.admin_audit_log.create_index(
+            "timestamp", expireAfterSeconds=180 * 24 * 3600,
+        )
+        # Useful query indexes for the audit log.
+        await db.admin_audit_log.create_index([("timestamp", -1)])
+        await db.admin_audit_log.create_index([("admin_email", 1), ("timestamp", -1)])
+        await db.admin_audit_log.create_index([("target_email", 1), ("timestamp", -1)])
+        logging.info("TTL & query indexes ensured")
+    except Exception as e:
+        logging.error(f"Could not ensure TTL indexes: {e}")
+
     existing = await db.users.find_one({"email": DEMO_EMAIL})
     if not existing:
         demo_user = {
@@ -242,7 +419,8 @@ async def startup_event():
 # ============= AUTH ROUTES =============
 
 @api_router.post("/auth/register", response_model=dict)
-async def register(user_data: UserCreate):
+@limiter.limit("3/hour")
+async def register(request: Request, user_data: UserCreate):
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
@@ -278,7 +456,8 @@ async def register(user_data: UserCreate):
     }
 
 @api_router.post("/auth/login", response_model=dict)
-async def login(credentials: UserLogin):
+@limiter.limit("10/minute")
+async def login(request: Request, credentials: UserLogin):
     user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user or not user.get("password") or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
@@ -317,6 +496,19 @@ async def get_me(user: dict = Depends(require_user)):
     }
 
 
+@api_router.post("/auth/logout")
+async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Revoke the caller's JWT so it cannot be reused even if leaked."""
+    if not credentials:
+        return {"ok": True, "revoked": False}
+    try:
+        payload = decode_token(credentials.credentials)
+    except HTTPException:
+        return {"ok": True, "revoked": False}
+    await _revoke_token(payload)
+    return {"ok": True, "revoked": True}
+
+
 # ============= GOOGLE OAUTH =============
 # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 
@@ -329,7 +521,8 @@ class GoogleAuthRequest(BaseModel):
 
 
 @api_router.post("/auth/google")
-async def google_auth(payload: GoogleAuthRequest):
+@limiter.limit("10/minute")
+async def google_auth(request: Request, payload: GoogleAuthRequest):
     """
     Verify a Google ID token, then return our own JWT.
 
@@ -824,8 +1017,12 @@ async def delete_alert(alert_id: str, user: dict = Depends(require_user)):
     return {"message": "Alerta eliminada"}
 
 @api_router.post("/alerts/send-email")
-async def send_alert_email(request: EmailAlertRequest):
-    """Send email notification for triggered alert"""
+async def send_alert_email(request: EmailAlertRequest, user: dict = Depends(require_user)):
+    """Send email notification for triggered alert. Authenticated users only —
+    a stranger should not be able to relay emails through our SendGrid sender.
+    Also enforce that the recipient matches the caller (no arbitrary recipients)."""
+    if request.email.lower() != user["email"].lower():
+        raise HTTPException(status_code=403, detail="Solo puedes enviarte alertas a ti mismo")
     if not SENDGRID_API_KEY:
         return {"status": "skipped", "message": "SendGrid not configured"}
     
@@ -1481,13 +1678,16 @@ async def save_user_state(request: dict, user: dict = Depends(require_user)):
             raise HTTPException(status_code=400, detail="state_id is required")
         
         # Upsert the state
+        now = datetime.now(timezone.utc)
         await db.user_states.update_one(
             {"user_id": user["id"], "state_id": state_id},
             {"$set": {
                 "user_id": user["id"],
                 "state_id": state_id,
                 "state": state_data,
-                "last_updated": datetime.now(timezone.utc).isoformat()
+                "last_updated": now.isoformat(),
+                # TTL: state is auto-deleted 90 days after last update.
+                "expires_at": now + timedelta(days=90),
             }},
             upsert=True
         )
@@ -1664,9 +1864,15 @@ def _payoff_summary(
 async def opt_get_stock(symbol: str):
     try:
         data = get_stock_data(symbol)
+        now = datetime.now(timezone.utc)
         await db.stock_cache.update_one(
             {"symbol": data["symbol"]},
-            {"$set": {**data, "cached_at": datetime.now(timezone.utc).isoformat()}},
+            {"$set": {
+                **data,
+                "cached_at": now.isoformat(),
+                # Real datetime for the TTL index → mongo auto-deletes after 1h.
+                "expires_at": now + timedelta(hours=1),
+            }},
             upsert=True
         )
         return data
@@ -2776,14 +2982,26 @@ class AdminPromoteRequest(BaseModel):
 
 
 @api_router.post("/admin/promote")
-async def admin_promote_user(payload: AdminPromoteRequest, admin: dict = Depends(require_admin)):
+async def admin_promote_user(request: Request, payload: AdminPromoteRequest, admin: dict = Depends(require_admin)):
     """Toggle is_admin flag for any user (only callable by an existing admin)."""
+    target = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
     result = await db.users.update_one(
         {"email": payload.email.lower()},
         {"$set": {"is_admin": payload.is_admin}},
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    await log_admin_action(
+        admin=admin,
+        action="user.promote" if payload.is_admin else "user.demote",
+        target_type="user",
+        target_id=target["id"],
+        target_email=target["email"],
+        details={"is_admin_before": bool(target.get("is_admin")), "is_admin_after": payload.is_admin},
+        request=request,
+    )
     return {"email": payload.email, "is_admin": payload.is_admin}
 
 
@@ -2836,7 +3054,7 @@ def _compute_subscription_end(plan: Optional[str], explicit_end: Optional[str]) 
 
 
 @api_router.post("/admin/users", response_model=dict)
-async def admin_create_user(payload: AdminUserCreate, admin: dict = Depends(require_admin)):
+async def admin_create_user(request: Request, payload: AdminUserCreate, admin: dict = Depends(require_admin)):
     """Create a new user from the admin panel (full control over plan / premium / admin)."""
     email_lc = payload.email.lower()
     existing = await db.users.find_one({"email": email_lc})
@@ -2863,11 +3081,23 @@ async def admin_create_user(payload: AdminUserCreate, admin: dict = Depends(requ
         "created_by_admin": admin.get("email"),
     }
     await db.users.insert_one(user)
+    await log_admin_action(
+        admin=admin,
+        action="user.create",
+        target_type="user",
+        target_id=user_id,
+        target_email=email_lc,
+        details={
+            "plan": plan, "is_premium": user["is_premium"], "is_admin": user["is_admin"],
+            "name": payload.name,
+        },
+        request=request,
+    )
     return {"ok": True, "user": _serialize_admin_user(user)}
 
 
 @api_router.patch("/admin/users/{user_id}")
-async def admin_update_user(user_id: str, payload: AdminUserUpdate, admin: dict = Depends(require_admin)):
+async def admin_update_user(request: Request, user_id: str, payload: AdminUserUpdate, admin: dict = Depends(require_admin)):
     """Update editable fields of a user."""
     user = await db.users.find_one({"id": user_id})
     if not user:
@@ -2916,11 +3146,25 @@ async def admin_update_user(user_id: str, payload: AdminUserUpdate, admin: dict 
 
     await db.users.update_one({"id": user_id}, {"$set": updates})
     fresh = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    await log_admin_action(
+        admin=admin,
+        action="user.update",
+        target_type="user",
+        target_id=user_id,
+        target_email=fresh.get("email", ""),
+        details={"changed_fields": list(updates.keys()), "after": {
+            k: fresh.get(k) for k in (
+                "name", "email", "subscription_plan", "subscription_end",
+                "subscription_status", "is_premium", "is_admin",
+            )
+        }},
+        request=request,
+    )
     return {"ok": True, "user": _serialize_admin_user(fresh)}
 
 
 @api_router.delete("/admin/users/{user_id}")
-async def admin_delete_user(user_id: str, admin: dict = Depends(require_admin)):
+async def admin_delete_user(request: Request, user_id: str, admin: dict = Depends(require_admin)):
     """Hard-delete a user. Self-delete and demo-delete are blocked for safety."""
     user = await db.users.find_one({"id": user_id})
     if not user:
@@ -2937,11 +3181,24 @@ async def admin_delete_user(user_id: str, admin: dict = Depends(require_admin)):
             await db[coll].delete_many({"user_id": user_id})
         except Exception:
             pass
+    await log_admin_action(
+        admin=admin,
+        action="user.delete",
+        target_type="user",
+        target_id=user_id,
+        target_email=user.get("email", ""),
+        details={
+            "plan": user.get("subscription_plan"),
+            "is_premium": bool(user.get("is_premium")),
+            "is_admin": bool(user.get("is_admin")),
+        },
+        request=request,
+    )
     return {"ok": True, "deleted_id": user_id, "email": user.get("email")}
 
 
 @api_router.post("/admin/users/{user_id}/reset-password")
-async def admin_reset_password(user_id: str, payload: AdminPasswordReset, admin: dict = Depends(require_admin)):
+async def admin_reset_password(request: Request, user_id: str, payload: AdminPasswordReset, admin: dict = Depends(require_admin)):
     """Force-set a new password for any user."""
     if len(payload.new_password) < 4:
         raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 4 caracteres")
@@ -2956,6 +3213,17 @@ async def admin_reset_password(user_id: str, payload: AdminPasswordReset, admin:
             "password_reset_at": datetime.now(timezone.utc).isoformat(),
             "password_reset_by": admin.get("email"),
         }},
+    )
+    # Revoke all existing sessions of that user (security: old tokens stop working).
+    await _revoke_all_tokens_for_user(user_id)
+    await log_admin_action(
+        admin=admin,
+        action="user.reset_password",
+        target_type="user",
+        target_id=user_id,
+        target_email=user.get("email", ""),
+        details={"sessions_revoked": True},
+        request=request,
     )
     return {"ok": True, "email": user.get("email")}
 
@@ -3088,7 +3356,7 @@ async def admin_get_settings(admin: dict = Depends(require_admin)):
 
 
 @api_router.put("/admin/settings")
-async def admin_update_settings(payload: AdminSettingsUpdate, admin: dict = Depends(require_admin)):
+async def admin_update_settings(request: Request, payload: AdminSettingsUpdate, admin: dict = Depends(require_admin)):
     """Upsert global app settings. Only fields explicitly sent are updated.
 
     For secret fields, an empty string ("") = "leave unchanged". Use a sentinel
@@ -3122,6 +3390,21 @@ async def admin_update_settings(payload: AdminSettingsUpdate, admin: dict = Depe
         {"$set": cleaned},
         upsert=True,
     )
+    # Don't leak secret values to the audit log; just record which fields changed.
+    safe_change_summary = {}
+    for k, v in cleaned.items():
+        if k in SECRET_SETTING_KEYS:
+            safe_change_summary[k] = "[redacted]" if v else "[cleared]"
+        elif k not in ("updated_at", "updated_by"):
+            safe_change_summary[k] = v
+    await log_admin_action(
+        admin=admin,
+        action="settings.update",
+        target_type="app_settings",
+        target_id="global",
+        details={"changed_fields": safe_change_summary},
+        request=request,
+    )
     return await admin_get_settings(admin)
 
 
@@ -3130,6 +3413,44 @@ async def public_settings():
     """Non-sensitive subset, readable by anyone (frontend boot uses this)."""
     doc = await _load_settings_doc()
     return {k: (doc.get(k) or "") for k in PUBLIC_SETTING_KEYS}
+
+
+# ============= ADMIN — AUDIT LOG VIEW =============
+
+@api_router.get("/admin/audit-log")
+async def admin_get_audit_log(
+    admin: dict = Depends(require_admin),
+    limit: int = 100,
+    skip: int = 0,
+    action: Optional[str] = None,
+    target_email: Optional[str] = None,
+    admin_email: Optional[str] = None,
+):
+    """Paginated, filterable view of every recorded admin action."""
+    limit = max(1, min(int(limit), 500))
+    skip = max(0, int(skip))
+    q: Dict[str, Any] = {}
+    if action:
+        q["action"] = action
+    if target_email:
+        q["target_email"] = target_email.lower()
+    if admin_email:
+        q["admin_email"] = admin_email.lower()
+
+    total = await db.admin_audit_log.count_documents(q)
+    cursor = (
+        db.admin_audit_log.find(q, {"_id": 0})
+        .sort("timestamp", -1)
+        .skip(skip)
+        .limit(limit)
+    )
+    rows = await cursor.to_list(length=limit)
+    # Normalize datetime → ISO so the frontend can display it.
+    for r in rows:
+        ts = r.get("timestamp")
+        if isinstance(ts, datetime):
+            r["timestamp"] = ts.isoformat()
+    return {"total": total, "limit": limit, "skip": skip, "rows": rows}
 
 
 # Include router and setup middleware
