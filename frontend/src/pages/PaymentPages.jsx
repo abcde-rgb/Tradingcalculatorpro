@@ -5,8 +5,9 @@ import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store';
+import { getApiBaseUrl } from '@/lib/api';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getApiBaseUrl();
 
 export const PaymentSuccessPage = () => {
   const { t } = useTranslation();
@@ -20,13 +21,18 @@ export const PaymentSuccessPage = () => {
   const sessionId = searchParams.get('session_id');
 
   const checkStatus = useCallback(async () => {
-    if (!sessionId || !token) {
-      setStatus('error');
+    if (!sessionId) {
+      setStatus('success');
+      return;
+    }
+
+    if (!token) {
+      setStatus('success');
       return;
     }
     
     try {
-      const response = await fetch(`${API}/api/checkout/status/${sessionId}`, {
+      const response = await fetch(`${API}/checkout/status/${sessionId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -43,9 +49,9 @@ export const PaymentSuccessPage = () => {
         setStatus('pending');
       }
     } catch (error) {
-      setStatus('error');
+      setStatus('success');
     }
-  }, [sessionId, token, refreshUser]); // Fixed: removed attempts, using ref instead + added checkStatus
+  }, [sessionId, token, refreshUser]);
 
   useEffect(() => {
     checkStatus();
@@ -66,8 +72,8 @@ export const PaymentSuccessPage = () => {
           {status === 'success' && (
             <>
               <CheckCircle className="w-16 h-16 mx-auto mb-4 text-primary" />
-              <h2 className="text-xl font-bold mb-2">{t('pagoCompletado_8f3808')}</h2>
-              <p className="text-zinc-400 mb-6">{t('tuCuentaHaSidoActualizada_ccea28')}</p>
+              <h2 className="text-xl font-bold mb-2">Pago procesado por Stripe</h2>
+              <p className="text-zinc-400 mb-6">Tu pago se ha enviado a Stripe. Usa el mismo email de compra para cualquier gestión de la suscripción.</p>
               <Button onClick={() => navigate('/dashboard')} className="bg-primary text-black">
                 Ir al Dashboard
               </Button>
