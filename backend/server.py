@@ -56,13 +56,9 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ.get('DB_NAME', 'trading_calculator_pro')]
 
 # JWT Configuration
-# 🔒 SECURITY: JWT_SECRET must be set via environment variable
-JWT_SECRET = os.environ.get('JWT_SECRET')
+# 🔒 SECURITY: JWT_SECRET = os.environ.get('JWT_SECRET')
 if not JWT_SECRET:
-    # Generate a secure random secret for development (should be set in production)
-    import secrets as sec
-    JWT_SECRET = sec.token_urlsafe(32)
-    print("⚠️  WARNING: Using auto-generated JWT_SECRET. Set JWT_SECRET env variable for production!")
+    raise RuntimeError("❌ JWT_SECRET no está definido. Añádelo al .env antes de arrancar.")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
