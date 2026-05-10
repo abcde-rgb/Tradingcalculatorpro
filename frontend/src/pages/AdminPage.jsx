@@ -83,17 +83,27 @@ export default function AdminPage() {
         fetch(`${API}/admin/metrics`, { headers }),
         fetch(`${API}/admin/users?${params.toString()}`, { headers }),
       ]);
+      // Session expired → force re-login with a clear message
+      if (mRes.status === 401 || uRes.status === 401) {
+        toast.error('Tu sesión ha caducado. Vuelve a iniciar sesión.', { duration: 6000 });
+        try { useAuthStore.getState().logout(); } catch { /* ignore */ }
+        navigate('/login');
+        return;
+      }
       if (mRes.status === 403 || uRes.status === 403) {
         toast.error(t('adminAccessDenied'));
         navigate('/dashboard');
         return;
       }
-      if (!mRes.ok || !uRes.ok) throw new Error('load failed');
+      if (!mRes.ok || !uRes.ok) {
+        throw new Error(`metrics=${mRes.status} users=${uRes.status}`);
+      }
       setMetrics(await mRes.json());
       const data = await uRes.json();
       setUsers(data.users);
       setTotal(data.total);
     } catch (err) {
+      console.error('[admin loadAll]', err);
       toast.error(err.message || 'Error loading admin data');
     } finally {
       setLoading(false);
@@ -495,7 +505,21 @@ function IntegrationsEditor({ headers, t }) {
   const load = async () => {
     try {
       const res = await fetch(`${API}/admin/settings`, { headers });
-      if (!res.ok) throw new Error();
+      if (res.status === 401) {
+        toast.error('Tu sesión ha caducado. Vuelve a iniciar sesión.', { duration: 6000 });
+        try { useAuthStore.getState().logout(); } catch { /* ignore */ }
+        // Navigate to /login (window.location to bypass router context)
+        if (typeof window !== 'undefined') window.location.href = '/login';
+        return;
+      }
+      if (!res.ok) {
+        let detail = `HTTP ${res.status}`;
+        try {
+          const err = await res.json();
+          if (err && err.detail) detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
       const data = await res.json();
       setSettings(data);
       // Build draft = current displayed values for every known field.
@@ -514,8 +538,9 @@ function IntegrationsEditor({ headers, t }) {
         }
       }));
       setDraft(d);
-    } catch {
-      toast.error('No se pudieron cargar las settings');
+    } catch (err) {
+      console.error('[admin/settings GET]', err);
+      toast.error(`No se pudieron cargar las settings: ${err?.message || 'fallo desconocido'}`, { duration: 8000 });
     }
   };
 
@@ -569,6 +594,12 @@ function IntegrationsEditor({ headers, t }) {
         headers,
         body: JSON.stringify(body),
       });
+      if (res.status === 401) {
+        toast.error('Tu sesión ha caducado. Vuelve a iniciar sesión.', { duration: 6000 });
+        try { useAuthStore.getState().logout(); } catch { /* ignore */ }
+        if (typeof window !== 'undefined') window.location.href = '/login';
+        return;
+      }
       if (!res.ok) {
         // Bubble the backend's detail to the user (instead of the generic toast)
         let detail = `HTTP ${res.status}`;
