@@ -75,7 +75,7 @@ SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculator.pro')
 
 # Demo User (siempre tiene acceso PRO completo)
-DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro")
+DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro").strip().lower()
 DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', "1234")
 
 # Subscription Plans
@@ -158,6 +158,9 @@ class EmailAlertRequest(BaseModel):
     condition: str
 
 # ============= AUTH HELPERS =============
+def normalize_email(email: str) -> str:
+    """Normalize user emails consistently across auth flows."""
+    return (email or "").strip().lower()
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -371,6 +374,12 @@ async def startup_event():
     # MongoDB TTL works on `Date` fields; we always store the relevant date
     # field as a `datetime` (not isoformat string) on the writes that matter.
     try:
+        await db.users.create_index(
+            [("email", 1)],
+            unique=True,
+            collation={"locale": "en", "strength": 2},
+            name="uniq_email_ci",
+        )
         await db.stock_cache.create_index("expires_at", expireAfterSeconds=0)
         await db.user_states.create_index("expires_at", expireAfterSeconds=0)
         await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
@@ -387,11 +396,12 @@ async def startup_event():
     except Exception as e:
         logging.error(f"Could not ensure TTL indexes: {e}")
 
-    existing = await db.users.find_one({"email": DEMO_EMAIL})
+    demo_email = normalize_email(DEMO_EMAIL)
+    existing = await db.users.find_one({"email": demo_email})
     if not existing:
         demo_user = {
             "id": "demo-user-001",
-            "email": DEMO_EMAIL,
+            "email": demo_email,
             "password": hash_password(DEMO_PASSWORD),
             "name": "Demo Trader",
             "subscription_plan": "lifetime",
@@ -413,7 +423,7 @@ async def startup_event():
         if not existing.get("auth_provider"):
             patch["auth_provider"] = "password"
         if patch:
-            await db.users.update_one({"email": DEMO_EMAIL}, {"$set": patch})
+            await db.users.update_one({"email": demo_email}, {"$set": patch})
             logging.info("Demo user patched: %s", patch)
 
 # ============= AUTH ROUTES =============
@@ -421,14 +431,15 @@ async def startup_event():
 @api_router.post("/auth/register", response_model=dict)
 @limiter.limit("3/hour")
 async def register(request: Request, user_data: UserCreate):
-    existing = await db.users.find_one({"email": user_data.email})
+    email = normalize_email(user_data.email)
+    existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
     
     user_id = str(uuid.uuid4())
     user = {
         "id": user_id,
-        "email": user_data.email,
+        "email": email,
         "password": hash_password(user_data.password),
         "name": user_data.name,
         "subscription_plan": None,
@@ -440,12 +451,12 @@ async def register(request: Request, user_data: UserCreate):
     }
     await db.users.insert_one(user)
     
-    token = create_token(user_id, user_data.email)
+    token = create_token(user_id, email)
     return {
         "token": token,
         "user": {
             "id": user_id,
-            "email": user_data.email,
+            "email": email,
             "name": user_data.name,
             "subscription_plan": None,
             "subscription_end": None,
@@ -458,7 +469,8 @@ async def register(request: Request, user_data: UserCreate):
 @api_router.post("/auth/login", response_model=dict)
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: UserLogin):
-    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    email = normalize_email(credentials.email)
+    user = await db.users.find_one({"email": email}, {"_id": 0})
     if not user or not user.get("password") or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     
@@ -547,7 +559,7 @@ async def google_auth(request: Request, payload: GoogleAuthRequest):
         # Bad signature, expired token, or wrong audience
         raise HTTPException(status_code=401, detail=f"Token de Google inválido: {exc}") from exc
 
-    email = (info.get("email") or "").lower()
+    email = normalize_email(info.get("email") or "")
     if not email or not info.get("email_verified"):
         raise HTTPException(status_code=401, detail="Cuenta de Google sin email verificado")
 
