@@ -56,7 +56,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ.get('DB_NAME', 'trading_calculator_pro')]
 
 # JWT Configuration
-# 🔒 SECURITY: JWT_SECRET = os.environ.get('JWT_SECRET')
+JWT_SECRET = os.environ.get('JWT_SECRET')
 if not JWT_SECRET:
     raise RuntimeError("❌ JWT_SECRET no está definido. Añádelo al .env antes de arrancar.")
 JWT_ALGORITHM = "HS256"
