@@ -228,6 +228,9 @@ export default function AdminPage() {
         {/* Google integrations editor */}
         <IntegrationsEditor headers={headers} t={t} />
 
+        {/* Custom APIs Manager */}
+        <CustomAPIsManager headers={headers} />
+
         {/* Filters */}
         <Card className="bg-card border-border">
           <CardContent className="p-4">
@@ -1127,6 +1130,242 @@ function AuditLogPanel({ headers }) {
             )}
           </tbody>
         </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ============================================================
+ *  CUSTOM APIs MANAGER — añade cualquier API manualmente
+ * ============================================================ */
+function CustomAPIsManager({ headers }) {
+  const [apis, setApis] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showValues, setShowValues] = useState({});
+  const [newEntry, setNewEntry] = useState({ name: '', key_name: '', value: '', is_secret: false });
+  const [showNew, setShowNew] = useState(false);
+
+  const load = async () => {
+    try {
+      const res = await fetch(`${API}/admin/settings`, { headers });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      try {
+        setApis(JSON.parse(data.custom_apis || '[]'));
+      } catch {
+        setApis([]);
+      }
+    } catch (err) {
+      toast.error(`Error cargando APIs personalizadas: ${err.message}`);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  const persist = async (updatedApis) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/admin/settings`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ custom_apis: JSON.stringify(updatedApis) }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      setApis(updatedApis);
+      toast.success('APIs personalizadas guardadas');
+    } catch (err) {
+      toast.error(`Error guardando: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addEntry = () => {
+    if (!newEntry.name.trim() || !newEntry.key_name.trim()) {
+      toast.error('Nombre y clave son obligatorios');
+      return;
+    }
+    const entry = { ...newEntry, id: Date.now().toString() };
+    persist([...apis, entry]);
+    setNewEntry({ name: '', key_name: '', value: '', is_secret: false });
+    setShowNew(false);
+  };
+
+  const updateField = (id, field, val) => {
+    setApis((prev) => prev.map((a) => a.id === id ? { ...a, [field]: val } : a));
+  };
+
+  const saveEntry = () => persist(apis);
+
+  const deleteEntry = (id) => persist(apis.filter((a) => a.id !== id));
+
+  return (
+    <Card className="bg-card border-border" data-testid="custom-apis-manager">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-primary" />
+            APIs Personalizadas
+          </CardTitle>
+          <Button size="sm" variant="outline" className="gap-1 h-8"
+            onClick={() => setShowNew((s) => !s)} data-testid="custom-api-add-btn">
+            <Plus className="w-3 h-3" /> Añadir API
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Añade manualmente cualquier credencial adicional. Se almacenan en el servidor junto al resto de settings.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3 pt-2">
+        {loadingData && (
+          <div className="flex justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {/* Existing entries */}
+        {apis.map((api) => (
+          <div key={api.id}
+            className="p-3 rounded-lg bg-muted/30 border border-border/50 space-y-2"
+            data-testid={`custom-api-row-${api.id}`}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs mb-1 block">Nombre</Label>
+                <Input
+                  value={api.name}
+                  onChange={(e) => updateField(api.id, 'name', e.target.value)}
+                  className="text-xs h-8"
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Clave (key)</Label>
+                <Input
+                  value={api.key_name}
+                  onChange={(e) => updateField(api.id, 'key_name', e.target.value)}
+                  className="text-xs h-8 font-mono"
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Valor</Label>
+                <div className="flex gap-1">
+                  <Input
+                    type={api.is_secret && !showValues[api.id] ? 'password' : 'text'}
+                    value={api.value}
+                    onChange={(e) => updateField(api.id, 'value', e.target.value)}
+                    className="text-xs h-8 font-mono"
+                  />
+                  {api.is_secret && (
+                    <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0"
+                      onClick={() => setShowValues((s) => ({ ...s, [api.id]: !s[api.id] }))}>
+                      {showValues[api.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={api.is_secret}
+                  onCheckedChange={(v) => updateField(api.id, 'is_secret', v)}
+                  id={`secret-${api.id}`}
+                />
+                <Label htmlFor={`secret-${api.id}`} className="text-xs text-muted-foreground">Secreto</Label>
+                {api.is_secret
+                  ? <Badge className="bg-amber-500/15 text-amber-600 gap-1 text-[10px]"><EyeOff className="w-2.5 h-2.5" /> Oculto</Badge>
+                  : <Badge variant="outline" className="text-[10px]">Visible</Badge>}
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="h-7 gap-1"
+                  onClick={saveEntry} disabled={saving} data-testid={`custom-api-save-${api.id}`}>
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                  Guardar
+                </Button>
+                <Button size="sm" variant="destructive" className="h-7 gap-1"
+                  onClick={() => deleteEntry(api.id)} disabled={saving}
+                  data-testid={`custom-api-delete-${api.id}`}>
+                  <Trash2 className="w-3 h-3" /> Borrar
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {!loadingData && apis.length === 0 && !showNew && (
+          <p className="text-center text-sm text-muted-foreground py-4">
+            No hay APIs personalizadas. Pulsa «Añadir API» para empezar.
+          </p>
+        )}
+
+        {/* Add new entry form */}
+        {showNew && (
+          <div className="p-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 space-y-3"
+            data-testid="custom-api-new-form">
+            <p className="text-xs font-semibold text-primary">Nueva API</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs mb-1 block">Nombre *</Label>
+                <Input
+                  value={newEntry.name}
+                  onChange={(e) => setNewEntry({ ...newEntry, name: e.target.value })}
+                  placeholder="Ej: OpenAI"
+                  className="text-xs h-8"
+                  data-testid="custom-api-new-name"
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Clave *</Label>
+                <Input
+                  value={newEntry.key_name}
+                  onChange={(e) => setNewEntry({ ...newEntry, key_name: e.target.value })}
+                  placeholder="Ej: OPENAI_API_KEY"
+                  className="text-xs h-8 font-mono"
+                  data-testid="custom-api-new-key"
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Valor</Label>
+                <Input
+                  type={newEntry.is_secret ? 'password' : 'text'}
+                  value={newEntry.value}
+                  onChange={(e) => setNewEntry({ ...newEntry, value: e.target.value })}
+                  placeholder="sk-..."
+                  className="text-xs h-8 font-mono"
+                  data-testid="custom-api-new-value"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={newEntry.is_secret}
+                  onCheckedChange={(v) => setNewEntry({ ...newEntry, is_secret: v })}
+                  id="new-entry-secret"
+                />
+                <Label htmlFor="new-entry-secret" className="text-xs text-muted-foreground">
+                  Marcar como secreto (oculta el valor)
+                </Label>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="h-7"
+                  onClick={() => { setShowNew(false); setNewEntry({ name: '', key_name: '', value: '', is_secret: false }); }}>
+                  Cancelar
+                </Button>
+                <Button size="sm" className="h-7 gap-1"
+                  onClick={addEntry} disabled={saving} data-testid="custom-api-new-submit">
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                  Añadir y guardar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
