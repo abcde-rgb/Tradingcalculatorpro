@@ -21,15 +21,12 @@ import { PaymentSuccessPage, PaymentCancelPage } from "@/pages/PaymentPages";
 // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
-// Dynamic basename: works on GitHub Pages (/Tradingcalculatorpro) and locally (/)
-const basename = process.env.PUBLIC_URL || "";
-
-function App() {
+function AppContent() {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || ""}>
+    <>
       <GoogleIntegrations />
       <div className="App">
-        <BrowserRouter basename={basename}>
+        <BrowserRouter basename={process.env.PUBLIC_URL || "/"}>
           <AnalyticsTracker />
           <Routes>
             <Route path="/" element={<LandingPage />} />
@@ -49,8 +46,19 @@ function App() {
         </BrowserRouter>
         <Toaster position="top-right" richColors />
       </div>
-    </GoogleOAuthProvider>
+    </>
   );
+}
+
+function App() {
+  if (GOOGLE_CLIENT_ID) {
+    return (
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <AppContent />
+      </GoogleOAuthProvider>
+    );
+  }
+  return <AppContent />;
 }
 
 export default App;

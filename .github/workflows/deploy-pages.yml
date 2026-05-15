@@ -31,15 +31,16 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
         working-directory: frontend
+        run: npm install --legacy-peer-deps
 
       - name: Build
-        run: npm run build
         working-directory: frontend
         env:
+          NODE_OPTIONS: --openssl-legacy-provider
           PUBLIC_URL: /Tradingcalculatorpro
           REACT_APP_GOOGLE_CLIENT_ID: ${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
+        run: npm run build
 
       - name: Copy 404.html
         run: cp frontend/build/index.html frontend/build/404.html
