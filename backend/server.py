@@ -3739,6 +3739,125 @@ async def admin_get_audit_log(
     return {"total": total, "limit": limit, "skip": skip, "rows": rows}
 
 
+# ============= ADMIN — CUSTOM API MANAGER =============
+
+class CustomAPICreate(BaseModel):
+    name: str
+    key: str
+    value: str
+    description: Optional[str] = None
+    is_secret: bool = False
+
+
+class CustomAPIUpdate(BaseModel):
+    name: Optional[str] = None
+    value: Optional[str] = None
+    description: Optional[str] = None
+    is_secret: Optional[bool] = None
+
+
+@api_router.get("/admin/custom-apis")
+async def admin_list_custom_apis(admin: dict = Depends(require_admin)):
+    import re as _re
+    docs = await db.custom_apis.find({}, {"_id": 0}).sort("created_at", 1).to_list(1000)
+    result = []
+    for d in docs:
+        entry = dict(d)
+        entry["value_set"] = bool(entry.get("value"))
+        if entry.get("is_secret"):
+            entry["value"] = "***" if entry["value_set"] else ""
+        result.append(entry)
+    return {"apis": result, "total": len(result)}
+
+
+@api_router.post("/admin/custom-apis")
+async def admin_create_custom_api(
+    body: CustomAPICreate,
+    request: Request,
+    admin: dict = Depends(require_admin),
+):
+    import re as _re
+    if not _re.match(r'^[a-zA-Z0-9_\-]+$', body.key):
+        raise HTTPException(status_code=400, detail="La clave solo puede contener letras, números, _ y -")
+    existing = await db.custom_apis.find_one({"key": body.key})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"La clave '{body.key}' ya existe")
+    now = datetime.now(timezone.utc).isoformat()
+    entry = {
+        "id": str(uuid.uuid4()),
+        "name": body.name.strip(),
+        "key": body.key.strip(),
+        "value": body.value,
+        "description": (body.description or "").strip(),
+        "is_secret": body.is_secret,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.custom_apis.insert_one(entry)
+    await log_admin_action(
+        admin=admin, action="custom_api.create", target_type="custom_api",
+        target_id=entry["id"], details={"key": body.key, "name": body.name}, request=request,
+    )
+    result = {k: v for k, v in entry.items() if k != "_id"}
+    result["value_set"] = bool(body.value)
+    if body.is_secret:
+        result["value"] = "***" if body.value else ""
+    return {"success": True, "api": result}
+
+
+@api_router.put("/admin/custom-apis/{api_id}")
+async def admin_update_custom_api(
+    api_id: str,
+    body: CustomAPIUpdate,
+    request: Request,
+    admin: dict = Depends(require_admin),
+):
+    existing = await db.custom_apis.find_one({"id": api_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="API no encontrada")
+    patch: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if body.name is not None:
+        patch["name"] = body.name.strip()
+    if body.description is not None:
+        patch["description"] = body.description.strip()
+    if body.is_secret is not None:
+        patch["is_secret"] = body.is_secret
+    if body.value is not None:
+        if body.value == "__CLEAR__":
+            patch["value"] = ""
+        elif body.value not in ("***", ""):
+            patch["value"] = body.value
+    await db.custom_apis.update_one({"id": api_id}, {"$set": patch})
+    await log_admin_action(
+        admin=admin, action="custom_api.update", target_type="custom_api",
+        target_id=api_id, details={"fields": [k for k in patch if k != "updated_at"]}, request=request,
+    )
+    updated = await db.custom_apis.find_one({"id": api_id}, {"_id": 0})
+    result = dict(updated)
+    result["value_set"] = bool(result.get("value"))
+    if result.get("is_secret"):
+        result["value"] = "***" if result["value_set"] else ""
+    return {"success": True, "api": result}
+
+
+@api_router.delete("/admin/custom-apis/{api_id}")
+async def admin_delete_custom_api(
+    api_id: str,
+    request: Request,
+    admin: dict = Depends(require_admin),
+):
+    existing = await db.custom_apis.find_one({"id": api_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="API no encontrada")
+    await db.custom_apis.delete_one({"id": api_id})
+    await log_admin_action(
+        admin=admin, action="custom_api.delete", target_type="custom_api",
+        target_id=api_id,
+        details={"key": existing.get("key"), "name": existing.get("name")}, request=request,
+    )
+    return {"success": True}
+
+
 # Include router and setup middleware
 # ─────────────────────────────────────────────────────────────────────
 # Register extended API modules at module level so all routes are
