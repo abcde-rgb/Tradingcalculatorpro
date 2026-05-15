@@ -22,6 +22,7 @@ import csv
 import io
 import logging
 import re
+import uuid as _uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -288,6 +289,21 @@ class UpdateUserRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     new_password: str
+
+
+class CustomAPICreate(BaseModel):
+    name: str
+    key: str
+    value: str
+    description: Optional[str] = None
+    is_secret: bool = False
+
+
+class CustomAPIUpdate(BaseModel):
+    name: Optional[str] = None
+    value: Optional[str] = None
+    description: Optional[str] = None
+    is_secret: Optional[bool] = None
 
 
 # ---------------------------------------------------------------------------
@@ -741,6 +757,113 @@ def build_admin_router(
             if isinstance(log.get("timestamp"), datetime):
                 log["timestamp"] = log["timestamp"].isoformat()
         return {"logs": logs, "total": total, "skip": skip, "limit": limit}
+
+    # =========================================================================
+    # GET /admin/custom-apis — lista APIs personalizadas
+    # =========================================================================
+
+    @router.get("/custom-apis")
+    async def list_custom_apis(_admin: dict = Depends(require_admin_dep)) -> Dict[str, Any]:
+        docs = await db.custom_apis.find({}, {"_id": 0}).sort("created_at", 1).to_list(1000)
+        result = []
+        for d in docs:
+            entry = dict(d)
+            entry["value_set"] = bool(entry.get("value"))
+            if entry.get("is_secret"):
+                entry["value"] = "***" if entry["value_set"] else ""
+            result.append(entry)
+        return {"apis": result, "total": len(result)}
+
+    # =========================================================================
+    # POST /admin/custom-apis — crear API personalizada
+    # =========================================================================
+
+    @router.post("/custom-apis")
+    async def create_custom_api(
+        body: CustomAPICreate,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        if not re.match(r'^[a-zA-Z0-9_\-]+$', body.key):
+            raise HTTPException(status_code=400, detail="La clave solo puede contener letras, números, _ y -")
+        existing = await db.custom_apis.find_one({"key": body.key})
+        if existing:
+            raise HTTPException(status_code=400, detail=f"La clave '{body.key}' ya existe")
+        now = datetime.now(timezone.utc).isoformat()
+        entry = {
+            "id": str(_uuid.uuid4()),
+            "name": body.name.strip(),
+            "key": body.key.strip(),
+            "value": body.value,
+            "description": (body.description or "").strip(),
+            "is_secret": body.is_secret,
+            "created_at": now,
+            "updated_at": now,
+        }
+        await db.custom_apis.insert_one(entry)
+        await _audit(admin_user, "custom_api.create",
+                     details={"key": body.key, "name": body.name}, request=request)
+        result = {k: v for k, v in entry.items() if k != "_id"}
+        result["value_set"] = bool(body.value)
+        if body.is_secret:
+            result["value"] = "***" if body.value else ""
+        return {"success": True, "api": result}
+
+    # =========================================================================
+    # PUT /admin/custom-apis/{api_id} — actualizar API personalizada
+    # =========================================================================
+
+    @router.put("/custom-apis/{api_id}")
+    async def update_custom_api(
+        api_id: str,
+        body: CustomAPIUpdate,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        existing = await db.custom_apis.find_one({"id": api_id}, {"_id": 0})
+        if not existing:
+            raise HTTPException(status_code=404, detail="API no encontrada")
+        patch: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc).isoformat()}
+        if body.name is not None:
+            patch["name"] = body.name.strip()
+        if body.description is not None:
+            patch["description"] = body.description.strip()
+        if body.is_secret is not None:
+            patch["is_secret"] = body.is_secret
+        if body.value is not None:
+            if body.value == "__CLEAR__":
+                patch["value"] = ""
+            elif body.value not in ("***", ""):
+                patch["value"] = body.value
+        await db.custom_apis.update_one({"id": api_id}, {"$set": patch})
+        await _audit(admin_user, "custom_api.update",
+                     details={"id": api_id, "fields": [k for k in patch if k != "updated_at"]},
+                     request=request)
+        updated = await db.custom_apis.find_one({"id": api_id}, {"_id": 0})
+        result = dict(updated)
+        result["value_set"] = bool(result.get("value"))
+        if result.get("is_secret"):
+            result["value"] = "***" if result["value_set"] else ""
+        return {"success": True, "api": result}
+
+    # =========================================================================
+    # DELETE /admin/custom-apis/{api_id} — eliminar API personalizada
+    # =========================================================================
+
+    @router.delete("/custom-apis/{api_id}")
+    async def delete_custom_api(
+        api_id: str,
+        request: Request,
+        admin_user: dict = Depends(require_admin_dep),
+    ) -> Dict[str, Any]:
+        existing = await db.custom_apis.find_one({"id": api_id}, {"_id": 0})
+        if not existing:
+            raise HTTPException(status_code=404, detail="API no encontrada")
+        await db.custom_apis.delete_one({"id": api_id})
+        await _audit(admin_user, "custom_api.delete",
+                     details={"id": api_id, "key": existing.get("key"), "name": existing.get("name")},
+                     request=request)
+        return {"success": True}
 
     return router
 

@@ -228,6 +228,9 @@ export default function AdminPage() {
         {/* Google integrations editor */}
         <IntegrationsEditor headers={headers} t={t} />
 
+        {/* Custom API manager */}
+        <CustomAPIManager headers={headers} />
+
         {/* Filters */}
         <Card className="bg-card border-border">
           <CardContent className="p-4">
@@ -988,6 +991,319 @@ function ConfirmDeleteDialog({ user, onClose, onConfirm }) {
 }
 
 /* ============================================================
+ *  CUSTOM API MANAGER — añade/edita/borra APIs personalizadas
+ * ============================================================ */
+function CustomAPIManager({ headers }) {
+  const [apis, setApis] = useState([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showValue, setShowValue] = useState({});
+
+  const load = async () => {
+    setLoadingList(true);
+    try {
+      const res = await fetch(`${API}/admin/custom-apis`, { headers });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setApis(data.apis || []);
+    } catch (err) {
+      toast.error(`Error cargando APIs personalizadas: ${err.message}`);
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  const openEdit = (api) => { setEditTarget(api); setFormOpen(true); };
+  const openCreate = () => { setEditTarget(null); setFormOpen(true); };
+  const closeForm = () => { setFormOpen(false); setEditTarget(null); };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      const res = await fetch(`${API}/admin/custom-apis/${deleteTarget.id}`, { method: 'DELETE', headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      toast.success(`API "${deleteTarget.name}" eliminada`);
+      setDeleteTarget(null);
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Error eliminando API');
+    }
+  };
+
+  return (
+    <Card className="bg-card border-border" data-testid="custom-api-manager">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-primary" />
+            APIs Personalizadas
+          </CardTitle>
+          <Button size="sm" onClick={openCreate} className="gap-2" data-testid="add-custom-api">
+            <Plus className="w-4 h-4" /> Añadir API
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Añade claves de APIs externas de forma manual. Se almacenan en base de datos.
+        </p>
+      </CardHeader>
+      <CardContent className="p-0">
+        {apis.length === 0 && !loadingList ? (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            No hay APIs personalizadas. Pulsa <strong>Añadir API</strong> para crear la primera.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40">
+                <tr className="text-left">
+                  <Th>Nombre</Th>
+                  <Th>Clave (key)</Th>
+                  <Th>Valor</Th>
+                  <Th>Descripción</Th>
+                  <Th>Estado</Th>
+                  <Th>Acciones</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {apis.map((api) => (
+                  <tr key={api.id} className="border-t border-border hover:bg-muted/20">
+                    <td className="px-3 py-2 font-medium">{api.name}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{api.key}</td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {api.is_secret ? (
+                        <div className="flex items-center gap-1">
+                          <span>{showValue[api.id] ? api.value : '••••••••'}</span>
+                          <Button size="icon" variant="ghost" className="h-6 w-6"
+                            onClick={() => setShowValue((s) => ({ ...s, [api.id]: !s[api.id] }))}>
+                            {showValue[api.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">{api.value || '—'}</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate">
+                      {api.description || '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      {api.value_set
+                        ? <Badge className="bg-green-500/15 text-green-500 gap-1"><Check className="w-3 h-3" /> Activa</Badge>
+                        : <Badge variant="outline" className="text-muted-foreground gap-1"><X className="w-3 h-3" /> Sin valor</Badge>}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="outline" className="gap-1 h-7"
+                          onClick={() => openEdit(api)} data-testid={`edit-custom-api-${api.id}`}>
+                          <Pencil className="w-3 h-3" /> Editar
+                        </Button>
+                        <Button size="sm" variant="destructive" className="gap-1 h-7"
+                          onClick={() => setDeleteTarget(api)} data-testid={`delete-custom-api-${api.id}`}>
+                          <Trash2 className="w-3 h-3" /> Borrar
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {loadingList && (
+                  <tr>
+                    <td colSpan={6} className="px-3 py-6 text-center">
+                      <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+
+      <CustomAPIFormDialog
+        open={formOpen}
+        onClose={closeForm}
+        editTarget={editTarget}
+        headers={headers}
+        onSaved={() => { closeForm(); load(); }}
+      />
+
+      {deleteTarget && (
+        <Dialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+          <DialogContent className="max-w-sm" data-testid="delete-custom-api-dialog">
+            <DialogHeader>
+              <DialogTitle className="text-destructive">¿Eliminar API?</DialogTitle>
+              <DialogDescription>
+                Vas a eliminar <strong>{deleteTarget.name}</strong>{' '}
+                (<code className="font-mono text-xs">{deleteTarget.key}</code>).
+                Esta acción no se puede deshacer.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
+              <Button variant="destructive" onClick={handleDelete} data-testid="confirm-delete-custom-api">
+                <Trash2 className="w-4 h-4 mr-2" /> Eliminar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </Card>
+  );
+}
+
+function CustomAPIFormDialog({ open, onClose, editTarget, headers, onSaved }) {
+  const isEdit = !!editTarget;
+  const [form, setForm] = useState({
+    name: '', key: '', value: '', description: '', is_secret: false, _keyEdited: false,
+  });
+  const [saving, setSaving] = useState(false);
+  const [showVal, setShowVal] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    if (editTarget) {
+      setForm({ name: editTarget.name || '', key: editTarget.key || '', value: '',
+        description: editTarget.description || '', is_secret: editTarget.is_secret || false, _keyEdited: true });
+    } else {
+      setForm({ name: '', key: '', value: '', description: '', is_secret: false, _keyEdited: false });
+    }
+    setShowVal(false);
+  }, [open, editTarget]);
+
+  const autoKey = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+  const submit = async () => {
+    if (!form.name.trim()) { toast.error('El nombre es obligatorio'); return; }
+    if (!isEdit && !form.key.trim()) { toast.error('La clave identificadora es obligatoria'); return; }
+    if (!isEdit && !form.value.trim()) { toast.error('El valor es obligatorio'); return; }
+    if (!isEdit && !/^[a-zA-Z0-9_\-]+$/.test(form.key)) {
+      toast.error('La clave solo puede contener letras, números, _ y -'); return;
+    }
+    setSaving(true);
+    try {
+      let res;
+      if (isEdit) {
+        const body = { name: form.name, description: form.description, is_secret: form.is_secret };
+        if (form.value.trim()) body.value = form.value;
+        res = await fetch(`${API}/admin/custom-apis/${editTarget.id}`, {
+          method: 'PUT', headers, body: JSON.stringify(body),
+        });
+      } else {
+        res = await fetch(`${API}/admin/custom-apis`, {
+          method: 'POST', headers,
+          body: JSON.stringify({
+            name: form.name, key: form.key, value: form.value,
+            description: form.description, is_secret: form.is_secret,
+          }),
+        });
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      toast.success(isEdit ? 'API actualizada' : 'API creada correctamente');
+      onSaved?.();
+    } catch (err) {
+      toast.error(err.message || 'Error guardando API');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md" data-testid="custom-api-form-dialog">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? `Editar: ${editTarget?.name}` : 'Añadir API personalizada'}</DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? 'Modifica los datos. Deja el valor vacío para no cambiarlo.'
+              : 'La clave de API se almacenará de forma segura en base de datos.'}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Nombre *</Label>
+            <Input
+              value={form.name}
+              onChange={(e) => {
+                const n = e.target.value;
+                setForm((f) => ({ ...f, name: n, ...(!isEdit && !f._keyEdited ? { key: autoKey(n) } : {}) }));
+              }}
+              placeholder="Ej: OpenAI API Key"
+              data-testid="custom-api-name"
+            />
+          </div>
+          <div>
+            <Label>Clave identificadora {isEdit ? '(fija)' : '*'}</Label>
+            <Input
+              value={form.key}
+              onChange={(e) => !isEdit && setForm((f) => ({ ...f, key: e.target.value, _keyEdited: true }))}
+              placeholder="openai_api_key"
+              readOnly={isEdit}
+              className={`font-mono text-xs${isEdit ? ' opacity-60 cursor-not-allowed' : ''}`}
+              data-testid="custom-api-key"
+            />
+            {!isEdit && <p className="text-[10px] text-muted-foreground mt-1">Solo letras, números, _ y -</p>}
+          </div>
+          <div>
+            <Label>
+              {isEdit && editTarget?.value_set ? 'Nuevo valor (vacío = sin cambios)' : 'Valor *'}
+            </Label>
+            <div className="flex gap-1">
+              <Input
+                type={form.is_secret && !showVal ? 'password' : 'text'}
+                value={form.value}
+                onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
+                placeholder={isEdit && editTarget?.value_set ? '(dejar vacío para no cambiar)' : 'sk-...'}
+                className="font-mono text-xs"
+                autoComplete="off"
+                data-testid="custom-api-value"
+              />
+              {form.is_secret && (
+                <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0"
+                  onClick={() => setShowVal((s) => !s)}>
+                  {showVal ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              )}
+            </div>
+          </div>
+          <div>
+            <Label>Descripción (opcional)</Label>
+            <Input
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="Describe para qué sirve esta API"
+              data-testid="custom-api-description"
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <Label htmlFor="custom-is-secret" className="cursor-pointer">Valor secreto</Label>
+              <p className="text-[10px] text-muted-foreground">El valor se oculta en la tabla</p>
+            </div>
+            <Switch
+              id="custom-is-secret"
+              checked={form.is_secret}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, is_secret: v }))}
+              data-testid="custom-api-secret"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={submit} disabled={saving} data-testid="custom-api-submit">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            {isEdit ? 'Guardar cambios' : 'Crear API'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ============================================================
  *  AUDIT LOG PANEL — every admin write is recorded server-side and
  *  surfaced here for transparency / GDPR / forensics.
  * ============================================================ */
@@ -1000,6 +1316,9 @@ const ACTION_LABELS = {
   'user.promote':        { label: 'Promovido a admin',    color: 'bg-purple-500/15 text-purple-500' },
   'user.demote':         { label: 'Admin removido',       color: 'bg-slate-500/15 text-slate-400' },
   'settings.update':     { label: 'Settings guardadas',   color: 'bg-indigo-500/15 text-indigo-500' },
+  'custom_api.create':   { label: 'API añadida',          color: 'bg-green-500/15 text-green-600' },
+  'custom_api.update':   { label: 'API editada',          color: 'bg-blue-500/15 text-blue-500'   },
+  'custom_api.delete':   { label: 'API eliminada',        color: 'bg-red-500/15 text-red-500'     },
 };
 
 function AuditLogPanel({ headers }) {
