@@ -1,5 +1,5 @@
 import { BACKEND_URL } from '@/lib/apiConfig';
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useCallback, useEffect, useMemo, useState, Fragment } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
@@ -506,7 +506,7 @@ function IntegrationsEditor({ headers, t }) {
   const [draft, setDraft] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const res = await fetch(`${API}/admin/settings`, { headers });
       if (res.status === 401) {
@@ -546,9 +546,9 @@ function IntegrationsEditor({ headers, t }) {
       console.error('[admin/settings GET]', err);
       toast.error(`No se pudieron cargar las settings: ${err?.message || 'fallo desconocido'}`, { duration: 8000 });
     }
-  };
+  }, [headers]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { load(); }, [load]);
 
   const save = async () => {
     setSaving(true);
@@ -1002,7 +1002,7 @@ function CustomAPIManager({ headers }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showValue, setShowValue] = useState({});
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoadingList(true);
     try {
       const res = await fetch(`${API}/admin/custom-apis`, { headers });
@@ -1014,9 +1014,9 @@ function CustomAPIManager({ headers }) {
     } finally {
       setLoadingList(false);
     }
-  };
+  }, [headers]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { load(); }, [load]);
 
   const openEdit = (api) => { setEditTarget(api); setFormOpen(true); };
   const openCreate = () => { setEditTarget(null); setFormOpen(true); };
@@ -1330,7 +1330,7 @@ function AuditLogPanel({ headers }) {
   const [emailFilter, setEmailFilter] = useState('');
   const [expanded, setExpanded] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({ limit: '50' });
     if (actionFilter !== 'all') params.set('action', actionFilter);
@@ -1346,9 +1346,9 @@ function AuditLogPanel({ headers }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [actionFilter, emailFilter, headers]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { load(); }, [load]);
 
   return (
     <Card className="bg-card border-border" data-testid="audit-log-panel">

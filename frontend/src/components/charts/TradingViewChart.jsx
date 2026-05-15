@@ -46,7 +46,7 @@ function TradingViewWidgetComponent() {
 
   useEffect(() => {
     setPersistedData({ interval, isFullscreen });
-  }, [interval, isFullscreen]);
+  }, [interval, isFullscreen, setPersistedData]);
   
   const asset = ALL_ASSETS[selectedAsset];
   const tradingviewSymbol = asset?.tradingviewSymbol || 'BINANCE:BTCUSDT';
@@ -111,10 +111,10 @@ function TradingViewWidgetComponent() {
   }, [tradingviewSymbol, interval, getTradingViewTheme, tvLocale]); // Fixed: added tvLocale so widget reloads when language changes
 
   useEffect(() => {
+    const container = containerRef.current;
     loadWidget();
     
     return () => {
-      const container = containerRef.current;
       if (container) {
         // ✅ SECURITY FIX: Clear safely without innerHTML
         while (container.firstChild) {
