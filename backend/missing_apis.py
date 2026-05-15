@@ -783,12 +783,11 @@ async def stripe_subscription_webhook(request: Request) -> Dict[str, str]:
     webhook_secret = (await get_setting("stripe_webhook_secret")) or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
     stripe.api_key = runtime_key
 
+    if not webhook_secret:
+        raise HTTPException(status_code=400, detail="Stripe webhook secret not configured")
+
     try:
-        if webhook_secret:
-            event = stripe.Webhook.construct_event(payload_bytes, sig, webhook_secret)
-        else:
-            import json
-            event = stripe.Event.construct_from(json.loads(payload_bytes), runtime_key)
+        event = stripe.Webhook.construct_event(payload_bytes, sig, webhook_secret)
     except stripe.error.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid Stripe signature")
     except Exception as e:

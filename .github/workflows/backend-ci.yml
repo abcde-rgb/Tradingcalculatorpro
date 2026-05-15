@@ -45,6 +45,7 @@ jobs:
           STRIPE_API_KEY: sk_test_dummy
           SENDGRID_API_KEY: SG.dummy
           GOOGLE_CLIENT_ID: dummy-google-client-id.apps.googleusercontent.com
-          EMERGENT_LLM_KEY: dummy
+          OPENAI_API_KEY: dummy
+          OPENAI_MODEL: gpt-4o-mini
           FINNHUB_API_KEY: dummy
         run: pytest tests/ --ignore=tests/test_stripe_payments.py -v || true

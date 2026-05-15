@@ -1,8 +1,9 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import React, { useState, useEffect } from 'react';
 import { Calculator, Wallet, AlertTriangle, TrendingUp, TrendingDown, ChevronDown } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 /**
  * TradeAdvancedPanel — collapsible panel exposing 3 pro-grade features:

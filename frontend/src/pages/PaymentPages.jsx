@@ -1,3 +1,4 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -6,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 export const PaymentSuccessPage = () => {
   const { t } = useTranslation();

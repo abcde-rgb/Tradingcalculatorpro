@@ -139,7 +139,7 @@ class TestStripeCheckoutCreate:
         assert response.status_code == 400
         data = response.json()
         assert "detail" in data
-        assert "Plan no válido" in data["detail"]
+        assert "Plan no valido" in data["detail"]
         print("Invalid plan correctly rejected")
 
     def test_checkout_create_requires_auth(self) -> None:

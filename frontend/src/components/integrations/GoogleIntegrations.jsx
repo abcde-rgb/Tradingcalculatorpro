@@ -1,6 +1,7 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import { useEffect, useState } from 'react';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = `${BACKEND_URL}/api`;
 
 /**
  * Loads ALL conditional Google integrations the SPA might need:

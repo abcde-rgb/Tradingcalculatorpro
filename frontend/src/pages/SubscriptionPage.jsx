@@ -1,3 +1,4 @@
+import { APP_BASE_URL, BACKEND_URL } from '@/lib/apiConfig';
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +10,7 @@ import { AlertCircle, CheckCircle, Calendar, CreditCard, Download, ExternalLink,
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 export default function SubscriptionPage() {
   const { t } = useTranslation();
@@ -120,7 +121,7 @@ export default function SubscriptionPage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          return_url: window.location.origin + '/subscription'
+          return_url: `${APP_BASE_URL}/subscription`
         })
       });
 

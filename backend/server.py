@@ -77,6 +77,7 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'alerts@tradingcalculator.pro')
 # Demo User (siempre tiene acceso PRO completo)
 DEMO_EMAIL = os.environ.get('DEMO_EMAIL', "demo@btccalc.pro")
 DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', "1234")
+ENABLE_DEMO_USER = os.environ.get('ENABLE_DEMO_USER', 'false').strip().lower() in ('1', 'true', 'yes', 'on')
 
 # Subscription Plans
 SUBSCRIPTION_PLANS = {
@@ -350,8 +351,8 @@ def check_premium(user: dict) -> bool:
     """Check if user has premium access. Demo user always has premium."""
     if not user:
         return False
-    # Demo user always has full PRO access
-    if user.get("email") == DEMO_EMAIL:
+    # Demo user gets full PRO access only in explicitly enabled demo environments.
+    if ENABLE_DEMO_USER and user.get("email") == DEMO_EMAIL:
         return True
     if user.get("subscription_plan") == "lifetime":
         return True
@@ -388,7 +389,7 @@ async def startup_event():
         logging.error(f"Could not ensure TTL indexes: {e}")
 
     existing = await db.users.find_one({"email": DEMO_EMAIL})
-    if not existing:
+    if ENABLE_DEMO_USER and not existing:
         demo_user = {
             "id": "demo-user-001",
             "email": DEMO_EMAIL,
@@ -402,7 +403,19 @@ async def startup_event():
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(demo_user)
-        logging.info("Demo user created: demo@btccalc.pro / 1234 (admin)")
+        logging.info("Demo user created from ENABLE_DEMO_USER")
+    elif not ENABLE_DEMO_USER:
+        await db.users.update_one(
+            {"id": "demo-user-001", "email": DEMO_EMAIL},
+            {"$set": {
+                "password": hash_password(secrets.token_urlsafe(32)),
+                "subscription_plan": None,
+                "subscription_end": None,
+                "is_premium": False,
+                "is_admin": False,
+                "demo_disabled": True,
+            }},
+        )
     else:
         # Idempotent self-heal: ensure demo always has admin + lifetime premium.
         patch: Dict[str, Any] = {}
@@ -1487,42 +1500,54 @@ async def _create_stripe_session(
     plan: dict, payment_method: str, success_url: str, cancel_url: str,
     metadata: Dict[str, str], origin_url: str,
 ) -> Any:
-    """Create a Stripe Checkout session via emergentintegrations and return it."""
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
-    webhook_url = f"{origin_url}/api/webhook/stripe"
+    """Create a Stripe Checkout session with the official Stripe SDK."""
+    if not origin_url:
+        raise HTTPException(status_code=400, detail="origin_url is required")
+
     # Prefer the key the admin saved in /admin/settings, fall back to env.
     runtime_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
     stripe.api_key = runtime_key
-    stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=webhook_url)
-    checkout_request = CheckoutSessionRequest(
-        amount=float(plan["price"]),
-        currency=plan["currency"].lower(),
-        success_url=success_url,
-        cancel_url=cancel_url,
-        payment_methods=_PAYMENT_METHODS_MAP.get(payment_method, ["card"]),
-        metadata=metadata,
-    )
-    return await stripe_checkout.create_checkout_session(checkout_request)
-    checkout_request = CheckoutSessionRequest(
-        amount=float(plan["price"]),
-        currency=plan["currency"].lower(),
-        success_url=success_url,
-        cancel_url=cancel_url,
-        payment_methods=_PAYMENT_METHODS_MAP.get(payment_method, ["card"]),
-        metadata=metadata,
-    )
-    return await stripe_checkout.create_checkout_session(checkout_request)
+
+    mode = "payment" if plan["interval"] == "lifetime" else "subscription"
+    price_data: Dict[str, Any] = {
+        "currency": plan["currency"].lower(),
+        "product_data": {"name": f"Trading Calculator PRO - {plan['name']}"},
+        "unit_amount": int(round(float(plan["price"]) * 100)),
+    }
+    if mode == "subscription":
+        recurring = {"interval": "month" if plan["interval"] == "quarter" else plan["interval"]}
+        if plan["interval"] == "quarter":
+            recurring["interval_count"] = 3
+        price_data["recurring"] = recurring
+
+    session_params: Dict[str, Any] = {
+        "mode": mode,
+        "payment_method_types": _PAYMENT_METHODS_MAP[payment_method],
+        "line_items": [{"price_data": price_data, "quantity": 1}],
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "metadata": metadata,
+        "allow_promotion_codes": True,
+    }
+    if mode == "subscription":
+        session_params["subscription_data"] = {"metadata": metadata}
+    else:
+        session_params["payment_intent_data"] = {"metadata": metadata}
+
+    return stripe.checkout.Session.create(**session_params)
 
 
 @api_router.post("/checkout/create")
 async def create_checkout(request: dict, user: dict = Depends(require_user)) -> Dict[str, Any]:
     plan_id = request.get("plan_id")
-    payment_method = request.get("payment_method", "stripe")
+    payment_method = request.get("payment_method", "card")
     origin_url = request.get("origin_url", "")
 
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
-        raise HTTPException(status_code=400, detail="Plan no válido")
+        raise HTTPException(status_code=400, detail="Plan no valido")
+    if payment_method not in _PAYMENT_METHODS_MAP:
+        raise HTTPException(status_code=400, detail="Metodo de pago no disponible")
 
     transaction = _build_pending_transaction(user, plan_id, plan, payment_method)
 
@@ -1539,7 +1564,7 @@ async def create_checkout(request: dict, user: dict = Depends(require_user)) -> 
             },
             origin_url=origin_url,
         )
-        transaction["session_id"] = session.session_id
+        transaction["session_id"] = session.id
         transaction["checkout_url"] = session.url
 
     await db.payment_transactions.insert_one(transaction)
@@ -1614,30 +1639,25 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
     - invoice.payment_failed         → mark past_due, revoke after 3 attempts
     - customer.subscription.updated  → sync status changes
     """
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
-    host_url = str(request.base_url).rstrip("/")
     runtime_key = await get_setting("stripe_secret_key") or STRIPE_API_KEY
+    webhook_secret = (await get_setting("stripe_webhook_secret")) or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
     stripe.api_key = runtime_key
 
-    # Try to parse a generic Stripe event (for the new event types)
-    raw_event_type = ""
-    raw_event = None
+    if not webhook_secret:
+        raise HTTPException(status_code=400, detail="Stripe webhook secret not configured")
     try:
-        webhook_secret = (await get_setting("stripe_webhook_secret")) or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-        if webhook_secret and signature:
-            raw_event = stripe.Webhook.construct_event(body, signature, webhook_secret)
-        else:
-            import json as _json
-            raw_event = stripe.Event.construct_from(_json.loads(body), runtime_key)
-        raw_event_type = raw_event.get("type", "")
-    except Exception:
-        # We'll still try to handle the legacy checkout.session.completed flow below
-        pass
+        raw_event = stripe.Webhook.construct_event(body, signature, webhook_secret)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Bad webhook payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid Stripe signature")
+
+    raw_event_type = raw_event.get("type", "")
 
     # ── Handle subscription lifecycle events directly via Stripe SDK ──
-    if raw_event and raw_event_type in (
+    if raw_event_type in (
         "customer.subscription.deleted",
         "invoice.payment_failed",
         "customer.subscription.updated",
@@ -1678,14 +1698,16 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             logging.error(f"[stripe-webhook] subscription event error: {e}")
             return {"status": "error"}
 
-    # ── Legacy checkout.session.completed via emergentintegrations ──
-    stripe_checkout = StripeCheckout(api_key=runtime_key, webhook_url=f"{host_url}/api/webhook/stripe")
-    try:
-        webhook_response = await stripe_checkout.handle_webhook(body, signature)
-        if webhook_response.payment_status != "paid":
-            return {"status": "received"}
+    # Handle checkout.session.completed created by the official Stripe SDK.
+    if raw_event_type != "checkout.session.completed":
+        return {"status": "received", "event": raw_event_type}
 
-        meta = webhook_response.metadata or {}
+    try:
+        session = raw_event["data"]["object"]
+        if session.get("payment_status") != "paid":
+            return {"status": "received", "event": raw_event_type}
+
+        meta = session.get("metadata") or {}
         user_id = meta.get("user_id")
         plan_id = meta.get("plan_id")
         plan = SUBSCRIPTION_PLANS.get(plan_id) if plan_id else None
@@ -1697,7 +1719,7 @@ async def stripe_webhook(request: Request) -> Dict[str, str]:
             plan_id=plan_id,
             plan=plan,
             transaction_id=meta.get("transaction_id"),
-            session_id=webhook_response.session_id,
+            session_id=session.get("id"),
         )
         # ── Credit the referrer (if any) for this paid signup ──
         try:
@@ -2790,24 +2812,35 @@ Sé directo, profesional y práctico. No repitas los números que ya tiene el tr
 
 @api_router.post("/options/ai-analyze")
 async def ai_analyze_trade(req: AITradeAnalysisRequest) -> Dict[str, Any]:
-    """AI-powered options trade coach using Claude Sonnet 4.5."""
+    """AI-powered options trade coach using the official OpenAI SDK."""
+    key = os.environ.get("OPENAI_API_KEY")
+    if not key:
+        raise HTTPException(status_code=503, detail="AI key not configured")
+
+    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        key = os.environ.get("EMERGENT_LLM_KEY")
-        if not key:
-            raise HTTPException(status_code=500, detail="AI key not configured")
+        from openai import AsyncOpenAI
 
-        chat = LlmChat(
-            api_key=key,
-            session_id=f"options-analysis-{req.symbol}",
-            system_message=(
-                "Eres un coach de trading de opciones experto con 15+ años de experiencia "
-                "en volatility trading. Respondes en español, directo, profesional, y basado en datos."
-            ),
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-
-        response = await chat.send_message(UserMessage(text=_build_ai_trade_prompt(req)))
-        return {"analysis": response, "model": "claude-sonnet-4-5"}
+        client = AsyncOpenAI(api_key=key)
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres un coach experto de trading de opciones. "
+                        "Responde en espanol, directo, profesional y basado en datos."
+                    ),
+                },
+                {"role": "user", "content": _build_ai_trade_prompt(req)},
+            ],
+            temperature=0.3,
+            max_tokens=700,
+        )
+        analysis = response.choices[0].message.content or ""
+        return {"analysis": analysis, "model": model}
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"AI analyze error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")

@@ -1,3 +1,4 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import React, { useState, useCallback } from 'react';
 import { Calculator, Sparkles, TrendingUp, TrendingDown, CheckCircle2, AlertCircle, MinusCircle, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { toast } from 'sonner';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 const verdictMeta = (ev) => {
   if (ev > 0.05) {

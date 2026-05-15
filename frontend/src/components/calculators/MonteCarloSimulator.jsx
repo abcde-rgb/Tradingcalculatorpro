@@ -1,3 +1,4 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,7 @@ import { useTranslation } from '@/lib/i18n';
 import { Link } from 'react-router-dom';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 export function MonteCarloSimulator() {
   const { user, token } = useAuthStore();

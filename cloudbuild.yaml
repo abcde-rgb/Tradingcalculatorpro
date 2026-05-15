@@ -5,7 +5,9 @@
 # One-time setup required in Cloud Console:
 #   1. Enable APIs: cloudbuild.googleapis.com, run.googleapis.com, containerregistry.googleapis.com
 #   2. Grant Cloud Build SA the "Cloud Run Admin" and "Service Account User" roles
-#   3. Set env vars on the Cloud Run service (MONGO_URL, JWT_SECRET, STRIPE_API_KEY, etc.)
+#   3. Set env vars on the Cloud Run service:
+#      MONGO_URL, JWT_SECRET, STRIPE_API_KEY, STRIPE_WEBHOOK_SECRET,
+#      OPENAI_API_KEY, ENABLE_DEMO_USER=false, CORS_ORIGINS, etc.
 #      or use Secret Manager + --set-secrets flag
 #   4. After first deploy, copy the Cloud Run URL and set it as:
 #      GitHub repo → Settings → Variables → REACT_APP_BACKEND_URL

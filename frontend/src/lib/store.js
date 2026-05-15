@@ -1,7 +1,8 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = `${BACKEND_URL}/api`;
 
 // Helper para leer respuesta de forma segura sin error "body stream already read"
 async function safeJson(res) {

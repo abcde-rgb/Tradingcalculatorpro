@@ -1,3 +1,4 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { TrendingUp, Info } from 'lucide-react';
@@ -15,7 +16,7 @@ const IVSurfaceView = ({ stock, chain }) => {
     const fetchIVSurface = async () => {
       setLoading(true);
       try {
-        const API_URL = process.env.REACT_APP_BACKEND_URL;
+        const API_URL = BACKEND_URL;
         const res = await fetch(`${API_URL}/api/options/iv-surface/${stock.symbol}?max_expirations=8`);
         const data = await res.json();
         setSurfaceData(data);

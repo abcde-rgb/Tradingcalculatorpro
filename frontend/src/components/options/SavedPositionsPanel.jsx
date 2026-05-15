@@ -1,8 +1,9 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Save, Trash2, Briefcase, Loader2, X, Plus } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 /**
  * Saved Positions Panel — save/load/delete strategies.

@@ -1,7 +1,8 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '../lib/store';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 /**
  * Hook for persisting component state to backend

@@ -1,3 +1,4 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import React, { useCallback, useState } from 'react';
 import { Search, ScanLine, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { useTranslation } from '@/lib/i18n';
 import { toast } from 'sonner';
 import CandlePatternFigure from './CandlePatternFigure';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 const PATTERN_NAME_KEY = {
   'hammer':               'hammerName',

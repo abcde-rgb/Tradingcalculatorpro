@@ -1,8 +1,9 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import React, { useEffect, useState } from 'react';
 import { Flame, Snowflake, Minus } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 /**
  * Compact IV Rank badge — shows current IV vs 52w range.

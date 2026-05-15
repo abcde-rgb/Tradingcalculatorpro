@@ -1,10 +1,11 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Target, Percent, BarChart3, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 export function JournalStats() {
   const { token } = useAuthStore();

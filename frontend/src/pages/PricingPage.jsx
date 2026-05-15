@@ -1,7 +1,8 @@
+import { APP_BASE_URL, BACKEND_URL } from '@/lib/apiConfig';
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Crown, Check, CreditCard, Wallet, Bitcoin, ArrowRight, Loader2, Building, ShoppingCart } from 'lucide-react';
+import { Crown, Check, CreditCard, ArrowRight, Loader2, Building, ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -11,7 +12,7 @@ import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { toast } from 'sonner';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = BACKEND_URL;
 
 // Framer Motion variants — extracted to prevent re-creation per render
 const HOVER_SCALE_UP = { scale: 1.02 };
@@ -29,15 +30,11 @@ const PAYMENT_METHODS_DATA = [
   { id: 'card', icon: CreditCard, color: 'text-blue-500', nameKey: 'creditDebitCard', descKey: 'creditCardDesc' },
   { id: 'sepa', icon: Building, color: 'text-emerald-500', nameKey: 'sepaDebit', descKey: 'sepaDesc' },
   { id: 'klarna', icon: ShoppingCart, color: 'text-pink-500', nameKey: 'klarnaPayment', descKey: 'klarnaDesc' },
-  { id: 'paypal', icon: Wallet, color: 'text-blue-400', nameKey: 'paypalPayment', descKey: 'paypalDesc' },
-  { id: 'crypto', icon: Bitcoin, color: 'text-orange-500', nameKey: 'cryptoPayment', descKey: 'cryptoDesc' },
 ];
 
 // Processor name displayed in "Secure payment via {processor}" footer
 const PAYMENT_PROCESSOR_NAMES = {
   card: 'Stripe',
-  crypto: 'Stripe (Crypto)',
-  paypal: 'PayPal',
   sepa: 'Stripe (SEPA)',
   klarna: 'Klarna',
 };
@@ -90,7 +87,7 @@ export default function PricingPage() {
         body: JSON.stringify({
           plan_id: selectedPlan,
           payment_method: selectedPayment,
-          origin_url: window.location.origin
+          origin_url: APP_BASE_URL
         })
       });
 

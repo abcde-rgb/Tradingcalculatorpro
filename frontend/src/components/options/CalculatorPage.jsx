@@ -1,3 +1,4 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Clock, GitCompare, Wrench } from 'lucide-react';
 import { STRATEGIES, STRATEGY_CATEGORIES } from '../../data/mockData';
@@ -110,7 +111,7 @@ const CalculatorPage = () => {
 
     (async () => {
       try {
-        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/options/earnings/${ticker}`);
+        const res = await fetch(`${BACKEND_URL}/api/options/earnings/${ticker}`);
         if (res.ok) {
           const data = await res.json();
           setNextEarnings(data.nextEarnings);

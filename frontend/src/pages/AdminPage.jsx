@@ -1,3 +1,4 @@
+import { BACKEND_URL } from '@/lib/apiConfig';
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -23,7 +24,7 @@ import { useSEO } from '@/hooks/useSEO';
 import { Header } from '@/components/layout/Header';
 import { toast } from 'sonner';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = `${BACKEND_URL}/api`;
 
 const PLAN_OPTIONS = [
   { value: 'none',      label: 'Free' },
