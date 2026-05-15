@@ -1,0 +1,60 @@
+# Cloud Build pipeline — backend → Cloud Run
+# Triggered automatically when backend/** changes on main
+# Project: tradingcalculator-495806
+#
+# One-time setup required in Cloud Console:
+#   1. Enable APIs: cloudbuild.googleapis.com, run.googleapis.com, containerregistry.googleapis.com
+#   2. Grant Cloud Build SA the "Cloud Run Admin" and "Service Account User" roles
+#   3. Set env vars on the Cloud Run service (MONGO_URL, JWT_SECRET, STRIPE_API_KEY, etc.)
+#      or use Secret Manager + --set-secrets flag
+#   4. After first deploy, copy the Cloud Run URL and set it as:
+#      GitHub repo → Settings → Variables → REACT_APP_BACKEND_URL
+#      (format: https://tradingcalculator-api-XXXXX-uc.a.run.app  — NO trailing /api)
+
+steps:
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/tradingcalculator-api:$COMMIT_SHA
+      - -t
+      - gcr.io/$PROJECT_ID/tradingcalculator-api:latest
+      - ./backend
+
+  # Push commit SHA tag
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - push
+      - gcr.io/$PROJECT_ID/tradingcalculator-api:$COMMIT_SHA
+
+  # Push latest tag
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - push
+      - gcr.io/$PROJECT_ID/tradingcalculator-api:latest
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - tradingcalculator-api
+      - --image=gcr.io/$PROJECT_ID/tradingcalculator-api:$COMMIT_SHA
+      - --region=us-central1
+      - --platform=managed
+      - --allow-unauthenticated
+      - --port=8080
+      - --memory=512Mi
+      - --cpu=1
+      - --min-instances=0
+      - --max-instances=5
+      - --quiet
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - gcr.io/$PROJECT_ID/tradingcalculator-api:$COMMIT_SHA
+  - gcr.io/$PROJECT_ID/tradingcalculator-api:latest
