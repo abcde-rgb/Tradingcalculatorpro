@@ -1,7 +1,13 @@
 const trimTrailingSlash = (value) => value.replace(/\/+$/, "");
+const hasProtocol = (value) => /^[a-z][a-z\d+\-.]*:\/\//i.test(value);
 
 const normalizeBackendUrl = (value) => {
-  const raw = trimTrailingSlash((value || "").trim());
+  const rawValue = (value || "").trim();
+  const withProtocol =
+    rawValue && !hasProtocol(rawValue) && !rawValue.startsWith("/")
+      ? `https://${rawValue}`
+      : rawValue;
+  const raw = trimTrailingSlash(withProtocol);
   return raw.endsWith("/api") ? raw.slice(0, -4) : raw;
 };
 
