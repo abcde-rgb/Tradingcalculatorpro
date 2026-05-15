@@ -14,7 +14,7 @@ services:
         value: trading_calculator_pro
       - key: JWT_SECRET
         generateValue: true
-      - key: MONGO_URL
+      - key: DATABASE_URL
         sync: false
       - key: STRIPE_API_KEY
         sync: false

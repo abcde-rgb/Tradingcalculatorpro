@@ -3,8 +3,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from document_store import PostgresDocumentClient
 import os
 import logging
+import inspect
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import Any, Dict, List, Optional
@@ -50,9 +52,13 @@ from performance import (
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-client = AsyncIOMotorClient(mongo_url)
+# Database connection
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    client = PostgresDocumentClient(database_url)
+else:
+    mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+    client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ.get('DB_NAME', 'trading_calculator_pro')]
 
 # JWT Configuration
@@ -369,8 +375,8 @@ async def startup_event():
     Also creates TTL indexes that auto-expire stale data (security best practice)."""
 
     # ── TTL indexes ──────────────────────────────────────────────────────
-    # MongoDB TTL works on `Date` fields; we always store the relevant date
-    # field as a `datetime` (not isoformat string) on the writes that matter.
+    # TTL indexes are honored by MongoDB and treated as no-ops by the Postgres
+    # document store. Keep dates as datetime values at write time.
     try:
         await db.stock_cache.create_index("expires_at", expireAfterSeconds=0)
         await db.user_states.create_index("expires_at", expireAfterSeconds=0)
@@ -3940,4 +3946,6 @@ logging.basicConfig(
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    close_result = client.close()
+    if inspect.isawaitable(close_result):
+        await close_result
